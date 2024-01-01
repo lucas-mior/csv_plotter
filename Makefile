@@ -12,7 +12,7 @@ all: release
 .SUFFIXES: .c .o
 
 clang: CC=clang
-clang: CFLAGS += -Weverything -Wno-unsafe-buffer-usage
+clang: CFLAGS += -Weverything -Wno-unsafe-buffer-usage -Wno-format-nonliteral
 clang: clean release
 
 CFLAGS += -std=c99 -D_DEFAULT_SOURCE
