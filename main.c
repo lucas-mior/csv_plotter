@@ -6,9 +6,18 @@
 
 char *program;
 
+static void usage(FILE *) __attribute__((noreturn));
+
 int main(int argc, char **argv) {
     program = basename(argv[0]);
-    printf("%s: main(%d)\n", program, argc);
-    error("Error: nothing to do yet\n");
+
+    if (argc != 2)
+        usage(stderr);
+
     exit(EXIT_SUCCESS);
+}
+
+void usage(FILE *stream) {
+    fprintf(stream, "usage: %s <file.csv>\n", program);
+    exit(stream != stdout);
 }
