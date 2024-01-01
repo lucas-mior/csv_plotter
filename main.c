@@ -13,6 +13,7 @@
 char *program;
 
 static void usage(FILE *) __attribute__((noreturn));
+static int count_separators(char *);
 
 int main(int argc, char **argv) {
     File file = {0};
@@ -33,12 +34,38 @@ int main(int argc, char **argv) {
     }
 
     char buffer[BUFSIZ];
+    if (fgets(buffer, sizeof (buffer), file.file) == NULL) {
+        error("Error reading from file: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    int number_columns_headers = count_separators(buffer); 
+    int line = 1;
+
     while (fgets(buffer, sizeof (buffer), file.file)) {
-        printf("fgets: %s\n", buffer);
+        int number_columns = count_separators(buffer);
+        int length = strcspn(buffer, "\n"); 
+
+        if (number_columns != number_columns_headers) {
+            error("Wrong number of separators on line %d\n", line + 1);
+            exit(EXIT_FAILURE);
+        }
+        printf("columns_headers: %d\n", number_columns);
+        line += 1;
     }
 
     util_close(&file);
     exit(EXIT_SUCCESS);
+}
+
+int count_separators(char *string) {
+    int count = 0;
+    while (*string) {
+        if (*string == SPLIT_CHAR)
+            count += 1;
+
+        string += 1;
+    }
+    return count;
 }
 
 void usage(FILE *stream) {
