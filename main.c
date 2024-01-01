@@ -9,5 +9,6 @@ char *program;
 int main(int argc, char **argv) {
     program = basename(argv[0]);
     printf("%s: main(%d)\n", program, argc);
+    error("Error: nothing to do yet\n");
     exit(EXIT_SUCCESS);
 }

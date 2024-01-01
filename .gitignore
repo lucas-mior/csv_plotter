@@ -1,2 +1,4 @@
 .tags.vim
 tags
+csv_plotter
+*.o

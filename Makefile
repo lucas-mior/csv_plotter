@@ -1,6 +1,6 @@
 PREFIX ?= /usr/local
 
-src = main.c
+src = main.c util.c
 headers = csv_plotter.h
 
 ldlibs = $(LDLIBS) -lmagic
