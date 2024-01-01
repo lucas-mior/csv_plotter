@@ -34,6 +34,7 @@ typedef struct File {
 } File;
 
 extern char *program;
+static const char SPLIT_CHAR = ',';
 
 void error(char *, ...);
 void *util_malloc(const size_t);

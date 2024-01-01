@@ -56,6 +56,9 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    for (char *p = file.map; p < (char *)(file.map + file.length); p += 1) {
+    }
+
     if (munmap(file.map, file.length) < 0) {
         error("Error unmapping %p with %zu bytes: %s\n",
               (void *) file.map, file.length, strerror(errno));
