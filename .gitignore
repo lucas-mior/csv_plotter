@@ -2,3 +2,4 @@
 tags
 csv_plotter
 *.o
+*.out
