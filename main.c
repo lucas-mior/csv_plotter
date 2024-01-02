@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    int data_begin = strcspn(file.map, "\n");
+    int data_begin = (int) strcspn(file.map, "\n");
     file.map[data_begin] = '\0';
     int number_columns_headers = count_separators(file.map); 
 
@@ -87,8 +87,8 @@ int main(int argc, char **argv) {
             hash_map_insert(columns_map, array->name, array);
             arrays_in_order[i] = array;
 
-            array->texts = util_malloc(lines * sizeof (*&(array->texts)));
-            array->array = util_malloc(lines * sizeof (*&(array->array)));
+            array->texts = util_malloc((size_t) lines * sizeof (*&(array->texts)));
+            array->array = util_malloc((size_t) lines * sizeof (*&(array->array)));
 
             p = NULL;
         }
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
          p < (file.map + file.length);
          p += (line_length + 1)) {
 
-        line_length = strcspn(p, "\n");
+        line_length = (int) strcspn(p, "\n");
         p[line_length] = '\0';
 
         int number_columns = count_separators(p);
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 
         char *value = p;
         for (int i = 0; i < number_columns_headers; i += 1) {
-            int n = strcspn(value, SPLIT_CHAR);
+            int n = (int) strcspn(value, SPLIT_CHAR);
             arrays_in_order[i]->texts[line] = value;
 
             value[n] = '\0';
