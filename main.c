@@ -116,9 +116,10 @@ int main(int argc, char **argv) {
     }
 
     for (int i = 0; i < number_columns_headers; i += 1) {
+        printf("\n%s ======\n", arrays_in_order[i]->name);
         for (int j = 0; j < lines; j += 1) {
             arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
-            printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]);
+            printf("%i = %f\n", j, arrays_in_order[i]->array[j]);
         }
     }
 
