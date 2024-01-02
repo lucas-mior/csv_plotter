@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <limits.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -7,16 +8,24 @@
 #include <libgen.h>
 #include <errno.h>
 #include <string.h>
+#include <threads.h>
 
 #include "csv_plotter.h"
 #include "hash.h"
 
-#define INITIAL_DATA_LENGTH 128 
+#define USE_THREADS_THRESHOLD 1024 
 
 char *program;
 
 static void usage(FILE *) __attribute__((noreturn));
 static int count_separators(char *);
+static int convert_arrays(void *);
+
+typedef struct Slice {
+    FloatArray **arrays;
+    int start;
+    int end;
+} Slice;
 
 int main(int argc, char **argv) {
     File file = {0};
@@ -113,13 +122,49 @@ int main(int argc, char **argv) {
         line += 1;
     }
 
-    for (int i = 0; i < number_columns_headers; i += 1) {
-        printf("\n%s ======\n", arrays_in_order[i]->name);
-        for (int j = 0; j < lines; j += 1) {
-            arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
-            printf("%i = %f\n", j, arrays_in_order[i]->array[j]);
+    long number_threads = sysconf(_SC_NPROCESSORS_ONLN);
+
+    if ((lines >= USE_THREADS_THRESHOLD) && (number_threads >= 2)) {
+        Slice *slices;
+        thrd_t *threads;
+        int range;
+
+        if (number_columns_headers < number_threads) {
+            number_threads = number_columns_headers;
+            range = 1;
+        } else {
+            range = number_columns_headers / number_threads;
+        }
+
+        slices = util_malloc(number_threads * sizeof (*slices));
+        threads = util_malloc(number_threads * sizeof (*threads));
+
+
+        for (int i = 0; i < number_threads; i += 1) {
+            slices[i].start = i*range;
+            if (i == number_threads - 1)
+                slices[i].end = number_columns_headers;
+            else
+                slices[i].end = (i + 1)*range;
+            slices[i].arrays = arrays_in_order;
+            thrd_create(&threads[i], convert_arrays, (void *) &slices[i]);
+        }
+
+        for (int i = 0; i < number_threads; i += 1)
+            thrd_join(threads[i], NULL);
+    } else {
+        for (int i = 0; i < number_columns_headers; i += 1) {
+            for (int j = 0; j < lines; j += 1)
+                arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
         }
     }
+    for (int i = 0; i < number_columns_headers; i += 1) {
+        printf("\n%s ======\n", arrays_in_order[i]->name);
+        for (int j = 0; j < 10; j += 1) {
+            /* printf("%i = %f\n", j, arrays_in_order[i]->array[j]); */
+        }
+    }
+
 
     if (munmap(file.map, file.length) < 0) {
         error("Error unmapping %p with %zu bytes: %s\n",
@@ -128,6 +173,16 @@ int main(int argc, char **argv) {
 
     util_close(&file);
     exit(EXIT_SUCCESS);
+}
+
+int
+convert_arrays(void *arg) {
+    Slice *slice = arg;
+
+    for (uint32 i = slice->start; i < slice->end; i += 1) {
+    }
+
+    thrd_exit(0);
 }
 
 int count_separators(char *string) {
