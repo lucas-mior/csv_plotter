@@ -9,6 +9,9 @@
 #include <string.h>
 
 #include "csv_plotter.h"
+#include "hash.h"
+
+#define INITIAL_DATA_LENGTH 128 
 
 char *program;
 
@@ -22,12 +25,7 @@ int main(int argc, char **argv) {
     if (argc != 2)
         usage(stderr);
 
-    if ((file.name = realpath(argv[1], NULL)) == NULL) {
-        error("Error getting realpath of %s: %s\n", argv[1], strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    printf("realpath: %s\n", file.name);
-
+    file.name = argv[1];
     if ((file.file = fopen(file.name, "r")) == NULL) {
         error("Error opening %s for reading: %s\n", file.name, strerror(errno));
         exit(EXIT_FAILURE);
@@ -41,29 +39,52 @@ int main(int argc, char **argv) {
     buffer[strcspn(buffer, "\n")] = '\0';
     int number_columns_headers = count_separators(buffer); 
     int line = 1;
-    FloatArray *arrays = util_calloc(number_columns_headers*2, sizeof *arrays);
-    arrays->capacity = number_columns_headers*2;
-    arrays->length = number_columns_headers;
+
+    HashMap *columns_map = hash_map_create(number_columns_headers);
+    FloatArray **arrays_in_order = util_calloc(number_columns_headers, sizeof (FloatArray *)); 
 
     {
         char *p = buffer;
-        for (int i = 0; i < arrays->length; i += 1) {
-            char *name = strtok(p, SPLIT_CHAR);
-            arrays[i].name = name;
+        for (int i = 0; i < number_columns_headers; i += 1) {
+            char *name;
+            FloatArray *array;
+
+            name = strtok(p, SPLIT_CHAR);
+            array = util_calloc(1, sizeof *array);
+
+            array->name = util_strdup(name);
+            hash_map_insert(columns_map, array->name, array);
+            arrays_in_order[i] = array;
+
+            array->texts = util_calloc(INITIAL_DATA_LENGTH, sizeof (char *));
             p = NULL;
         }
     }
+    hash_map_print(columns_map, true);
 
     while (fgets(buffer, sizeof (buffer), file.file)) {
         int number_columns = count_separators(buffer);
-        int length = strcspn(buffer, "\n"); 
+        char *p = buffer;
 
         if (number_columns != number_columns_headers) {
             error("Wrong number of separators on line %d\n", line + 1);
             exit(EXIT_FAILURE);
         }
 
+        for (int i = 0; i < number_columns_headers; i += 1) {
+            char *value = strtok(p, SPLIT_CHAR);
+            arrays_in_order[i]->texts[line-1] = util_strdup(value);
+            p = NULL;
+        }
+
         line += 1;
+    }
+    for (int i = 0; i < number_columns_headers; i += 1) {
+        arrays_in_order[i]->array = util_malloc(line * sizeof (float));
+        for (int j = 0; j < (line - 1); j += 1) {
+            arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
+            printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]);
+        }
     }
 
     util_close(&file);

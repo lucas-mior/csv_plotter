@@ -27,6 +27,7 @@ typedef size_t usize;
 typedef struct FloatArray {
     char *name;
     float *array;
+    char **texts;
     int length;
     int capacity;
 } FloatArray;

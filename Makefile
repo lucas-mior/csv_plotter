@@ -1,9 +1,9 @@
 PREFIX ?= /usr/local
 
-src = main.c util.c
+src = main.c util.c hash.c
 headers = csv_plotter.h
 
-ldlibs = $(LDLIBS) -lmagic
+ldlibs = $(LDLIBS) -lmagic -lm
 
 all: release
 
