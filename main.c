@@ -82,42 +82,38 @@ int main(int argc, char **argv) {
     }
     hash_map_print(columns_map, true);
 
-    /* for (char *p = &file.map[data_begin+1]; p < (char *)(file.map + file.length); p += 1) { */
-    /*     char *buffer = &p[strcspn(p, "\n")]; */
-    /*     *buffer = '\0'; */
-    /*     char  *next = buffer + 1; */
+    int line_length = 0;
+    for (char *p = &file.map[data_begin+1];
+         p < (file.map + file.length);
+         p += (line_length + 1)) {
+        line_length = strcspn(p, "\n");
+        p[line_length] = '\0';
 
-    /*     if (*p = *SPLIT_CHAR) { */
-    /*     } */
-    /*     if (*p == '\n') { */
-    /*         lines += 1; */
-    /*     } */
-    /* } */
+        int number_columns = count_separators(p);
+        if (number_columns != number_columns_headers) {
+            error("Wrong number of separators on line %d\n", lines + 1);
+            exit(EXIT_FAILURE);
+        }
 
-    /* while (fgets(buffer, sizeof (buffer), file.file)) { */
-    /*     int number_columns = count_separators(buffer); */
-    /*     char *p = buffer; */
+        char *value = p;
+        for (int i = 0; i < number_columns_headers; i += 1) {
+            int n = strcspn(value, SPLIT_CHAR);
+            arrays_in_order[i]->texts[lines] = value;
 
-    /*     if (number_columns != number_columns_headers) { */
-    /*         error("Wrong number of separators on line %d\n", line + 1); */
-    /*         exit(EXIT_FAILURE); */
-    /*     } */
+            value[n] = '\0';
+            value += n + 1;
+        }
 
-    /*     for (int i = 0; i < number_columns_headers; i += 1) { */
-    /*         char *value = strtok(p, SPLIT_CHAR); */
-    /*         arrays_in_order[i]->texts[line-1] = util_strdup(value); */
-    /*         p = NULL; */
-    /*     } */
+        lines += 1;
+    }
 
-    /*     line += 1; */
-    /* } */
-    /* for (int i = 0; i < number_columns_headers; i += 1) { */
-    /*     arrays_in_order[i]->array = util_malloc(line * sizeof (float)); */
-    /*     for (int j = 0; j < (line - 1); j += 1) { */
-    /*         arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]); */
-    /*         printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]); */
-    /*     } */
-    /* } */
+    for (int i = 0; i < number_columns_headers; i += 1) {
+        arrays_in_order[i]->array = util_malloc(lines * sizeof (float));
+        for (int j = 0; j < (lines - 1); j += 1) {
+            arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
+            printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]);
+        }
+    }
 
     if (munmap(file.map, file.length) < 0) {
         error("Error unmapping %p with %zu bytes: %s\n",
