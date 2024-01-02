@@ -63,6 +63,11 @@ int main(int argc, char **argv) {
     HashMap *columns_map = hash_map_create(number_columns_headers);
     FloatArray **arrays_in_order = util_calloc(number_columns_headers, sizeof (FloatArray *)); 
 
+    for (char *p = &file.map[data_begin+1]; p < (file.map + file.length); p += 1) {
+        if (*p == '\n')
+            lines += 1;
+    }
+
     {
         char *p = file.map;
         for (int i = 0; i < number_columns_headers; i += 1) {
@@ -76,40 +81,42 @@ int main(int argc, char **argv) {
             hash_map_insert(columns_map, array->name, array);
             arrays_in_order[i] = array;
 
-            array->texts = util_calloc(INITIAL_DATA_LENGTH, sizeof (char *));
+            array->texts = util_calloc(lines, sizeof (char *));
+            array->array = util_malloc(lines * sizeof (float));
             p = NULL;
         }
     }
     hash_map_print(columns_map, true);
 
     int line_length = 0;
+    int line = 0;
     for (char *p = &file.map[data_begin+1];
          p < (file.map + file.length);
          p += (line_length + 1)) {
+
         line_length = strcspn(p, "\n");
         p[line_length] = '\0';
 
         int number_columns = count_separators(p);
         if (number_columns != number_columns_headers) {
-            error("Wrong number of separators on line %d\n", lines + 1);
+            error("Wrong number of separators on line %d\n", line + 1);
             exit(EXIT_FAILURE);
         }
 
         char *value = p;
         for (int i = 0; i < number_columns_headers; i += 1) {
             int n = strcspn(value, SPLIT_CHAR);
-            arrays_in_order[i]->texts[lines] = value;
+            arrays_in_order[i]->texts[line] = value;
 
             value[n] = '\0';
             value += n + 1;
         }
 
-        lines += 1;
+        line += 1;
     }
 
     for (int i = 0; i < number_columns_headers; i += 1) {
-        arrays_in_order[i]->array = util_malloc(lines * sizeof (float));
-        for (int j = 0; j < (lines - 1); j += 1) {
+        for (int j = 0; j < lines; j += 1) {
             arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
             printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]);
         }
