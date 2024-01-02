@@ -35,7 +35,7 @@ typedef struct FloatArray {
 typedef struct File {
     FILE *file;
     char *name;
-    void *map;
+    char *map;
     int length;
     int fd;
 } File;

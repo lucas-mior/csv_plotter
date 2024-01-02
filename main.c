@@ -21,30 +21,50 @@ static int count_separators(char *);
 int main(int argc, char **argv) {
     File file = {0};
     program = basename(argv[0]);
+    int lines = 0;
 
     if (argc != 2)
         usage(stderr);
 
     file.name = argv[1];
-    if ((file.file = fopen(file.name, "r")) == NULL) {
+    if ((file.fd = open(file.name, O_RDONLY)) < 0) {
         error("Error opening %s for reading: %s\n", file.name, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    char buffer[BUFSIZ];
-    if (fgets(buffer, sizeof (buffer), file.file) == NULL) {
-        error("Error reading from file: %s\n", strerror(errno));
+    {
+        struct stat file_stat;
+        if (fstat(file.fd, &file_stat) < 0) {
+            error("Error getting file information: %s\n", strerror(errno));
+            util_close(&file);
+            exit(EXIT_FAILURE);
+        }
+        file.length = (usize) file_stat.st_size;
+        if (file.length <= 0) {
+            error("file.length: %zu\n", file.length);
+            util_close(&file);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    file.map = mmap(NULL, file.length,
+                    PROT_READ | PROT_WRITE, MAP_PRIVATE,
+                    file.fd, 0);
+    if (file.map == MAP_FAILED) {
+        error("Error mapping file file to memory: %s", strerror(errno));
+        util_close(&file);
         exit(EXIT_FAILURE);
     }
-    buffer[strcspn(buffer, "\n")] = '\0';
-    int number_columns_headers = count_separators(buffer); 
-    int line = 1;
+
+    int data_begin = strcspn(file.map, "\n");
+    file.map[data_begin] = '\0';
+    int number_columns_headers = count_separators(file.map); 
 
     HashMap *columns_map = hash_map_create(number_columns_headers);
     FloatArray **arrays_in_order = util_calloc(number_columns_headers, sizeof (FloatArray *)); 
 
     {
-        char *p = buffer;
+        char *p = file.map;
         for (int i = 0; i < number_columns_headers; i += 1) {
             char *name;
             FloatArray *array;
@@ -62,29 +82,46 @@ int main(int argc, char **argv) {
     }
     hash_map_print(columns_map, true);
 
-    while (fgets(buffer, sizeof (buffer), file.file)) {
-        int number_columns = count_separators(buffer);
-        char *p = buffer;
+    /* for (char *p = &file.map[data_begin+1]; p < (char *)(file.map + file.length); p += 1) { */
+    /*     char *buffer = &p[strcspn(p, "\n")]; */
+    /*     *buffer = '\0'; */
+    /*     char  *next = buffer + 1; */
 
-        if (number_columns != number_columns_headers) {
-            error("Wrong number of separators on line %d\n", line + 1);
-            exit(EXIT_FAILURE);
-        }
+    /*     if (*p = *SPLIT_CHAR) { */
+    /*     } */
+    /*     if (*p == '\n') { */
+    /*         lines += 1; */
+    /*     } */
+    /* } */
 
-        for (int i = 0; i < number_columns_headers; i += 1) {
-            char *value = strtok(p, SPLIT_CHAR);
-            arrays_in_order[i]->texts[line-1] = util_strdup(value);
-            p = NULL;
-        }
+    /* while (fgets(buffer, sizeof (buffer), file.file)) { */
+    /*     int number_columns = count_separators(buffer); */
+    /*     char *p = buffer; */
 
-        line += 1;
-    }
-    for (int i = 0; i < number_columns_headers; i += 1) {
-        arrays_in_order[i]->array = util_malloc(line * sizeof (float));
-        for (int j = 0; j < (line - 1); j += 1) {
-            arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]);
-            printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]);
-        }
+    /*     if (number_columns != number_columns_headers) { */
+    /*         error("Wrong number of separators on line %d\n", line + 1); */
+    /*         exit(EXIT_FAILURE); */
+    /*     } */
+
+    /*     for (int i = 0; i < number_columns_headers; i += 1) { */
+    /*         char *value = strtok(p, SPLIT_CHAR); */
+    /*         arrays_in_order[i]->texts[line-1] = util_strdup(value); */
+    /*         p = NULL; */
+    /*     } */
+
+    /*     line += 1; */
+    /* } */
+    /* for (int i = 0; i < number_columns_headers; i += 1) { */
+    /*     arrays_in_order[i]->array = util_malloc(line * sizeof (float)); */
+    /*     for (int j = 0; j < (line - 1); j += 1) { */
+    /*         arrays_in_order[i]->array[j] = atof(arrays_in_order[i]->texts[j]); */
+    /*         printf("%i %i = %s = %f\n", i, j, arrays_in_order[i]->texts[j], arrays_in_order[i]->array[j]); */
+    /*     } */
+    /* } */
+
+    if (munmap(file.map, file.length) < 0) {
+        error("Error unmapping %p with %zu bytes: %s\n",
+              (void *) file.map, file.length, strerror(errno));
     }
 
     util_close(&file);
