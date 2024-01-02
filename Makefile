@@ -3,7 +3,7 @@ PREFIX ?= /usr/local
 src = main.c util.c hash.c
 headers = csv_plotter.h
 
-ldlibs = $(LDLIBS) -lmagic -lm `$( pkg-config --libs gtk4 )`
+ldlibs = $(LDLIBS) -lmagic -lm `pkg-config --libs gtk4`
 
 all: release
 
@@ -17,7 +17,7 @@ clang: clean release
 
 CFLAGS += -std=c99 -D_DEFAULT_SOURCE
 CFLAGS += -Wall -Wextra
-CFLAGS += `$( pkg-config --cflags gtk4 )`
+CFLAGS += `pkg-config --cflags gtk4`
 
 release: CFLAGS += -O2 -flto
 release: csv_plotter
