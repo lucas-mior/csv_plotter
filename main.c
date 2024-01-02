@@ -160,9 +160,19 @@ int main(int argc, char **argv) {
     }
     for (int i = 0; i < number_columns_headers; i += 1) {
         printf("\n%s ======\n", arrays_in_order[i]->name);
+        free(arrays_in_order[i]->texts);
         for (int j = 0; j < 10; j += 1) {
             printf("%i = %f\n", j, arrays_in_order[i]->array[j]);
         }
+    }
+    printf("\ngetting q_f =====\n");
+    FloatArray *q_f;
+    if ((q_f = hash_map_lookup(columns_map, "q_f")) == NULL) {
+        error("Error getting q_f column!\n");
+        exit(EXIT_FAILURE);
+    }
+    for (int j = 0; j < lines; j += 1) {
+        printf("q_f(%i) = %f\n", j, q_f->array[j]);
     }
 
 
