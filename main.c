@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     int number_columns_headers = count_separators(file.map); 
 
     HashMap *columns_map = hash_map_create(number_columns_headers);
-    FloatArray **arrays_in_order = util_calloc(number_columns_headers, sizeof (FloatArray *)); 
+    FloatArray **arrays_in_order = util_calloc(number_columns_headers, sizeof (*arrays_in_order)); 
 
     for (char *p = &file.map[data_begin+1]; p < (file.map + file.length); p += 1) {
         if (*p == '\n')
@@ -71,18 +71,16 @@ int main(int argc, char **argv) {
     {
         char *p = file.map;
         for (int i = 0; i < number_columns_headers; i += 1) {
-            char *name;
-            FloatArray *array;
-
-            name = strtok(p, SPLIT_CHAR);
-            array = util_calloc(1, sizeof *array);
+            char *name = strtok(p, SPLIT_CHAR);
+            FloatArray *array = util_calloc(1, sizeof (*array));
 
             array->name = util_strdup(name);
             hash_map_insert(columns_map, array->name, array);
             arrays_in_order[i] = array;
 
-            array->texts = util_calloc(lines, sizeof (char *));
-            array->array = util_malloc(lines * sizeof (float));
+            array->texts = util_malloc(lines * sizeof (*&(array->texts)));
+            array->array = util_malloc(lines * sizeof (*&(array->array)));
+
             p = NULL;
         }
     }
