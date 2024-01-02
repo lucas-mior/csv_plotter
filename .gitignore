@@ -3,3 +3,5 @@ tags
 csv_plotter
 *.o
 *.out
+.cache/
+compile_commands.json
