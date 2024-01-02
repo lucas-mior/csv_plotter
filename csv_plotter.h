@@ -22,8 +22,14 @@ typedef uint32_t uint32;
 typedef uint64_t uint64;
 
 typedef size_t usize;
-typedef ssize_t isize;
 #endif
+
+typedef struct FloatArray {
+    char *name;
+    float *array;
+    int length;
+    int capacity;
+} FloatArray;
 
 typedef struct File {
     FILE *file;
@@ -34,7 +40,7 @@ typedef struct File {
 } File;
 
 extern char *program;
-static const char SPLIT_CHAR = ',';
+static const char *SPLIT_CHAR = ",";
 
 void error(char *, ...);
 void *util_malloc(const size_t);

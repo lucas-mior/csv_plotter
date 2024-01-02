@@ -38,8 +38,21 @@ int main(int argc, char **argv) {
         error("Error reading from file: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
+    buffer[strcspn(buffer, "\n")] = '\0';
     int number_columns_headers = count_separators(buffer); 
     int line = 1;
+    FloatArray *arrays = util_calloc(number_columns_headers*2, sizeof *arrays);
+    arrays->capacity = number_columns_headers*2;
+    arrays->length = number_columns_headers;
+
+    {
+        char *p = buffer;
+        for (int i = 0; i < arrays->length; i += 1) {
+            char *name = strtok(p, SPLIT_CHAR);
+            arrays[i].name = name;
+            p = NULL;
+        }
+    }
 
     while (fgets(buffer, sizeof (buffer), file.file)) {
         int number_columns = count_separators(buffer);
@@ -49,7 +62,7 @@ int main(int argc, char **argv) {
             error("Wrong number of separators on line %d\n", line + 1);
             exit(EXIT_FAILURE);
         }
-        printf("columns_headers: %d\n", number_columns);
+
         line += 1;
     }
 
@@ -60,12 +73,12 @@ int main(int argc, char **argv) {
 int count_separators(char *string) {
     int count = 0;
     while (*string) {
-        if (*string == SPLIT_CHAR)
+        if (*string == *SPLIT_CHAR)
             count += 1;
 
         string += 1;
     }
-    return count;
+    return count + 1;
 }
 
 void usage(FILE *stream) {
