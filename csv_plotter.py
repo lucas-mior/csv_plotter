@@ -6,10 +6,11 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
-from matplotlib.backends.backend_gtk4 import \
-    NavigationToolbar2GTK4 as NavigationToolbar
-from matplotlib.backends.backend_gtk4agg import \
-    FigureCanvasGTK4Agg as FigureCanvas
+from matplotlib.backends.backend_gtk4 \
+    import NavigationToolbar2GTK4 as NavigationToolbar
+
+from matplotlib.backends.backend_gtk4agg \
+    import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 
 def error(message):
@@ -18,15 +19,15 @@ def error(message):
 
 
 def on_activate(app):
-    win = Gtk.ApplicationWindow(application=app)
-    win.set_default_size(400, 300)
-    win.set_title("Embedding in GTK4")
+    window = Gtk.ApplicationWindow(application=app)
+    window.set_default_size(400, 300)
+    window.set_title(f"{program} - {filename}")
 
     df = app.df
     x = df.iloc[:, 0]
 
-    fig = Figure()
-    ax = fig.add_subplot(111)
+    figure = Figure()
+    ax = figure.add_subplot(111)
     for column in df.columns:
         if column != x.name:
             y = df[column]
@@ -36,9 +37,9 @@ def on_activate(app):
     ax.legend()
 
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    win.set_child(vbox)
+    window.set_child(vbox)
 
-    canvas = FigureCanvas(fig)
+    canvas = FigureCanvas(figure)
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
     vbox.append(canvas)
@@ -46,7 +47,7 @@ def on_activate(app):
     toolbar = NavigationToolbar(canvas)
     vbox.append(toolbar)
 
-    win.show()
+    window.show()
     return
 
 
