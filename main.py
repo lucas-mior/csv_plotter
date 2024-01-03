@@ -22,6 +22,18 @@ def on_activate(app):
     win.set_default_size(400, 300)
     win.set_title("Embedding in GTK4")
 
+    df = app.df
+    x = df.iloc[:, 0]
+
+    # fig, ax = plt.subplots()
+    # for column in df.columns:
+    #     if column != x.name:
+    #         y = df[column]
+    #         ax.plot(x, y, label=column)
+
+    # ax.set_title(f"{filename}")
+    # ax.legend()
+
     fig = Figure(figsize=(5, 4), dpi=100)
     ax = fig.add_subplot(1, 1, 1)
     t = np.arange(0.0, 3.0, 0.01)
@@ -45,48 +57,26 @@ def on_activate(app):
 
 
 if __name__ == "__main__":
-    app = Gtk.Application(
-        application_id='org.matplotlib.examples.EmbeddingInGTK4PanZoom')
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} <file.csv>", file=sys.stderr)
+        exit(1)
+
+    program = sys.argv[0]
+    filename = sys.argv[1]
+
+    df = None
+    try:
+        df = pd.read_csv(filename)
+    except Exception:
+        error(f"Error reading {filename}")
+        exit(1)
+    if df is None:
+        error(f"Error reading {filename}")
+        exit(1)
+
+    app = Gtk.Application(application_id=f"{program}")
+    app.df = df
     app.connect('activate', on_activate)
     app.run(None)
 
-    # if len(sys.argv) != 2:
-    #     print(f"usage: {sys.argv[0]} <file.csv>", file=sys.stderr)
-    #     exit(1)
-
-    # program = sys.argv[0]
-    # filename = sys.argv[1]
-
-    # df = None
-    # try:
-    #     df = pd.read_csv(filename)
-    # except Exception:
-    #     error(f"Error reading {filename}")
-    #     exit(1)
-    # if df is None:
-    #     error(f"Error reading {filename}")
-    #     exit(1)
-
-    # x = df.iloc[:, 0]
-
-    # fig, ax = plt.subplots()
-    # for column in df.columns:
-    #     if column != x.name:
-    #         y = df[column]
-    #         ax.plot(x, y, label=column)
-
-    # ax.set_title(f"{filename}")
-    # ax.legend()
-
-    # # Embed the plot in a GTK window
-    # win = Gtk.Window()
-    # win.connect("destroy", Gtk.main_quit)
-    # win.set_default_size(600, 400)
-
-    # canvas = FigureCanvasGTK3(fig)
-    # win.add(canvas)
-
-    # win.show_all()
-    # Gtk.main()
-
-# # this works, but how to enable mouse interaction?
+    exit(0)
