@@ -32,8 +32,6 @@ if __name__ == "__main__":
             y = df[column]
             plt.plot(x, y, label=column)
 
-    plt.xlabel('X-axis Label')
-    plt.ylabel('Y-axis Label')
-    plt.title('Your Plot Title')
+    plt.title(f"{filename}")
     plt.legend()
     plt.show()
