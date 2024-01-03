@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
+from matplotlib.backends.backend_gtk3 import FigureCanvasGTK3, NavigationToolbar2GTK3
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -40,15 +40,19 @@ if __name__ == "__main__":
     ax.set_title(f"{filename}")
     ax.legend()
 
-    # Embed the plot in a GTK window
     win = Gtk.Window()
     win.connect("destroy", Gtk.main_quit)
     win.set_default_size(600, 400)
 
-    canvas = FigureCanvasGTK3Agg(fig)
-    win.add(canvas)
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+    canvas = FigureCanvasGTK3(fig)
+    toolbar = NavigationToolbar2GTK3(canvas)
+
+    box.pack_start(canvas, False, False, 1)
+    box.pack_start(toolbar, False, False, 0)
+
+    win.add(box)
 
     win.show_all()
     Gtk.main()
-
-# this works, but how to enable mouse interaction?
