@@ -38,7 +38,7 @@ def on_activate(app):
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     win.set_child(vbox)
 
-    canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
+    canvas = FigureCanvas(fig)
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
     vbox.append(canvas)
