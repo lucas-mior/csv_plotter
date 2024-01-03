@@ -25,35 +25,29 @@ def on_activate(app):
     df = app.df
     x = df.iloc[:, 0]
 
-    # fig, ax = plt.subplots()
-    # for column in df.columns:
-    #     if column != x.name:
-    #         y = df[column]
-    #         ax.plot(x, y, label=column)
+    fig = Figure()
+    ax = fig.add_subplot(111)
+    for column in df.columns:
+        if column != x.name:
+            y = df[column]
+            ax.plot(x, y, label=column)
 
-    # ax.set_title(f"{filename}")
-    # ax.legend()
-
-    fig = Figure(figsize=(5, 4), dpi=100)
-    ax = fig.add_subplot(1, 1, 1)
-    t = np.arange(0.0, 3.0, 0.01)
-    s = np.sin(2*np.pi*t)
-    ax.plot(t, s)
+    ax.set_title(f"{filename}")
+    ax.legend()
 
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     win.set_child(vbox)
 
-    # Add canvas to vbox
     canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
     vbox.append(canvas)
 
-    # Create toolbar
     toolbar = NavigationToolbar(canvas)
     vbox.append(toolbar)
 
     win.show()
+    return
 
 
 if __name__ == "__main__":
