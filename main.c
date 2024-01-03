@@ -70,8 +70,8 @@ draw_cb(GtkDrawingArea *drawing_area,
          int             height,
          gpointer        data)
 {
-  cairo_set_source_surface(cr, surface, 0, 0);
-  cairo_paint(cr);
+    cairo_set_source_surface(cr, surface, 0, 0);
+    cairo_paint(cr);
 }
 
 /* Draw a rectangle on the surface at the given position */
