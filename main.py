@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg
+from matplotlib.backends.backend_gtk3 import FigureCanvasGTK3
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     win.connect("destroy", Gtk.main_quit)
     win.set_default_size(600, 400)
 
-    canvas = FigureCanvasGTK3Agg(fig)
+    canvas = FigureCanvasGTK3(fig)
     win.add(canvas)
 
     win.show_all()
