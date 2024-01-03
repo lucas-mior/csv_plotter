@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
     program = sys.argv[0]
     filename = sys.argv[1]
+
     df = None
     try:
         df = pd.read_csv(filename)
