@@ -53,10 +53,16 @@ def on_activate(app):
 
     x_label = Gtk.Label(label="Select X axis")
     x_selection.append(x_label)
+
+    group = None
     for column in df.columns:
-        check_button = Gtk.CheckButton(label=column, active=True)
-        check_button.connect("toggled", check_button_toggled)
-        x_selection.append(check_button)
+        toggle_button = Gtk.ToggleButton(label=column, group=group)
+        # toggle_button.connect("toggled", self.on_toggle_button_toggled)
+        x_selection.append(toggle_button)
+        if group is None:
+            group = toggle_button
+            toggle_button.set_active(True)
+
     y_label = Gtk.Label(label="Select columns to plot")
     y_selection.append(y_label)
     for column in df.columns:
@@ -68,11 +74,11 @@ def on_activate(app):
     config_box.set_end_child(y_selection)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
-    window.set_child(paned)
 
     paned.set_start_child(plot_box)
     paned.set_end_child(config_box)
 
+    window.set_child(paned)
     window.show()
     return
 
