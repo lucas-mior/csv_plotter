@@ -36,25 +36,25 @@ def on_activate(app):
     axes.set_title(f"{filename}")
     axes.legend()
 
-    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     canvas = FigureCanvas(figure)
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
 
     toolbar = NavigationToolbar(canvas)
-    vbox.append(toolbar)
-    vbox.append(canvas)
+    plot_box.append(toolbar)
+    plot_box.append(canvas)
 
-    side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     label = Gtk.Label(label="Side Box")
-    side_box.append(label)
+    config_box.append(label)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     window.set_child(paned)
 
-    paned.set_start_child(vbox)
-    paned.set_end_child(side_box)
+    paned.set_start_child(plot_box)
+    paned.set_end_child(config_box)
 
     window.show()
     return
