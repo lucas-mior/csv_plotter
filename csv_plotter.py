@@ -32,7 +32,7 @@ def on_activate(app):
         exit(1)
 
     window = Gtk.ApplicationWindow(application=app)
-    window.set_default_size(900, 600)
+    window.set_default_size(1200, 900)
     window.set_title(f"{program} - {filename}")
 
     x = df.iloc[:, 0]
