@@ -39,8 +39,6 @@ def on_activate(app):
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     canvas = FigureCanvas(figure)
-    canvas.set_hexpand(True)
-    canvas.set_vexpand(True)
 
     toolbar = NavigationToolbar(canvas)
     plot_box.append(toolbar)
