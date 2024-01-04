@@ -27,14 +27,14 @@ def on_activate(app):
     x = df.iloc[:, 0]
 
     figure = Figure()
-    ax = figure.add_subplot(111)
+    axes = figure.add_subplot(111)
     for column in df.columns:
         if column != x.name:
             y = df[column]
-            ax.plot(x, y, label=column)
+            axes.plot(x, y, label=column)
 
-    ax.set_title(f"{filename}")
-    ax.legend()
+    axes.set_title(f"{filename}")
+    axes.legend()
 
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     window.set_child(vbox)
