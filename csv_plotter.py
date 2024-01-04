@@ -28,6 +28,8 @@ def on_activate(app):
     x = df.iloc[:, 0]
 
     figure = Figure()
+    canvas = FigureCanvas(figure)
+    toolbar = NavigationToolbar(canvas)
     axes = figure.add_subplot(111)
     for column in df.columns:
         y = df[column]
@@ -38,10 +40,6 @@ def on_activate(app):
     axes.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-    canvas = FigureCanvas(figure)
-
-    toolbar = NavigationToolbar(canvas)
     plot_box.append(toolbar)
     plot_box.append(canvas)
 
