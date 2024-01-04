@@ -19,6 +19,7 @@ def error(message):
 
 
 def on_activate(app):
+    global axes, canvas, x
     window = Gtk.ApplicationWindow(application=app)
     window.set_default_size(400, 300)
     window.set_title(f"{program} - {filename}")
@@ -49,6 +50,10 @@ def on_activate(app):
     config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     label = Gtk.Label(label="Side Box")
     config_box.append(label)
+    for column in df.columns:
+        check_button = Gtk.CheckButton(label=column, active=True)
+        check_button.connect("toggled", check_button_toggled)
+        config_box.append(check_button)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     window.set_child(paned)
@@ -58,6 +63,29 @@ def on_activate(app):
 
     window.show()
     return
+
+
+def check_button_toggled(check_button):
+    global axes, canvas, x
+
+    column = check_button.get_label()
+    active = check_button.get_active()
+    print(f"user pressed {column}: {active}")
+
+    if not active:
+        for line in axes.get_lines():
+            if line.get_label() == column:
+                line.remove()
+                break
+    else:
+        y = df[column]
+        axes.plot(x, y, label=column)
+
+    axes.legend()
+    canvas.draw()
+    return
+
+
 
 
 if __name__ == "__main__":
