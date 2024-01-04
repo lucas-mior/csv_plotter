@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 
 import gi
+import time
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
@@ -14,20 +15,17 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 
 
-def get_file_name(parent_window=None):
-    filename = "test2.csv"
-    return filename
+filename = None
 
+def on_open_response(dialog, async_result, data):
+    global filename, window, df, axes, canvas
 
-def on_activate(app):
-    global axes, canvas, x, df
-    window = Gtk.ApplicationWindow(application=app)
-    window.set_default_size(1200, 900)
-
-    if len(sys.argv) < 2:
-        filename = get_file_name(window)
-    else:
-        filename = sys.argv[1]
+    if dialog:
+        gfile = dialog.open_finish(result=async_result)
+        if gfile is None:
+            print("Error getting file\n", file=sys.stderr)
+            exit(1)
+        filename = gfile.get_path()
 
     df = None
     try:
@@ -102,6 +100,23 @@ def on_activate(app):
 
     window.set_child(paned)
     window.show()
+
+
+def on_activate(app):
+    global axes, canvas, x, df, window
+    window = Gtk.ApplicationWindow(application=app)
+    window.set_default_size(1200, 900)
+
+    if len(sys.argv) < 2:
+        dialog = Gtk.FileDialog(title="aaa")
+        dialog.open(
+            parent=window,
+            cancellable=None,
+            callback=on_open_response,
+            user_data=None,
+        )
+    else:
+        filename = sys.argv[1]
     return
 
 
