@@ -37,7 +37,6 @@ def on_activate(app):
     axes.legend()
 
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    window.set_child(vbox)
 
     canvas = FigureCanvas(figure)
     canvas.set_hexpand(True)
@@ -46,6 +45,16 @@ def on_activate(app):
     toolbar = NavigationToolbar(canvas)
     vbox.append(toolbar)
     vbox.append(canvas)
+
+    side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    label = Gtk.Label(label="Side Box")
+    side_box.append(label)
+
+    paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
+    window.set_child(paned)
+
+    paned.set_start_child(vbox)
+    paned.set_end_child(side_box)
 
     window.show()
     return
