@@ -14,10 +14,18 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 
 
+def get_file_name(parent_window=None):
+    filename = "test2.csv"
+    return filename
+
+
 def on_activate(app):
     global axes, canvas, x, df
+    window = Gtk.ApplicationWindow(application=app)
+    window.set_default_size(1200, 900)
+
     if len(sys.argv) < 2:
-        filename = "test2.csv"
+        filename = get_file_name(window)
     else:
         filename = sys.argv[1]
 
@@ -25,16 +33,13 @@ def on_activate(app):
     try:
         df = pd.read_csv(filename)
     except Exception:
-        print(f"Error reading {filename}", file=stderr)
+        print(f"Error reading {filename}", file=sys.stderr)
         exit(1)
     if df is None:
-        print(f"Error reading {filename}", file=stderr)
+        print(f"Error reading {filename}", file=sys.stderr)
         exit(1)
 
-    window = Gtk.ApplicationWindow(application=app)
-    window.set_default_size(1200, 900)
     window.set_title(f"{program} - {filename}")
-
     x = df.iloc[:, 0]
 
     figure = Figure()
@@ -72,16 +77,14 @@ def on_activate(app):
     y_selection.append(y_label)
 
     group = None
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         toggle_button = Gtk.ToggleButton(label=column, group=group)
         toggle_button.connect("toggled", on_toggle_button_toggled)
         x_selection_boxes.append(toggle_button)
         if group is None:
             group = toggle_button
             toggle_button.set_active(True)
-
-    for i, column in enumerate(df.columns):
-        check_button = Gtk.CheckButton(label=column, active=i < 10)
+        check_button = Gtk.CheckButton(label=column, active=i <= 10)
         check_button.connect("toggled", on_check_button_toggled)
         y_selection_boxes.append(check_button)
 
