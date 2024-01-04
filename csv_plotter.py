@@ -57,7 +57,7 @@ def on_activate(app):
     group = None
     for column in df.columns:
         toggle_button = Gtk.ToggleButton(label=column, group=group)
-        # toggle_button.connect("toggled", self.on_toggle_button_toggled)
+        toggle_button.connect("toggled", toggle_button_toggled)
         x_selection.append(toggle_button)
         if group is None:
             group = toggle_button
@@ -80,6 +80,13 @@ def on_activate(app):
 
     window.set_child(paned)
     window.show()
+    return
+
+
+def toggle_button_toggled(toggle_button):
+    column = toggle_button.get_label()
+    active = toggle_button.get_active()
+    print(f"user toggled: {column} : {active}")
     return
 
 
