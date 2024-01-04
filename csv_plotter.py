@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 
 def on_activate(app):
     global axes, canvas, x, df
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         filename = "test2.csv"
     else:
         filename = sys.argv[1]
