@@ -46,7 +46,7 @@ def on_activate(app):
     plot_box.append(toolbar)
     plot_box.append(canvas)
 
-    config_box = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
+    config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     x_selection_scroll = Gtk.ScrolledWindow()
     x_selection_scroll.set_vexpand(True)
@@ -80,13 +80,13 @@ def on_activate(app):
     y_selection_scroll.set_child(y_selection_boxes)
     x_selection.append(x_selection_scroll)
     y_selection.append(y_selection_scroll)
-    config_box.set_start_child(x_selection)
-    config_box.set_end_child(y_selection)
+
+    config_pane.set_start_child(x_selection)
+    config_pane.set_end_child(y_selection)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
-
     paned.set_start_child(plot_box)
-    paned.set_end_child(config_box)
+    paned.set_end_child(config_pane)
 
     window.set_child(paned)
     window.show()
