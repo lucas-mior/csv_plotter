@@ -35,6 +35,7 @@ def on_activate(app):
 
     axes.set_title(f"{filename}")
     axes.legend()
+    axes.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -112,6 +113,7 @@ def on_toggle_button_toggled(toggle_button):
     axes.relim()
     axes.autoscale()
     axes.legend()
+    axes.set_xlabel(x.name)
     canvas.draw()
     return
 
