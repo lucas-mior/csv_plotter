@@ -42,10 +42,10 @@ def on_activate(app):
     canvas = FigureCanvas(figure)
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
-    vbox.append(canvas)
 
     toolbar = NavigationToolbar(canvas)
     vbox.append(toolbar)
+    vbox.append(canvas)
 
     window.show()
     return
