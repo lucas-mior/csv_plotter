@@ -41,9 +41,11 @@ def on_activate(app):
     canvas = FigureCanvas(figure)
     toolbar = NavigationToolbar(canvas)
     axes = figure.add_subplot(111)
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         y = df[column]
         axes.plot(x, y, label=column)
+        if i >= 10:
+            break
 
     axes.set_title(f"{filename}")
     axes.legend()
@@ -78,8 +80,8 @@ def on_activate(app):
             group = toggle_button
             toggle_button.set_active(True)
 
-    for column in df.columns:
-        check_button = Gtk.CheckButton(label=column, active=True)
+    for i, column in enumerate(df.columns):
+        check_button = Gtk.CheckButton(label=column, active=i < 10)
         check_button.connect("toggled", on_check_button_toggled)
         y_selection_boxes.append(check_button)
 
