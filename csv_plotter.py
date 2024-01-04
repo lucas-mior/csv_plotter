@@ -30,9 +30,8 @@ def on_activate(app):
     figure = Figure()
     axes = figure.add_subplot(111)
     for column in df.columns:
-        if column != x.name:
-            y = df[column]
-            axes.plot(x, y, label=column)
+        y = df[column]
+        axes.plot(x, y, label=column)
 
     axes.set_title(f"{filename}")
     axes.legend()
@@ -84,9 +83,27 @@ def on_activate(app):
 
 
 def toggle_button_toggled(toggle_button):
+    global axes, canvas, x
     column = toggle_button.get_label()
     active = toggle_button.get_active()
-    print(f"user toggled: {column} : {active}")
+
+    if active:
+        x = df[column]
+
+    plotted = []
+    for line in axes.get_lines():
+        plotted.append(line.get_label())
+        line.remove()
+
+    for column in df.columns:
+        if column in plotted:
+            y = df[column]
+            axes.plot(x, y, label=column)
+
+    axes.relim()
+    axes.autoscale()
+    axes.legend()
+    canvas.draw()
     return
 
 
