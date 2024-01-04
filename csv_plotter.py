@@ -13,10 +13,6 @@ from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 
-def error(message):
-    print(f"{program}: {message}", file=sys.stderr)
-    return
-
 
 def on_activate(app):
     global axes, canvas, x
@@ -150,10 +146,10 @@ if __name__ == "__main__":
     try:
         df = pd.read_csv(filename)
     except Exception:
-        error(f"Error reading {filename}")
+        print(f"Error reading {filename}", file=stderr)
         exit(1)
     if df is None:
-        error(f"Error reading {filename}")
+        print(f"Error reading {filename}", file=stderr)
         exit(1)
 
     app = Gtk.Application(application_id=f"{program}")
