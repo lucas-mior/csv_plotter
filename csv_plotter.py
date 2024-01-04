@@ -49,10 +49,12 @@ def on_activate(app):
     config_box = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     x_selection_scroll = Gtk.ScrolledWindow()
+    x_selection_scroll.set_vexpand(True)
     x_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_scroll = Gtk.ScrolledWindow()
+    y_selection_scroll.set_vexpand(True)
     y_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
