@@ -56,7 +56,7 @@ def on_activate(app):
     group = None
     for column in df.columns:
         toggle_button = Gtk.ToggleButton(label=column, group=group)
-        toggle_button.connect("toggled", toggle_button_toggled)
+        toggle_button.connect("toggled", on_toggle_button_toggled)
         x_selection.append(toggle_button)
         if group is None:
             group = toggle_button
@@ -66,7 +66,7 @@ def on_activate(app):
     y_selection.append(y_label)
     for column in df.columns:
         check_button = Gtk.CheckButton(label=column, active=True)
-        check_button.connect("toggled", check_button_toggled)
+        check_button.connect("toggled", on_check_button_toggled)
         y_selection.append(check_button)
 
     config_box.set_start_child(x_selection)
@@ -82,7 +82,7 @@ def on_activate(app):
     return
 
 
-def toggle_button_toggled(toggle_button):
+def on_toggle_button_toggled(toggle_button):
     global axes, canvas, x
     column = toggle_button.get_label()
     active = toggle_button.get_active()
@@ -107,7 +107,7 @@ def toggle_button_toggled(toggle_button):
     return
 
 
-def check_button_toggled(check_button):
+def on_check_button_toggled(check_button):
     global axes, canvas, x
 
     column = check_button.get_label()
