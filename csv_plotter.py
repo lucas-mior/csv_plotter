@@ -17,6 +17,16 @@ from matplotlib.figure import Figure
 
 filename = None
 
+
+def set_margins(widget):
+    size = 5
+    widget.set_margin_start(size)
+    widget.set_margin_end(size)
+    widget.set_margin_top(size)
+    widget.set_margin_bottom(size)
+    return
+
+
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes, canvas
 
@@ -55,23 +65,28 @@ def on_open_response(dialog, async_result, data):
     axes.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    set_margins(plot_box)
     plot_box.append(toolbar)
     plot_box.append(canvas)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    set_margins(x_selection)
     x_selection_scroll = Gtk.ScrolledWindow()
     x_selection_scroll.set_vexpand(True)
     x_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    set_margins(y_selection)
     y_selection_scroll = Gtk.ScrolledWindow()
     y_selection_scroll.set_vexpand(True)
     y_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
+    set_margins(x_label)
     x_selection.append(x_label)
     y_label = Gtk.Label(label="Select columns to plot")
+    set_margins(y_label)
     y_selection.append(y_label)
 
     group = None
@@ -93,10 +108,12 @@ def on_open_response(dialog, async_result, data):
 
     config_pane.set_start_child(x_selection)
     config_pane.set_end_child(y_selection)
+    config_pane.set_wide_handle(True)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     paned.set_start_child(plot_box)
     paned.set_end_child(config_pane)
+    paned.set_wide_handle(True)
 
     window.set_child(paned)
     window.show()
