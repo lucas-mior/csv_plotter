@@ -125,7 +125,7 @@ def on_activate(app):
     window.set_default_size(1200, 900)
 
     if len(sys.argv) < 2:
-        dialog = Gtk.FileDialog(title="aaa")
+        dialog = Gtk.FileDialog(title="Open a csv file")
         dialog.open(
             parent=window,
             cancellable=None,

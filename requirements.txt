@@ -1,3 +1,2 @@
 matplotlib
-gtk4
 pandas
