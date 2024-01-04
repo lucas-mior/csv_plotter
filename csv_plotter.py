@@ -21,7 +21,7 @@ def error(message):
 def on_activate(app):
     global axes, canvas, x
     window = Gtk.ApplicationWindow(application=app)
-    window.set_default_size(400, 300)
+    window.set_default_size(900, 600)
     window.set_title(f"{program} - {filename}")
 
     df = app.df
