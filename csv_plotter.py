@@ -47,11 +47,25 @@ def on_activate(app):
     plot_box.append(toolbar)
     plot_box.append(canvas)
 
-    config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    config_box = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
+    y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+    x_label = Gtk.Label(label="Select X axis")
+    x_selection.append(x_label)
     for column in df.columns:
         check_button = Gtk.CheckButton(label=column, active=True)
         check_button.connect("toggled", check_button_toggled)
-        config_box.append(check_button)
+        x_selection.append(check_button)
+    y_label = Gtk.Label(label="Select columns to plot")
+    y_selection.append(y_label)
+    for column in df.columns:
+        check_button = Gtk.CheckButton(label=column, active=True)
+        check_button.connect("toggled", check_button_toggled)
+        y_selection.append(check_button)
+
+    config_box.set_start_child(x_selection)
+    config_box.set_end_child(y_selection)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     window.set_child(paned)
@@ -78,14 +92,11 @@ def check_button_toggled(check_button):
         y = df[column]
         axes.plot(x, y, label=column)
 
-    # axes.autoscale_view()
     axes.relim()
     axes.autoscale()
     axes.legend()
     canvas.draw()
     return
-
-
 
 
 if __name__ == "__main__":
