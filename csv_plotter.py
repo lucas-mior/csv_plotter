@@ -47,30 +47,34 @@ def on_activate(app):
     plot_box.append(canvas)
 
     config_box = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
-    y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    x_selection_scroll = Gtk.ScrolledWindow()
+    x_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_selection_scroll = Gtk.ScrolledWindow()
+    y_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
-    x_selection.append(x_label)
+    x_selection_boxes.append(x_label)
 
     group = None
     for column in df.columns:
         toggle_button = Gtk.ToggleButton(label=column, group=group)
         toggle_button.connect("toggled", on_toggle_button_toggled)
-        x_selection.append(toggle_button)
+        x_selection_boxes.append(toggle_button)
         if group is None:
             group = toggle_button
             toggle_button.set_active(True)
 
     y_label = Gtk.Label(label="Select columns to plot")
-    y_selection.append(y_label)
+    y_selection_boxes.append(y_label)
     for column in df.columns:
         check_button = Gtk.CheckButton(label=column, active=True)
         check_button.connect("toggled", on_check_button_toggled)
-        y_selection.append(check_button)
+        y_selection_boxes.append(check_button)
 
-    config_box.set_start_child(x_selection)
-    config_box.set_end_child(y_selection)
+    x_selection_scroll.set_child(x_selection_boxes)
+    y_selection_scroll.set_child(y_selection_boxes)
+    config_box.set_start_child(x_selection_scroll)
+    config_box.set_end_child(y_selection_scroll)
 
     paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
 
