@@ -110,12 +110,12 @@ def on_open_response(dialog, async_result, data):
     config_pane.set_end_child(y_selection)
     config_pane.set_wide_handle(True)
 
-    paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
-    paned.set_start_child(plot_box)
-    paned.set_end_child(config_pane)
-    paned.set_wide_handle(True)
+    window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
+    window_pane.set_start_child(plot_box)
+    window_pane.set_end_child(config_pane)
+    window_pane.set_wide_handle(True)
 
-    window.set_child(paned)
+    window.set_child(window_pane)
     window.show()
 
 
