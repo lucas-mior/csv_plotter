@@ -15,12 +15,26 @@ from matplotlib.figure import Figure
 
 
 def on_activate(app):
-    global axes, canvas, x
+    global axes, canvas, x, df
+    if len(sys.argv) != 2:
+        filename = "test2.csv"
+    else:
+        filename = sys.argv[1]
+
+    df = None
+    try:
+        df = pd.read_csv(filename)
+    except Exception:
+        print(f"Error reading {filename}", file=stderr)
+        exit(1)
+    if df is None:
+        print(f"Error reading {filename}", file=stderr)
+        exit(1)
+
     window = Gtk.ApplicationWindow(application=app)
     window.set_default_size(900, 600)
     window.set_title(f"{program} - {filename}")
 
-    df = app.df
     x = df.iloc[:, 0]
 
     figure = Figure()
@@ -87,7 +101,7 @@ def on_activate(app):
 
 
 def on_toggle_button_toggled(toggle_button):
-    global axes, canvas, x
+    global axes, canvas, x, df
     column = toggle_button.get_label()
     active = toggle_button.get_active()
 
@@ -113,7 +127,7 @@ def on_toggle_button_toggled(toggle_button):
 
 
 def on_check_button_toggled(check_button):
-    global axes, canvas, x
+    global axes, canvas, x, df
 
     column = check_button.get_label()
     active = check_button.get_active()
@@ -135,25 +149,8 @@ def on_check_button_toggled(check_button):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(f"usage: {sys.argv[0]} <file.csv>", file=sys.stderr)
-        exit(1)
-
     program = sys.argv[0]
-    filename = sys.argv[1]
-
-    df = None
-    try:
-        df = pd.read_csv(filename)
-    except Exception:
-        print(f"Error reading {filename}", file=stderr)
-        exit(1)
-    if df is None:
-        print(f"Error reading {filename}", file=stderr)
-        exit(1)
-
     app = Gtk.Application(application_id=f"{program}")
-    app.df = df
     app.connect('activate', on_activate)
     app.run(None)
 
