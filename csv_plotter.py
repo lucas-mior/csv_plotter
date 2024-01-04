@@ -48,8 +48,6 @@ def on_activate(app):
     plot_box.append(canvas)
 
     config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    label = Gtk.Label(label="Side Box")
-    config_box.append(label)
     for column in df.columns:
         check_button = Gtk.CheckButton(label=column, active=True)
         check_button.connect("toggled", check_button_toggled)
@@ -70,7 +68,6 @@ def check_button_toggled(check_button):
 
     column = check_button.get_label()
     active = check_button.get_active()
-    print(f"user pressed {column}: {active}")
 
     if not active:
         for line in axes.get_lines():
@@ -81,6 +78,9 @@ def check_button_toggled(check_button):
         y = df[column]
         axes.plot(x, y, label=column)
 
+    # axes.autoscale_view()
+    axes.relim()
+    axes.autoscale()
     axes.legend()
     canvas.draw()
     return
