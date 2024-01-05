@@ -37,7 +37,6 @@ def on_open_response(dialog, async_result, data):
             sys.exit(1)
         filename = gfile.get_path()
 
-    print("Filename: ", filename)
     df = None
     try:
         df = pd.read_csv(filename)
@@ -49,9 +48,10 @@ def on_open_response(dialog, async_result, data):
         sys.exit(1)
 
     df.insert(0, 'Row', df.reset_index().index)
+    x = df.iloc[:, 0]
+
     name = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {name}")
-    x = df.iloc[:, 0]
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
@@ -71,20 +71,20 @@ def on_open_response(dialog, async_result, data):
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     Gtk.Box.set_size_request(plot_box, 900, 900)
     set_margins(plot_box)
+
     Gtk.Box.append(plot_box, toolbar)
     Gtk.Box.append(plot_box, canvas)
 
-    config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(x_selection)
-    x_selection_scroll = Gtk.ScrolledWindow()
-    Gtk.ScrolledWindow.set_vexpand(x_selection_scroll, True)
+    x_buttons_scroll = Gtk.ScrolledWindow()
+    Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
     x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(y_selection)
-    y_selection_scroll = Gtk.ScrolledWindow()
-    Gtk.ScrolledWindow.set_vexpand(y_selection_scroll, True)
+    y_buttons_scroll = Gtk.ScrolledWindow()
+    Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
     y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
@@ -114,15 +114,18 @@ def on_open_response(dialog, async_result, data):
         Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
         Gtk.Box.append(y_buttons_box, y_button)
 
-    x_selection_scroll.set_child(x_buttons_box)
-    y_selection_scroll.set_child(y_buttons_box)
-    Gtk.Box.append(x_selection, x_selection_scroll)
-    Gtk.Box.append(y_selection, y_selection_scroll)
-    x_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
+    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
+    Gtk.Box.append(x_selection, x_buttons_scroll)
+    Gtk.Box.append(y_selection, y_buttons_scroll)
+    Gtk.ScrolledWindow.set_policy(x_buttons_scroll,
+                                  Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
-    y_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
+    Gtk.ScrolledWindow.set_policy(y_buttons_scroll,
+                                  Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
 
+    config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     Gtk.Paned.set_start_child(config_pane, x_selection)
     Gtk.Paned.set_end_child(config_pane, y_selection)
     Gtk.Paned.set_wide_handle(config_pane, True)
