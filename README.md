@@ -15,8 +15,9 @@ Interactively plot CSV files.
 
 ## TODO
 - Add new curves as linear combinations of the existing data
+- Use left and right axes to fit plots with different amplitudes
 
 ## Dependencies
 - matplotlib
-- gtk4
+- pygobject
 - pandas
