@@ -76,13 +76,13 @@ def on_open_response(dialog, async_result, data):
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(x_selection)
     x_selection_scroll = Gtk.ScrolledWindow()
-    x_selection_scroll.set_vexpand(True)
+    Gtk.ScrolledWindow.set_vexpand(x_selection_scroll, True)
     x_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(y_selection)
     y_selection_scroll = Gtk.ScrolledWindow()
-    y_selection_scroll.set_vexpand(True)
+    Gtk.ScrolledWindow.set_vexpand(y_selection_scroll, True)
     y_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
@@ -94,22 +94,22 @@ def on_open_response(dialog, async_result, data):
 
     name_first = df.columns[0]
     toggle_button = Gtk.ToggleButton(label=name_first, group=None)
-    toggle_button.connect("toggled", on_toggle_button_toggled)
-    toggle_button.set_active(True)
+    Gtk.ToggleButton.connect(toggle_button, "toggled", on_toggle_button_toggled)
+    Gtk.ToggleButton.set_active(toggle_button, True)
     group = toggle_button
     Gtk.Box.append(x_selection_boxes, toggle_button)
 
     check_button = Gtk.CheckButton(label=name_first, active=False)
-    check_button.connect("toggled", on_check_button_toggled)
+    Gtk.CheckButton.connect(check_button, "toggled", on_check_button_toggled)
     Gtk.Box.append(y_selection_boxes, check_button)
 
     for i, column in enumerate(df.columns[1:]):
         toggle_button = Gtk.ToggleButton(label=column, group=group)
-        toggle_button.connect("toggled", on_toggle_button_toggled)
+        Gtk.ToggleButton.connect(toggle_button, "toggled", on_toggle_button_toggled)
         Gtk.Box.append(x_selection_boxes, toggle_button)
 
         check_button = Gtk.CheckButton(label=column, active=(i <= 10))
-        check_button.connect("toggled", on_check_button_toggled)
+        Gtk.CheckButton.connect(check_button, "toggled", on_check_button_toggled)
         Gtk.Box.append(y_selection_boxes, check_button)
 
     x_selection_scroll.set_child(x_selection_boxes)
@@ -121,16 +121,16 @@ def on_open_response(dialog, async_result, data):
     y_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
 
-    config_pane.set_start_child(x_selection)
-    config_pane.set_end_child(y_selection)
-    config_pane.set_wide_handle(True)
+    Gtk.Paned.set_start_child(config_pane, x_selection)
+    Gtk.Paned.set_end_child(config_pane, y_selection)
+    Gtk.Paned.set_wide_handle(config_pane, True)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
-    window_pane.set_start_child(plot_box)
-    window_pane.set_end_child(config_pane)
-    window_pane.set_wide_handle(True)
+    Gtk.Paned.set_start_child(window_pane, plot_box)
+    Gtk.Paned.set_end_child(window_pane, config_pane)
+    Gtk.Paned.set_wide_handle(window_pane, True)
 
-    plot_box.set_size_request(900, 900)
+    Gtk.Box.set_size_request(plot_box, 900, 900)
 
     window.set_child(window_pane)
     window.show()
