@@ -27,6 +27,11 @@ def set_margins(widget):
     return
 
 
+def basename(filename):
+    base = str.rsplit(filename, "/", -1)[-1]
+    return base
+
+
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes, canvas
 
@@ -47,7 +52,8 @@ def on_open_response(dialog, async_result, data):
         print(f"Error reading {filename}", file=sys.stderr)
         exit(1)
 
-    window.set_title(f"{program} - {filename}")
+    name = basename(filename)
+    window.set_title(f"{program} - {name}")
     x = df.iloc[:, 0]
 
     figure = Figure()
@@ -60,8 +66,7 @@ def on_open_response(dialog, async_result, data):
         if i >= 10:
             break
 
-    basename = str.rsplit(filename, "/", -1)[-1]
-    axes.set_title(f"{basename}")
+    axes.set_title(f"{name}")
     axes.legend()
     axes.set_xlabel(x.name)
 
@@ -187,7 +192,7 @@ def on_check_button_toggled(check_button):
 
 
 if __name__ == "__main__":
-    program = sys.argv[0]
+    program = basename(sys.argv[0])
     app = Gtk.Application(application_id=f"{program}")
     app.connect('activate', on_activate)
     app.run(None)
