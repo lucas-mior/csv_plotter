@@ -69,8 +69,8 @@ def on_open_response(dialog, async_result, data):
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(plot_box)
-    plot_box.append(toolbar)
-    plot_box.append(canvas)
+    Gtk.Box.append(plot_box, toolbar)
+    Gtk.Box.append(plot_box, canvas)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -87,35 +87,35 @@ def on_open_response(dialog, async_result, data):
 
     x_label = Gtk.Label(label="Select X axis")
     set_margins(x_label)
-    x_selection.append(x_label)
+    Gtk.Box.append(x_selection, x_label)
     y_label = Gtk.Label(label="Select columns to plot")
     set_margins(y_label)
-    y_selection.append(y_label)
+    Gtk.Box.append(y_selection, y_label)
 
     name_first = df.columns[0]
     toggle_button = Gtk.ToggleButton(label=name_first, group=None)
     toggle_button.connect("toggled", on_toggle_button_toggled)
     toggle_button.set_active(True)
     group = toggle_button
-    x_selection_boxes.append(toggle_button)
+    Gtk.Box.append(x_selection_boxes, toggle_button)
 
     check_button = Gtk.CheckButton(label=name_first, active=False)
     check_button.connect("toggled", on_check_button_toggled)
-    y_selection_boxes.append(check_button)
+    Gtk.Box.append(y_selection_boxes, check_button)
 
     for i, column in enumerate(df.columns[1:]):
         toggle_button = Gtk.ToggleButton(label=column, group=group)
         toggle_button.connect("toggled", on_toggle_button_toggled)
-        x_selection_boxes.append(toggle_button)
+        Gtk.Box.append(x_selection_boxes, toggle_button)
 
         check_button = Gtk.CheckButton(label=column, active=(i <= 10))
         check_button.connect("toggled", on_check_button_toggled)
-        y_selection_boxes.append(check_button)
+        Gtk.Box.append(y_selection_boxes, check_button)
 
     x_selection_scroll.set_child(x_selection_boxes)
     y_selection_scroll.set_child(y_selection_boxes)
-    x_selection.append(x_selection_scroll)
-    y_selection.append(y_selection_scroll)
+    Gtk.Box.append(x_selection, x_selection_scroll)
+    Gtk.Box.append(y_selection, y_selection_scroll)
     x_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
     y_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
@@ -164,7 +164,7 @@ def on_toggle_button_toggled(toggle_button):
 
     plotted = []
     for line in axes.get_lines():
-        plotted.append(line.get_label())
+        list.append(plotted, line.get_label())
         line.remove()
 
     axes.set_prop_cycle(None)
