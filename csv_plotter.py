@@ -57,7 +57,7 @@ def on_open_response(dialog, async_result, data):
     canvas = FigureCanvas(figure)
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
-    axes_right = axes_left.twinx()
+    # axes_right = axes_left.twinx()
     for i, column in enumerate(df.columns[1:]):
         y = df[column]
         axes_left.plot(x, y, label=column)
