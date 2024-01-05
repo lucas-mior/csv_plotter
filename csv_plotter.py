@@ -52,7 +52,7 @@ def on_open_response(dialog, async_result, data):
     window.set_title(f"{program} - {name}")
     x = df.iloc[:, 0]
 
-    figure = Figure()
+    figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
     toolbar = NavigationToolbar(canvas)
     axes = figure.add_subplot(111)
@@ -62,13 +62,16 @@ def on_open_response(dialog, async_result, data):
         if i >= 10:
             break
 
-    figure.subplots_adjust(left=0.08, right=0.95,
-                           bottom=0.05, top=0.95,
-                           wspace=0.3, hspace=0.3)
+    # figure.subplots_adjust(left=0.08, right=0.95,
+    #                        bottom=0.05, top=0.95,
+    #                        wspace=0.3, hspace=0.3)
+    # figure.tight_layout()
 
     axes.set_title(f"{name}")
     axes.legend()
     axes.set_xlabel(x.name)
+    # axes.margins(left=0.4, right=0.7, bottom=0.01, top=0.8)
+    # axes.autoscale(True, tight=True)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(plot_box)
