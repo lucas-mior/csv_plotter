@@ -55,6 +55,8 @@ def on_open_response(dialog, async_result, data):
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
+    canvas.set_hexpand(True)
+    canvas.set_vexpand(True)
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
     # axes_right = axes_left.twinx()
@@ -69,7 +71,6 @@ def on_open_response(dialog, async_result, data):
     axes_left.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    Gtk.Box.set_size_request(plot_box, 900, 900)
     set_margins(plot_box)
 
     Gtk.Box.append(plot_box, toolbar)
