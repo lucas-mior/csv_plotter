@@ -48,6 +48,7 @@ def on_open_response(dialog, async_result, data):
         print(f"Error reading {filename}", file=sys.stderr)
         exit(1)
 
+    df.insert(0, 'Row', df.reset_index().index)
     name = os.path.basename(filename)
     window.set_title(f"{program} - {name}")
     x = df.iloc[:, 0]
@@ -56,7 +57,7 @@ def on_open_response(dialog, async_result, data):
     canvas = FigureCanvas(figure)
     toolbar = NavigationToolbar(canvas)
     axes = figure.add_subplot(111)
-    for i, column in enumerate(df.columns):
+    for i, column in enumerate(df.columns[1:]):
         y = df[column]
         axes.plot(x, y, label=column)
         if i >= 10:
@@ -91,15 +92,23 @@ def on_open_response(dialog, async_result, data):
     set_margins(y_label)
     y_selection.append(y_label)
 
-    group = None
-    for i, column in enumerate(df.columns):
+    name_first = df.columns[0]
+    toggle_button = Gtk.ToggleButton(label=name_first, group=None)
+    toggle_button.connect("toggled", on_toggle_button_toggled)
+    toggle_button.set_active(True)
+    group = toggle_button
+    x_selection_boxes.append(toggle_button)
+
+    check_button = Gtk.CheckButton(label=name_first, active=False)
+    check_button.connect("toggled", on_check_button_toggled)
+    y_selection_boxes.append(check_button)
+
+    for i, column in enumerate(df.columns[1:]):
         toggle_button = Gtk.ToggleButton(label=column, group=group)
         toggle_button.connect("toggled", on_toggle_button_toggled)
         x_selection_boxes.append(toggle_button)
-        if group is None:
-            group = toggle_button
-            toggle_button.set_active(True)
-        check_button = Gtk.CheckButton(label=column, active=i <= 10)
+
+        check_button = Gtk.CheckButton(label=column, active=(i <= 10))
         check_button.connect("toggled", on_check_button_toggled)
         y_selection_boxes.append(check_button)
 
