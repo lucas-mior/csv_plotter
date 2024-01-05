@@ -157,8 +157,10 @@ def on_toggle_button_toggled(toggle_button):
     column = Gtk.ToggleButton.get_label(toggle_button)
     active = Gtk.ToggleButton.get_active(toggle_button)
 
-    if active:
-        x = df[column]
+    if not active:
+        return
+
+    x = df[column]
 
     plotted = []
     for line in axes.get_lines():
