@@ -19,6 +19,15 @@ from matplotlib.figure import Figure
 filename = None
 
 
+def plot_name_nplots(name, nplots):
+    global axes_left, canvas, x, df
+
+    y = df[name]
+    linestyle = "solid" if nplots < 6 else "dashdot"
+    axes_left.plot(x, y, linestyle=linestyle, label=name)
+    return
+
+
 def set_margins(widget):
     size = 5
     widget.set_margin_start(size)
@@ -29,7 +38,7 @@ def set_margins(widget):
 
 
 def on_open_response(dialog, async_result, data):
-    global filename, window, df, axes_left, canvas
+    global filename, window, df, axes_left, canvas, x
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
@@ -61,10 +70,8 @@ def on_open_response(dialog, async_result, data):
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
     # axes_right = axes_left.twinx()
-    for i, yname in enumerate(df.columns[1:]):
-        linestyle = "solid" if i < 6 else "dashdot"
-        y = df[yname]
-        axes_left.plot(x, y, linestyle=linestyle, label=yname)
+    for i, name in enumerate(df.columns[1:]):
+        plot_name_nplots(name, i)
         if i >= 10:
             break
 
@@ -190,9 +197,7 @@ def on_x_button_toggled(x_button):
     axes_left.set_prop_cycle(None)
 
     for i, name in enumerate(plotted):
-        linestyle = "solid" if i < 6 else "dashdot"
-        y = df[name]
-        axes_left.plot(x, y, linestyle=linestyle, label=name)
+        plot_name_nplots(name, i)
 
     axes_left.relim()
     axes_left.autoscale()
@@ -216,9 +221,7 @@ def on_y_button_toggled(y_button):
                 line.remove()
                 break
     else:
-        linestyle = "solid" if len(plotted) < 6 else "dashdot"
-        y = df[name]
-        axes_left.plot(x, y, linestyle=linestyle, label=name)
+        plot_name_nplots(name, len(plotted))
 
     axes_left.relim()
     axes_left.autoscale()
