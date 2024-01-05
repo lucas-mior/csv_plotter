@@ -7,6 +7,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
+import matplotlib as mpl
 from matplotlib.backends.backend_gtk4 \
     import NavigationToolbar2GTK4 as NavigationToolbar
 
@@ -69,6 +70,7 @@ def on_open_response(dialog, async_result, data):
     axes_left.set_title(f"{name}")
     axes_left.legend()
     axes_left.set_xlabel(x.name)
+    mpl.rcParams['lines.linewidth'] = 2
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(plot_box)
