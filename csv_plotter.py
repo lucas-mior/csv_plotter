@@ -145,6 +145,7 @@ def on_open_response(dialog, async_result, data):
     Gtk.Paned.set_start_child(window_pane, plot_box)
     Gtk.Paned.set_end_child(window_pane, config_pane)
     Gtk.Paned.set_wide_handle(window_pane, True)
+    Gtk.Paned.set_position(window_pane, 900)
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.show(window)
