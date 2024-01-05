@@ -50,7 +50,7 @@ def on_open_response(dialog, async_result, data):
 
     df.insert(0, 'Row', df.reset_index().index)
     name = os.path.basename(filename)
-    window.set_title(f"{program} - {name}")
+    Gtk.ApplicationWindow.set_title(window, f"{program} - {name}")
     x = df.iloc[:, 0]
 
     figure = Figure(layout="constrained")
@@ -132,14 +132,14 @@ def on_open_response(dialog, async_result, data):
 
     Gtk.Box.set_size_request(plot_box, 900, 900)
 
-    window.set_child(window_pane)
-    window.show()
+    Gtk.ApplicationWindow.set_child(window, window_pane)
+    Gtk.ApplicationWindow.show(window)
 
 
 def on_activate(app):
     global axes, canvas, x, df, window
     window = Gtk.ApplicationWindow(application=app)
-    window.set_default_size(1200, 900)
+    Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
