@@ -60,7 +60,8 @@ def on_open_response(dialog, async_result, data):
         if i >= 10:
             break
 
-    axes.set_title(f"{filename}")
+    basename = str.rsplit(filename, "/", -1)[-1]
+    axes.set_title(f"{basename}")
     axes.legend()
     axes.set_xlabel(x.name)
 
@@ -125,7 +126,7 @@ def on_activate(app):
     window.set_default_size(1200, 900)
 
     if len(sys.argv) < 2:
-        dialog = Gtk.FileDialog(title="Open a csv file")
+        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
         dialog.open(
             parent=window,
             cancellable=None,
