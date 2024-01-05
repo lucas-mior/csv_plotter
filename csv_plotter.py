@@ -207,7 +207,7 @@ def on_check_button_toggled(check_button):
 if __name__ == "__main__":
     program = os.path.basename(sys.argv[0])
     app = Gtk.Application(application_id=f"{program}")
-    app.connect('activate', on_activate)
-    app.run(None)
+    Gtk.Application.connect(app, 'activate', on_activate)
+    Gtk.Application.run(app, None)
 
     sys.exit(0)
