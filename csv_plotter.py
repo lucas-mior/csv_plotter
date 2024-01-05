@@ -182,8 +182,8 @@ def on_toggle_button_toggled(toggle_button):
 def on_check_button_toggled(check_button):
     global axes, canvas, x, df
 
-    column = check_button.get_label()
-    active = check_button.get_active()
+    column = Gtk.CheckButton.get_label(check_button)
+    active = Gtk.CheckButton.get_active(check_button)
 
     if not active:
         for line in axes.get_lines():
