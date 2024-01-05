@@ -116,6 +116,8 @@ def on_open_response(dialog, async_result, data):
     y_selection_scroll.set_child(y_selection_boxes)
     x_selection.append(x_selection_scroll)
     y_selection.append(y_selection_scroll)
+    x_selection_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    y_selection_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
     config_pane.set_start_child(x_selection)
     config_pane.set_end_child(y_selection)
@@ -125,6 +127,8 @@ def on_open_response(dialog, async_result, data):
     window_pane.set_start_child(plot_box)
     window_pane.set_end_child(config_pane)
     window_pane.set_wide_handle(True)
+
+    plot_box.set_size_request(900, 900)
 
     window.set_child(window_pane)
     window.show()
