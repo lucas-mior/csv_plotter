@@ -62,8 +62,9 @@ def on_open_response(dialog, async_result, data):
     axes_left = figure.add_subplot(111)
     # axes_right = axes_left.twinx()
     for i, yname in enumerate(df.columns[1:]):
+        linestyle = "solid" if i < 6 else "dashdot"
         y = df[yname]
-        axes_left.plot(x, y, label=yname)
+        axes_left.plot(x, y, linestyle=linestyle, label=yname)
         if i >= 10:
             break
 
@@ -188,9 +189,10 @@ def on_x_button_toggled(x_button):
 
     axes_left.set_prop_cycle(None)
 
-    for name in plotted:
+    for i, name in enumerate(plotted):
+        linestyle = "solid" if i < 6 else "dashdot"
         y = df[name]
-        axes_left.plot(x, y, label=name)
+        axes_left.plot(x, y, linestyle=linestyle, label=name)
 
     axes_left.relim()
     axes_left.autoscale()
@@ -206,14 +208,17 @@ def on_y_button_toggled(y_button):
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
+    plotted = axes_left.get_lines()
+
     if not active:
-        for line in axes_left.get_lines():
+        for line in plotted:
             if line.get_label() == name:
                 line.remove()
                 break
     else:
+        linestyle = "solid" if len(plotted) < 6 else "dashdot"
         y = df[name]
-        axes_left.plot(x, y, label=name)
+        axes_left.plot(x, y, linestyle=linestyle, label=name)
 
     axes_left.relim()
     axes_left.autoscale()
