@@ -30,13 +30,14 @@ def set_margins(widget):
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes, canvas
 
-    if dialog:
+    if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
         if gfile is None:
             print("Error getting file\n", file=sys.stderr)
             sys.exit(1)
         filename = gfile.get_path()
 
+    print("Filename: ", filename)
     df = None
     try:
         df = pd.read_csv(filename)
@@ -135,7 +136,7 @@ def on_open_response(dialog, async_result, data):
 
 
 def on_activate(app):
-    global axes, canvas, x, df, window
+    global axes, canvas, x, df, window, filename
     window = Gtk.ApplicationWindow(application=app)
     Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
 
@@ -149,6 +150,7 @@ def on_activate(app):
         )
     else:
         filename = sys.argv[1]
+        on_open_response(None, None, None)
     return
 
 
