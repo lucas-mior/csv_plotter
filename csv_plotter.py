@@ -74,7 +74,6 @@ def on_open_response(dialog, async_result, data):
 
     Gtk.Box.append(plot_box, toolbar)
     Gtk.Box.append(plot_box, canvas)
-    canvas.mpl_connect("resize_event", on_canvas_resized)
 
     x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -166,26 +165,6 @@ def on_activate(app):
         on_open_response(None, None, None)
     return
 
-
-def on_canvas_resized(event):
-    global axes_left, canvas
-
-    print("on_canvas_resized")
-
-    plotted = []
-    for line in axes_left.get_lines():
-        list.append(plotted, line.get_label())
-
-    for name in plotted:
-        y = df[name]
-        axes_left.plot(x, y, label=name)
-
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
-    axes_left.set_xlabel(x.name)
-    canvas.draw()
-    return
 
 def on_x_button_toggled(x_button):
     global axes_left, canvas, x, df
