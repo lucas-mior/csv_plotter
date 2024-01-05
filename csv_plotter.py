@@ -33,7 +33,7 @@ def on_open_response(dialog, async_result, data):
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
         if gfile is None:
-            print("Error getting file\n", file=sys.stderr)
+            print("Error getting file", file=sys.stderr)
             sys.exit(1)
         filename = gfile.get_path()
 
@@ -58,9 +58,9 @@ def on_open_response(dialog, async_result, data):
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
     # axes_right = axes_left.twinx()
-    for i, column in enumerate(df.columns[1:]):
-        y = df[column]
-        axes_left.plot(x, y, label=column)
+    for i, yname in enumerate(df.columns[1:]):
+        y = df[yname]
+        axes_left.plot(x, y, label=yname)
         if i >= 10:
             break
 
@@ -75,49 +75,51 @@ def on_open_response(dialog, async_result, data):
     Gtk.Box.append(plot_box, toolbar)
     Gtk.Box.append(plot_box, canvas)
 
-    x_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    set_margins(x_selection)
-    x_buttons_scroll = Gtk.ScrolledWindow()
-    Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
-    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    set_margins(y_selection)
-    y_buttons_scroll = Gtk.ScrolledWindow()
-    Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
+    set_margins(x_selection_box)
+    set_margins(y_selection_box)
+
+    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
-    set_margins(x_label)
-    Gtk.Box.append(x_selection, x_label)
     y_label = Gtk.Label(label="Select columns to plot")
+
+    Gtk.Box.append(x_selection_box, x_label)
+    Gtk.Box.append(y_selection_box, y_label)
+
+    set_margins(x_label)
     set_margins(y_label)
-    Gtk.Box.append(y_selection, y_label)
 
     name_first = df.columns[0]
     x_button = Gtk.ToggleButton(label=name_first, group=None)
+    y_button = Gtk.CheckButton(label=name_first, active=False)
+
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.ToggleButton.set_active(x_button, True)
     group = x_button
-    Gtk.Box.append(x_buttons_box, x_button)
-
-    y_button = Gtk.CheckButton(label=name_first, active=False)
     Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+
+    Gtk.Box.append(x_buttons_box, x_button)
     Gtk.Box.append(y_buttons_box, y_button)
 
-    for i, column in enumerate(df.columns[1:]):
-        x_button = Gtk.ToggleButton(label=column, group=group)
-        Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-        Gtk.Box.append(x_buttons_box, x_button)
+    for i, name in enumerate(df.columns[1:]):
+        x_button = Gtk.ToggleButton(label=name, group=group)
+        y_button = Gtk.CheckButton(label=name, active=(i <= 10))
 
-        y_button = Gtk.CheckButton(label=column, active=(i <= 10))
+        Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
         Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+
+        Gtk.Box.append(x_buttons_box, x_button)
         Gtk.Box.append(y_buttons_box, y_button)
 
-    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
-    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
-    Gtk.Box.append(x_selection, x_buttons_scroll)
-    Gtk.Box.append(y_selection, y_buttons_scroll)
+    x_buttons_scroll = Gtk.ScrolledWindow()
+    y_buttons_scroll = Gtk.ScrolledWindow()
+
+    Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
+    Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
     Gtk.ScrolledWindow.set_policy(x_buttons_scroll,
                                   Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
@@ -125,9 +127,15 @@ def on_open_response(dialog, async_result, data):
                                   Gtk.PolicyType.NEVER,
                                   Gtk.PolicyType.AUTOMATIC)
 
+    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
+
+    Gtk.Box.append(x_selection_box, x_buttons_scroll)
+    Gtk.Box.append(y_selection_box, y_buttons_scroll)
+
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
-    Gtk.Paned.set_start_child(config_pane, x_selection)
-    Gtk.Paned.set_end_child(config_pane, y_selection)
+    Gtk.Paned.set_start_child(config_pane, x_selection_box)
+    Gtk.Paned.set_end_child(config_pane, y_selection_box)
     Gtk.Paned.set_wide_handle(config_pane, True)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
@@ -137,6 +145,7 @@ def on_open_response(dialog, async_result, data):
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.show(window)
+    return
 
 
 def on_activate(app):
@@ -146,12 +155,7 @@ def on_activate(app):
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
-        dialog.open(
-            parent=window,
-            cancellable=None,
-            callback=on_open_response,
-            user_data=None,
-        )
+        dialog.open(window, None, on_open_response, None)
     else:
         filename = sys.argv[1]
         on_open_response(None, None, None)
@@ -160,13 +164,13 @@ def on_activate(app):
 
 def on_x_button_toggled(x_button):
     global axes_left, canvas, x, df
-    column = Gtk.ToggleButton.get_label(x_button)
+    name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
 
     if not active:
         return
 
-    x = df[column]
+    x = df[name]
 
     plotted = []
     for line in axes_left.get_lines():
@@ -175,9 +179,9 @@ def on_x_button_toggled(x_button):
 
     axes_left.set_prop_cycle(None)
 
-    for column in plotted:
-        y = df[column]
-        axes_left.plot(x, y, label=column)
+    for name in plotted:
+        y = df[name]
+        axes_left.plot(x, y, label=name)
 
     axes_left.relim()
     axes_left.autoscale()
@@ -190,17 +194,17 @@ def on_x_button_toggled(x_button):
 def on_y_button_toggled(y_button):
     global axes_left, canvas, x, df
 
-    column = Gtk.CheckButton.get_label(y_button)
+    name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
     if not active:
         for line in axes_left.get_lines():
-            if line.get_label() == column:
+            if line.get_label() == name:
                 line.remove()
                 break
     else:
-        y = df[column]
-        axes_left.plot(x, y, label=column)
+        y = df[name]
+        axes_left.plot(x, y, label=name)
 
     axes_left.relim()
     axes_left.autoscale()
