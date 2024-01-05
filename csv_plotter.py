@@ -148,6 +148,7 @@ def on_open_response(dialog, async_result, data):
     Gtk.Paned.set_wide_handle(window_pane, True)
     Gtk.Paned.set_position(window_pane, 900)
     Gtk.Paned.set_shrink_start_child(window_pane, False)
+    Gtk.Paned.set_shrink_end_child(window_pane, False)
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.show(window)
