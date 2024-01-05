@@ -62,6 +62,10 @@ def on_open_response(dialog, async_result, data):
         if i >= 10:
             break
 
+    figure.subplots_adjust(left=0.08, right=0.95,
+                           bottom=0.05, top=0.95,
+                           wspace=0.3, hspace=0.3)
+
     axes.set_title(f"{name}")
     axes.legend()
     axes.set_xlabel(x.name)
