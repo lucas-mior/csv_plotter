@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 import gi
-import time
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
@@ -68,6 +67,7 @@ def on_open_response(dialog, async_result, data):
     axes.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    Gtk.Box.set_size_request(plot_box, 900, 900)
     set_margins(plot_box)
     Gtk.Box.append(plot_box, toolbar)
     Gtk.Box.append(plot_box, canvas)
@@ -130,8 +130,6 @@ def on_open_response(dialog, async_result, data):
     Gtk.Paned.set_end_child(window_pane, config_pane)
     Gtk.Paned.set_wide_handle(window_pane, True)
 
-    Gtk.Box.set_size_request(plot_box, 900, 900)
-
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.show(window)
 
@@ -156,8 +154,8 @@ def on_activate(app):
 
 def on_toggle_button_toggled(toggle_button):
     global axes, canvas, x, df
-    column = toggle_button.get_label()
-    active = toggle_button.get_active()
+    column = Gtk.ToggleButton.get_label(toggle_button)
+    active = Gtk.ToggleButton.get_active(toggle_button)
 
     if active:
         x = df[column]
@@ -169,10 +167,9 @@ def on_toggle_button_toggled(toggle_button):
 
     axes.set_prop_cycle(None)
 
-    for column in df.columns:
-        if column in plotted:
-            y = df[column]
-            axes.plot(x, y, label=column)
+    for column in plotted:
+        y = df[column]
+        axes.plot(x, y, label=column)
 
     axes.relim()
     axes.autoscale()
