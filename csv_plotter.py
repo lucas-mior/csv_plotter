@@ -79,13 +79,13 @@ def on_open_response(dialog, async_result, data):
     set_margins(x_selection)
     x_selection_scroll = Gtk.ScrolledWindow()
     Gtk.ScrolledWindow.set_vexpand(x_selection_scroll, True)
-    x_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     y_selection = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(y_selection)
     y_selection_scroll = Gtk.ScrolledWindow()
     Gtk.ScrolledWindow.set_vexpand(y_selection_scroll, True)
-    y_selection_boxes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     x_label = Gtk.Label(label="Select X axis")
     set_margins(x_label)
@@ -99,23 +99,23 @@ def on_open_response(dialog, async_result, data):
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.ToggleButton.set_active(x_button, True)
     group = x_button
-    Gtk.Box.append(x_selection_boxes, x_button)
+    Gtk.Box.append(x_buttons_box, x_button)
 
     y_button = Gtk.CheckButton(label=name_first, active=False)
     Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
-    Gtk.Box.append(y_selection_boxes, y_button)
+    Gtk.Box.append(y_buttons_box, y_button)
 
     for i, column in enumerate(df.columns[1:]):
         x_button = Gtk.ToggleButton(label=column, group=group)
         Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-        Gtk.Box.append(x_selection_boxes, x_button)
+        Gtk.Box.append(x_buttons_box, x_button)
 
         y_button = Gtk.CheckButton(label=column, active=(i <= 10))
         Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
-        Gtk.Box.append(y_selection_boxes, y_button)
+        Gtk.Box.append(y_buttons_box, y_button)
 
-    x_selection_scroll.set_child(x_selection_boxes)
-    y_selection_scroll.set_child(y_selection_boxes)
+    x_selection_scroll.set_child(x_buttons_box)
+    y_selection_scroll.set_child(y_buttons_box)
     Gtk.Box.append(x_selection, x_selection_scroll)
     Gtk.Box.append(y_selection, y_selection_scroll)
     x_selection_scroll.set_policy(Gtk.PolicyType.NEVER,
