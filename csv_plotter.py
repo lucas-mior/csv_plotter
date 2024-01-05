@@ -152,6 +152,8 @@ def on_toggle_button_toggled(toggle_button):
         plotted.append(line.get_label())
         line.remove()
 
+    axes.set_prop_cycle(None)
+
     for column in df.columns:
         if column in plotted:
             y = df[column]
