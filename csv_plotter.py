@@ -35,7 +35,7 @@ def on_open_response(dialog, async_result, data):
         gfile = dialog.open_finish(result=async_result)
         if gfile is None:
             print("Error getting file\n", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         filename = gfile.get_path()
 
     df = None
@@ -43,10 +43,10 @@ def on_open_response(dialog, async_result, data):
         df = pd.read_csv(filename)
     except Exception:
         print(f"Error reading {filename}", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
     if df is None:
         print(f"Error reading {filename}", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
     df.insert(0, 'Row', df.reset_index().index)
     name = os.path.basename(filename)
@@ -210,4 +210,4 @@ if __name__ == "__main__":
     app.connect('activate', on_activate)
     app.run(None)
 
-    exit(0)
+    sys.exit(0)
