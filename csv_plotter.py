@@ -28,7 +28,7 @@ def set_margins(widget):
 
 
 def on_open_response(dialog, async_result, data):
-    global filename, window, df, axes, canvas
+    global filename, window, df, axes_left, canvas
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
@@ -56,16 +56,17 @@ def on_open_response(dialog, async_result, data):
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
     toolbar = NavigationToolbar(canvas)
-    axes = figure.add_subplot(111)
+    axes_left = figure.add_subplot(111)
+    axes_right = axes_left.twinx()
     for i, column in enumerate(df.columns[1:]):
         y = df[column]
-        axes.plot(x, y, label=column)
+        axes_left.plot(x, y, label=column)
         if i >= 10:
             break
 
-    axes.set_title(f"{name}")
-    axes.legend()
-    axes.set_xlabel(x.name)
+    axes_left.set_title(f"{name}")
+    axes_left.legend()
+    axes_left.set_xlabel(x.name)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     Gtk.Box.set_size_request(plot_box, 900, 900)
@@ -94,24 +95,24 @@ def on_open_response(dialog, async_result, data):
     Gtk.Box.append(y_selection, y_label)
 
     name_first = df.columns[0]
-    toggle_button = Gtk.ToggleButton(label=name_first, group=None)
-    Gtk.ToggleButton.connect(toggle_button, "toggled", on_toggle_button_toggled)
-    Gtk.ToggleButton.set_active(toggle_button, True)
-    group = toggle_button
-    Gtk.Box.append(x_selection_boxes, toggle_button)
+    x_button = Gtk.ToggleButton(label=name_first, group=None)
+    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+    Gtk.ToggleButton.set_active(x_button, True)
+    group = x_button
+    Gtk.Box.append(x_selection_boxes, x_button)
 
-    check_button = Gtk.CheckButton(label=name_first, active=False)
-    Gtk.CheckButton.connect(check_button, "toggled", on_check_button_toggled)
-    Gtk.Box.append(y_selection_boxes, check_button)
+    y_button = Gtk.CheckButton(label=name_first, active=False)
+    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+    Gtk.Box.append(y_selection_boxes, y_button)
 
     for i, column in enumerate(df.columns[1:]):
-        toggle_button = Gtk.ToggleButton(label=column, group=group)
-        Gtk.ToggleButton.connect(toggle_button, "toggled", on_toggle_button_toggled)
-        Gtk.Box.append(x_selection_boxes, toggle_button)
+        x_button = Gtk.ToggleButton(label=column, group=group)
+        Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+        Gtk.Box.append(x_selection_boxes, x_button)
 
-        check_button = Gtk.CheckButton(label=column, active=(i <= 10))
-        Gtk.CheckButton.connect(check_button, "toggled", on_check_button_toggled)
-        Gtk.Box.append(y_selection_boxes, check_button)
+        y_button = Gtk.CheckButton(label=column, active=(i <= 10))
+        Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+        Gtk.Box.append(y_selection_boxes, y_button)
 
     x_selection_scroll.set_child(x_selection_boxes)
     y_selection_scroll.set_child(y_selection_boxes)
@@ -136,7 +137,7 @@ def on_open_response(dialog, async_result, data):
 
 
 def on_activate(app):
-    global axes, canvas, x, df, window, filename
+    global axes_left, canvas, x, df, window, filename
     window = Gtk.ApplicationWindow(application=app)
     Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
 
@@ -154,10 +155,10 @@ def on_activate(app):
     return
 
 
-def on_toggle_button_toggled(toggle_button):
-    global axes, canvas, x, df
-    column = Gtk.ToggleButton.get_label(toggle_button)
-    active = Gtk.ToggleButton.get_active(toggle_button)
+def on_x_button_toggled(x_button):
+    global axes_left, canvas, x, df
+    column = Gtk.ToggleButton.get_label(x_button)
+    active = Gtk.ToggleButton.get_active(x_button)
 
     if not active:
         return
@@ -165,42 +166,42 @@ def on_toggle_button_toggled(toggle_button):
     x = df[column]
 
     plotted = []
-    for line in axes.get_lines():
+    for line in axes_left.get_lines():
         list.append(plotted, line.get_label())
         line.remove()
 
-    axes.set_prop_cycle(None)
+    axes_left.set_prop_cycle(None)
 
     for column in plotted:
         y = df[column]
-        axes.plot(x, y, label=column)
+        axes_left.plot(x, y, label=column)
 
-    axes.relim()
-    axes.autoscale()
-    axes.legend()
-    axes.set_xlabel(x.name)
+    axes_left.relim()
+    axes_left.autoscale()
+    axes_left.legend()
+    axes_left.set_xlabel(x.name)
     canvas.draw()
     return
 
 
-def on_check_button_toggled(check_button):
-    global axes, canvas, x, df
+def on_y_button_toggled(y_button):
+    global axes_left, canvas, x, df
 
-    column = Gtk.CheckButton.get_label(check_button)
-    active = Gtk.CheckButton.get_active(check_button)
+    column = Gtk.CheckButton.get_label(y_button)
+    active = Gtk.CheckButton.get_active(y_button)
 
     if not active:
-        for line in axes.get_lines():
+        for line in axes_left.get_lines():
             if line.get_label() == column:
                 line.remove()
                 break
     else:
         y = df[column]
-        axes.plot(x, y, label=column)
+        axes_left.plot(x, y, label=column)
 
-    axes.relim()
-    axes.autoscale()
-    axes.legend()
+    axes_left.relim()
+    axes_left.autoscale()
+    axes_left.legend()
     canvas.draw()
     return
 
