@@ -161,7 +161,7 @@ def on_open_response(dialog, async_result, data):
     Gtk.Paned.set_shrink_end_child(window_pane, False)
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
-    Gtk.ApplicationWindow.show(window)
+    Gtk.ApplicationWindow.set_visible(window, True)
     return
 
 
