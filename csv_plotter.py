@@ -106,7 +106,6 @@ def configure_window_once():
     Gtk.Box.append(plot_box, toolbar_window)
     Gtk.Box.append(plot_box, canvas)
 
-
     initialize_plots(x_buttons_scroll, y_buttons_scroll)
 
     Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
