@@ -18,7 +18,7 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 
 
-def on_activate(app):
+def on_application_activation(app):
     global window, filename
 
     window = Gtk.ApplicationWindow(application=app)
@@ -26,14 +26,14 @@ def on_activate(app):
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
-        dialog.open(window, None, on_have_filename, None)
+        dialog.open(window, None, on_have_filename_ready, None)
     else:
         filename = sys.argv[1]
-        on_have_filename(None, None, None)
+        on_have_filename_ready(None, None, None)
     return
 
 
-def on_have_filename(dialog, async_result, data):
+def on_have_filename_ready(dialog, async_result, data):
     global filename
 
     if dialog is not None:
@@ -334,7 +334,7 @@ def add_plot_name_nplots(name):
 if __name__ == "__main__":
     program = os.path.basename(sys.argv[0])
     app = Gtk.Application(application_id=f"{program}")
-    Gtk.Application.connect(app, 'activate', on_activate)
+    Gtk.Application.connect(app, 'activate', on_application_activation)
     Gtk.Application.run(app, None)
 
     sys.exit(0)
