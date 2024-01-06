@@ -68,15 +68,6 @@ def initialize_plots():
     return
 
 
-def add_plot_name_nplots(name):
-    nplots = len(axes_left.get_lines())
-
-    y = df[name]
-    linestyle = "solid" if nplots < 6 else "dashdot"
-    axes_left.plot(x, y, linestyle=linestyle, label=name)
-    return
-
-
 def add_buttons_xy(name, xactive=False, yactive=False):
     global group
 
@@ -328,6 +319,15 @@ def redraw_plots():
     axes_left.autoscale()
     axes_left.legend()
     canvas.draw()
+    return
+
+
+def add_plot_name_nplots(name):
+    nplots = len(axes_left.get_lines())
+
+    y = df[name]
+    linestyle = "solid" if nplots < 6 else "dashdot"
+    axes_left.plot(x, y, linestyle=linestyle, label=name)
     return
 
 
