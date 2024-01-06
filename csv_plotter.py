@@ -118,52 +118,6 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     return
 
 
-def on_entry_activate(entry):
-    buffer = Gtk.Entry.get_buffer(entry)
-    text = Gtk.EntryBuffer.get_text(buffer)
-
-    local_dict = df.to_dict(orient='series')
-    df[text] = pd.eval(text, local_dict=local_dict)
-    Gtk.Entry.set_text(entry, "")
-
-    name = df.columns[-1]
-
-    add_buttons_xy(name, yactive=True)
-
-    add_plot_name_nplots(name)
-    redraw_plots()
-    return
-
-
-def on_delete_button_click(delete_button, user_data):
-
-    def _delete_parent(button):
-        parent = Gtk.Button.get_parent(button)
-        grand_parent = Gtk.Box.get_parent(parent)
-        Gtk.Box.remove(grand_parent, parent)
-        return
-
-    x_button = user_data[0]
-    y_button = user_data[1]
-    name = x_button.get_label()
-
-    if name != x.name:
-        df.drop(name, axis=1)
-
-        remove_plot(name)
-        redraw_plots()
-        _delete_parent(x_button)
-        _delete_parent(y_button)
-    return
-
-
-def on_reload_button_clicked(reload_button):
-    load_file()
-    initialize_plots()
-    redraw_plots()
-    return
-
-
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x
     global x_selection_box, y_selection_box
@@ -272,6 +226,45 @@ def on_activate(app):
     return
 
 
+def on_entry_activate(entry):
+    buffer = Gtk.Entry.get_buffer(entry)
+    text = Gtk.EntryBuffer.get_text(buffer)
+
+    local_dict = df.to_dict(orient='series')
+    df[text] = pd.eval(text, local_dict=local_dict)
+    Gtk.Entry.set_text(entry, "")
+
+    name = df.columns[-1]
+
+    add_buttons_xy(name, yactive=True)
+
+    add_plot_name_nplots(name)
+    redraw_plots()
+    return
+
+
+def on_delete_button_click(delete_button, user_data):
+
+    def _delete_parent(button):
+        parent = Gtk.Button.get_parent(button)
+        grand_parent = Gtk.Box.get_parent(parent)
+        Gtk.Box.remove(grand_parent, parent)
+        return
+
+    x_button = user_data[0]
+    y_button = user_data[1]
+    name = x_button.get_label()
+
+    if name != x.name:
+        df.drop(name, axis=1)
+
+        remove_plot(name)
+        redraw_plots()
+        _delete_parent(x_button)
+        _delete_parent(y_button)
+    return
+
+
 def on_x_button_toggled(x_button):
     global axes_left, x, df
 
@@ -298,21 +291,10 @@ def on_x_button_toggled(x_button):
     return
 
 
-def remove_plot(name):
-    global axes_left
-
-    for line in axes_left.get_lines():
-        if line.get_label() == name:
-            line.remove()
-            break
-    return
-
-
-def redraw_plots():
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
-    canvas.draw()
+def on_reload_button_clicked(reload_button):
+    load_file()
+    initialize_plots()
+    redraw_plots()
     return
 
 
@@ -328,6 +310,24 @@ def on_y_button_toggled(y_button):
         remove_plot(name)
 
     redraw_plots()
+    return
+
+
+def remove_plot(name):
+    global axes_left
+
+    for line in axes_left.get_lines():
+        if line.get_label() == name:
+            line.remove()
+            break
+    return
+
+
+def redraw_plots():
+    axes_left.relim()
+    axes_left.autoscale()
+    axes_left.legend()
+    canvas.draw()
     return
 
 
