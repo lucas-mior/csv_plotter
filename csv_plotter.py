@@ -106,7 +106,7 @@ def configure_window_once():
     Gtk.Box.append(plot_box, toolbar_window)
     Gtk.Box.append(plot_box, canvas)
 
-    initialize_plots(x_config_scroll, y_config_scroll)
+    reinitialize_plots(x_config_scroll, y_config_scroll)
 
     Gtk.ScrolledWindow.set_vexpand(x_config_scroll, True)
     Gtk.ScrolledWindow.set_vexpand(y_config_scroll, True)
@@ -149,7 +149,7 @@ def configure_window_once():
     return
 
 
-def initialize_plots(x_config_scroll, y_config_scroll):
+def reinitialize_plots(x_config_scroll, y_config_scroll):
     global group
 
     for line in axes_left.get_lines():
@@ -304,7 +304,7 @@ def on_y_button_toggled(y_button):
 
 def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
     reload_file_contents()
-    initialize_plots(x_config_scroll, y_config_scroll)
+    reinitialize_plots(x_config_scroll, y_config_scroll)
     redraw_plots()
     return
 
