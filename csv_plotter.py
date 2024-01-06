@@ -69,22 +69,11 @@ def initialize_plots():
 
 
 def add_plot_name_nplots(name):
-    global x, df
-
     nplots = len(axes_left.get_lines())
 
     y = df[name]
     linestyle = "solid" if nplots < 6 else "dashdot"
     axes_left.plot(x, y, linestyle=linestyle, label=name)
-    return
-
-
-def set_margins(widget):
-    size = 5
-    widget.set_margin_start(size)
-    widget.set_margin_end(size)
-    widget.set_margin_top(size)
-    widget.set_margin_bottom(size)
     return
 
 
@@ -203,7 +192,6 @@ def on_open_response(dialog, async_result, data):
     # axes_right = axes_left.twinx()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    set_margins(plot_box)
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
@@ -218,17 +206,11 @@ def on_open_response(dialog, async_result, data):
     x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    set_margins(x_selection_box)
-    set_margins(y_selection_box)
-
     x_label = Gtk.Label(label="Select X axis")
     y_label = Gtk.Label(label="Select columns to plot")
 
     Gtk.Box.append(x_selection_box, x_label)
     Gtk.Box.append(y_selection_box, y_label)
-
-    set_margins(x_label)
-    set_margins(y_label)
 
     x_buttons_scroll = Gtk.ScrolledWindow()
     y_buttons_scroll = Gtk.ScrolledWindow()
