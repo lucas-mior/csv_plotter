@@ -107,8 +107,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
 
 
 def on_have_filename(dialog, async_result, data):
-    global filename, window, df, axes_left, canvas, x
-    global x_selection_box, y_selection_box
+    global filename, window, df, axes_left, canvas
     global x_buttons_scroll, y_buttons_scroll
 
     if dialog is not None:
