@@ -283,13 +283,6 @@ def on_x_button_toggled(x_button):
     return
 
 
-def on_reload_button_clicked(reload_button):
-    load_file()
-    initialize_plots()
-    redraw_plots()
-    return
-
-
 def on_y_button_toggled(y_button):
     global axes_left, x, df
 
@@ -301,6 +294,13 @@ def on_y_button_toggled(y_button):
     else:
         remove_plot(name)
 
+    redraw_plots()
+    return
+
+
+def on_reload_button_clicked(reload_button):
+    load_file()
+    initialize_plots()
     redraw_plots()
     return
 
