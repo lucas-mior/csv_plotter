@@ -37,7 +37,6 @@ def load_file():
 
 def initialize_plots():
     global group, x_buttons_box, y_buttons_box
-    global x_buttons_scroll, y_buttons_scroll
 
     for line in axes_left.get_lines():
         line.remove()
