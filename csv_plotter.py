@@ -296,10 +296,8 @@ def on_x_button_toggled(x_button):
     for i, name in enumerate(plotted):
         plot_name_nplots(name, i)
 
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
     axes_left.set_xlabel(x.name)
+    replot()
     canvas.draw()
     return
 
@@ -310,6 +308,14 @@ def remove_plot(name):
         if line.get_label() == name:
             line.remove()
             break
+    return
+
+
+def replot():
+    axes_left.relim()
+    axes_left.autoscale()
+    axes_left.legend()
+    canvas.draw()
     return
 
 
@@ -324,10 +330,7 @@ def on_y_button_toggled(y_button):
     else:
         plot_name_nplots(name, len(axes_left.get_lines()))
 
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
-    canvas.draw()
+    replot()
     return
 
 
