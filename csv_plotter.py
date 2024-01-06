@@ -85,8 +85,10 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     x_delete.set_halign(Gtk.Align.END)
     y_delete.set_halign(Gtk.Align.END)
 
-    x_delete.connect("clicked", on_delete_button_click, (x_button, y_button))
-    y_delete.connect("clicked", on_delete_button_click, (y_button, x_button))
+    Gtk.Button.connect(x_delete, 
+                       "clicked", on_delete_button_click, (x_button, y_button))
+    Gtk.Button.connect(y_delete, 
+                       "clicked", on_delete_button_click, (y_button, x_button))
 
     x_item.append(x_delete)
     y_item.append(y_delete)
@@ -137,6 +139,10 @@ def on_delete_button_click(delete_button, user_data):
     return
 
 
+def on_reload_button_clicked(reload_button):
+    return
+
+
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x, group
     global x_buttons_box, y_buttons_box
@@ -166,6 +172,8 @@ def on_open_response(dialog, async_result, data):
     set_margins(plot_box)
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
+
     toolbar_window = Gtk.Box()
     Gtk.Box.append(toolbar_window, toolbar)
     Gtk.Box.append(toolbar_window, reload_button)
