@@ -76,7 +76,7 @@ def configure_window_once():
     canvas.set_hexpand(True)
     canvas.set_vexpand(True)
     toolbar = NavigationToolbar(canvas)
-    axes_left = figure.add_subplot(111)
+    axes_left = Figure.add_subplot(figure, 111)
     axes_left.set_title(f"{filebase}")
     matplotlib.rcParams['lines.linewidth'] = 2
     # axes_right = axes_left.twinx()
