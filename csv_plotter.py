@@ -78,7 +78,7 @@ def add_plot_name_nplots(name):
 
 
 def add_buttons_xy(name, xactive=False, yactive=False):
-    global group, x_buttons_box, y_buttons_box
+    global group
 
     x_button = Gtk.ToggleButton(label=name, group=group)
     y_button = Gtk.CheckButton(label=name, active=yactive)
