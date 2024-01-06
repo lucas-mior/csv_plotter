@@ -69,8 +69,8 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     x_delete.set_halign(Gtk.Align.END)
     y_delete.set_halign(Gtk.Align.END)
 
-    x_delete.connect("clicked", on_delete_icon_click, (x_button, y_button))
-    y_delete.connect("clicked", on_delete_icon_click, (y_button, x_button))
+    x_delete.connect("clicked", on_delete_button_click, (x_button, y_button))
+    y_delete.connect("clicked", on_delete_button_click, (y_button, x_button))
 
     x_item.append(x_delete)
     y_item.append(y_delete)
@@ -99,7 +99,7 @@ def on_entry_activate(entry):
     return
 
 
-def on_delete_icon_click(delete, user_data):
+def on_delete_button_click(delete_button, user_data):
 
     def _delete_parent(button):
         parent = Gtk.Button.get_parent(button)
@@ -107,16 +107,16 @@ def on_delete_icon_click(delete, user_data):
         Gtk.Box.remove(grand_parent, parent)
         return
 
-    button1 = user_data[0]
-    button2 = user_data[1]
-    name = button1.get_label()
+    x_button = user_data[0]
+    y_button = user_data[1]
+    name = x_button.get_label()
     df.drop(name, axis=1)
 
     remove_plot(name)
     redraw_plots()
 
-    _delete_parent(button1)
-    _delete_parent(button2)
+    _delete_parent(x_button)
+    _delete_parent(y_button)
     return
 
 
