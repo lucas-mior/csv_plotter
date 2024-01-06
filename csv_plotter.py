@@ -41,6 +41,7 @@ def set_margins(widget):
 
 def add_buttons_xy(name, xactive=False, yactive=False):
     global group
+
     x_button = Gtk.ToggleButton(label=name, group=group)
     y_button = Gtk.CheckButton(label=name, active=yactive)
 
@@ -79,6 +80,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
 
 def on_entry_activate(entry):
     global group, x_buttons_box, y_buttons_box
+
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -240,6 +242,7 @@ def on_open_response(dialog, async_result, data):
 
 def on_activate(app):
     global axes_left, canvas, x, df, window, filename
+
     window = Gtk.ApplicationWindow(application=app)
     Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
 
@@ -254,6 +257,7 @@ def on_activate(app):
 
 def on_x_button_toggled(x_button):
     global axes_left, canvas, x, df
+
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
 
@@ -279,6 +283,7 @@ def on_x_button_toggled(x_button):
 
 def remove_plot(name):
     global axes_left
+
     for line in axes_left.get_lines():
         if line.get_label() == name:
             line.remove()
