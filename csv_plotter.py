@@ -22,7 +22,7 @@ filename = None
 
 
 def add_plot_name_nplots(name):
-    global canvas, x, df
+    global x, df
 
     nplots = len(axes_left.get_lines())
 
@@ -243,7 +243,7 @@ def on_open_response(dialog, async_result, data):
 
 
 def on_activate(app):
-    global axes_left, canvas, x, df, window, filename
+    global axes_left, x, df, window, filename
 
     window = Gtk.ApplicationWindow(application=app)
     Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
@@ -258,7 +258,7 @@ def on_activate(app):
 
 
 def on_x_button_toggled(x_button):
-    global axes_left, canvas, x, df
+    global axes_left, x, df
 
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
@@ -302,7 +302,7 @@ def redraw_plots():
 
 
 def on_y_button_toggled(y_button):
-    global axes_left, canvas, x, df
+    global axes_left, x, df
 
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
