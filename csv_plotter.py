@@ -304,21 +304,25 @@ def on_x_button_toggled(x_button):
     return
 
 
+def remove_plot(name):
+    global axes_left
+    for line in axes_left.get_lines():
+        if line.get_label() == name:
+            line.remove()
+            break
+    return
+
+
 def on_y_button_toggled(y_button):
     global axes_left, canvas, x, df
 
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
-    plotted = axes_left.get_lines()
-
     if not active:
-        for line in plotted:
-            if line.get_label() == name:
-                line.remove()
-                break
+        remove_plot(name)
     else:
-        plot_name_nplots(name, len(plotted))
+        plot_name_nplots(name, len(axes_left.get_lines()))
 
     axes_left.relim()
     axes_left.autoscale()
