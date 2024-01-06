@@ -132,11 +132,11 @@ def on_open_response(dialog, async_result, data):
     Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
     Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
     Gtk.ScrolledWindow.set_policy(x_buttons_scroll,
-                                  Gtk.PolicyType.NEVER,
-                                  Gtk.PolicyType.AUTOMATIC)
+                                  hscrollbar_policy=Gtk.PolicyType.NEVER,
+                                  vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
     Gtk.ScrolledWindow.set_policy(y_buttons_scroll,
-                                  Gtk.PolicyType.NEVER,
-                                  Gtk.PolicyType.AUTOMATIC)
+                                  hscrollbar_policy=Gtk.PolicyType.NEVER,
+                                  vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
     Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
