@@ -43,12 +43,12 @@ def on_have_filename_ready(dialog, async_result, data):
             sys.exit(1)
         filename = gfile.get_path()
 
-    load_file()
+    reload_file_contents()
     configure_window_once()
     return
 
 
-def load_file():
+def reload_file_contents():
     global df, x
     df = None
     try:
@@ -298,7 +298,7 @@ def on_y_button_toggled(y_button):
 
 
 def on_reload_button_clicked(reload_button):
-    load_file()
+    reload_file_contents()
     initialize_plots()
     redraw_plots()
     return
