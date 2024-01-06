@@ -108,12 +108,7 @@ def on_delete_icon_click(delete, user_data):
     name = button1.get_label()
     df.drop(name, axis=1)
 
-    plotted = axes_left.get_lines()
-    for line in plotted:
-        if line.get_label() == name:
-            line.remove()
-            break
-
+    remove_plot(name)
     redraw_plots()
 
     _delete_parent(button1)
