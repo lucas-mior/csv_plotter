@@ -120,7 +120,8 @@ def configure_window_once():
     Gtk.Box.append(y_selection_box, y_buttons_scroll)
     new_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_entry, "add a plot...")
-    Gtk.Entry.connect(new_entry, "activate", on_entry_activate)
+    Gtk.Entry.connect(new_entry, "activate", on_entry_activate,
+                      x_buttons_scroll, y_buttons_scroll)
     Gtk.Box.append(y_selection_box, new_entry)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
@@ -148,7 +149,7 @@ def configure_window_once():
 
 
 def initialize_plots():
-    global group, x_buttons_box, y_buttons_box
+    global group
 
     for line in axes_left.get_lines():
         line.remove()
@@ -158,7 +159,7 @@ def initialize_plots():
 
     name_first = df.columns[0]
     group = None
-    add_buttons_xy(name_first, xactive=True, yactive=False)
+    add_buttons_xy(name_first, x_buttons_box, y_buttons_box, xactive=True, yactive=False)
 
     for i, name in enumerate(df.columns[1:]):
         new = str.replace(name, ".", "_")
@@ -166,7 +167,7 @@ def initialize_plots():
         if i < 10:
             add_plot_name_nplots(new)
 
-        add_buttons_xy(new, yactive=i < 10)
+        add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
     axes_left.legend()
     axes_left.set_xlabel(x.name)
@@ -176,7 +177,7 @@ def initialize_plots():
     return
 
 
-def add_buttons_xy(name, xactive=False, yactive=False):
+def add_buttons_xy(name, x_buttons_box, y_buttons_box, xactive=False, yactive=False):
     global group
 
     x_button = Gtk.ToggleButton(label=name, group=group)
@@ -217,7 +218,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     return
 
 
-def on_entry_activate(entry):
+def on_entry_activate(entry, x_buttons_scroll, y_buttons_scroll):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -227,7 +228,9 @@ def on_entry_activate(entry):
 
     name = df.columns[-1]
 
-    add_buttons_xy(name, yactive=True)
+    x_buttons_box = x_buttons_scroll.get_child().get_child()
+    y_buttons_box = y_buttons_scroll.get_child().get_child()
+    add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
     add_plot_name_nplots(name)
     redraw_plots()
