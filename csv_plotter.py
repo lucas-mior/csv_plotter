@@ -22,7 +22,7 @@ filename = None
 
 
 def add_plot_name_nplots(name):
-    global axes_left, canvas, x, df
+    global canvas, x, df
 
     nplots = len(axes_left.get_lines())
 
