@@ -63,11 +63,11 @@ def on_entry_activate(entry):
     x_delete = Gtk.Button.new_from_icon_name("edit-delete")
     y_delete = Gtk.Button.new_from_icon_name("edit-delete")
 
-    x_delete.connect("clicked", on_delete_icon_click)
-    y_delete.connect("clicked", on_delete_icon_click)
+    x_delete.connect("clicked", on_delete_icon_click, name)
+    y_delete.connect("clicked", on_delete_icon_click, name)
 
-    x_item.append(event_box)
-    y_item.append(event_box)
+    x_item.append(x_delete)
+    y_item.append(y_delete)
 
     Gtk.Box.append(x_buttons_box, x_item)
     Gtk.Box.append(y_buttons_box, y_item)
@@ -80,8 +80,8 @@ def on_entry_activate(entry):
     return
 
 
-def on_delete_icon_click(delete):
-    print("on_delete_icon_click:", delete)
+def on_delete_icon_click(delete, name):
+    print("on_delete_icon_click:", delete, name)
     return
 
 
