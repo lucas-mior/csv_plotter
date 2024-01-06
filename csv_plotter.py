@@ -39,10 +39,15 @@ def set_margins(widget):
     return
 
 
-def add_buttons_xy(name, group):
+def add_buttons_xy(name, xactive=False, yactive=False):
+    global group
     x_button = Gtk.ToggleButton(label=name, group=group)
-    y_button = Gtk.CheckButton(label=name, active=True)
+    y_button = Gtk.CheckButton(label=name, active=yactive)
 
+    if group is None:
+        group = x_button
+
+    Gtk.ToggleButton.set_active(x_button, xactive)
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
 
@@ -83,7 +88,7 @@ def on_entry_activate(entry):
 
     name = df.columns[-1]
 
-    add_buttons_xy(name, group)
+    add_buttons_xy(name)
 
     plot_name_nplots(name, 4)
     redraw_plots()
@@ -149,17 +154,8 @@ def on_open_response(dialog, async_result, data):
     canvas.set_vexpand(True)
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
-    # axes_right = axes_left.twinx()
-    for i, name in enumerate(df.columns[1:]):
-        new = str.replace(name, ".", "_")
-        df.rename(columns={name: new}, inplace=True)
-        if i < 10:
-            plot_name_nplots(new, i)
-
-    axes_left.set_title(f"{filename}")
-    axes_left.legend()
-    axes_left.set_xlabel(x.name)
     matplotlib.rcParams['lines.linewidth'] = 2
+    # axes_right = axes_left.twinx()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(plot_box)
@@ -186,26 +182,20 @@ def on_open_response(dialog, async_result, data):
     set_margins(y_label)
 
     name_first = df.columns[0]
-    x_button = Gtk.ToggleButton(label=name_first, group=None)
-    y_button = Gtk.CheckButton(label=name_first, active=False)
-
-    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-    Gtk.ToggleButton.set_active(x_button, True)
-    group = x_button
-    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
-
-    Gtk.Box.append(x_buttons_box, x_button)
-    Gtk.Box.append(y_buttons_box, y_button)
+    group = None
+    add_buttons_xy(name_first, xactive=True, yactive=False)
 
     for i, name in enumerate(df.columns[1:]):
-        x_button = Gtk.ToggleButton(label=name, group=group)
-        y_button = Gtk.CheckButton(label=name, active=(i <= 10))
+        new = str.replace(name, ".", "_")
+        df.rename(columns={name: new}, inplace=True)
+        if i < 10:
+            plot_name_nplots(new, i)
 
-        Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-        Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+        add_buttons_xy(new, yactive=i < 10)
 
-        Gtk.Box.append(x_buttons_box, x_button)
-        Gtk.Box.append(y_buttons_box, y_button)
+    axes_left.set_title(f"{filename}")
+    axes_left.legend()
+    axes_left.set_xlabel(x.name)
 
     x_buttons_scroll = Gtk.ScrolledWindow()
     y_buttons_scroll = Gtk.ScrolledWindow()
