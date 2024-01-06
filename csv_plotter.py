@@ -21,8 +21,10 @@ from matplotlib.figure import Figure
 filename = None
 
 
-def add_plot_name_nplots(name, nplots):
+def add_plot_name_nplots(name):
     global axes_left, canvas, x, df
+
+    nplots = len(axes_left.get_lines())
 
     y = df[name]
     linestyle = "solid" if nplots < 6 else "dashdot"
@@ -92,7 +94,7 @@ def on_entry_activate(entry):
 
     add_buttons_xy(name, yactive=True)
 
-    add_plot_name_nplots(name, 4)
+    add_plot_name_nplots(name)
     redraw_plots()
     return
 
@@ -186,7 +188,7 @@ def on_open_response(dialog, async_result, data):
         new = str.replace(name, ".", "_")
         df.rename(columns={name: new}, inplace=True)
         if i < 10:
-            add_plot_name_nplots(new, i)
+            add_plot_name_nplots(new)
 
         add_buttons_xy(new, yactive=i < 10)
 
@@ -273,8 +275,8 @@ def on_x_button_toggled(x_button):
 
     axes_left.set_prop_cycle(None)
 
-    for i, name in enumerate(plotted):
-        add_plot_name_nplots(name, i)
+    for name in plotted:
+        add_plot_name_nplots(name)
 
     axes_left.set_xlabel(x.name)
     redraw_plots()
@@ -306,7 +308,7 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot_name_nplots(name, len(axes_left.get_lines()))
+        add_plot_name_nplots(name)
     else:
         remove_plot(name)
 
