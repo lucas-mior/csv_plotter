@@ -149,8 +149,8 @@ def on_open_response(dialog, async_result, data):
     Gtk.Paned.set_end_child(config_pane, y_selection_box)
     Gtk.Paned.set_wide_handle(config_pane, True)
 
-    config_pane.set_shrink_start_child(False)
-    config_pane.set_shrink_end_child(False)
+    Gtk.Paned.set_shrink_start_child(config_pane, False)
+    Gtk.Paned.set_shrink_end_child(config_pane, False)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     Gtk.Paned.set_start_child(window_pane, plot_box)
