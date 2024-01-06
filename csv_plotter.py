@@ -18,6 +18,36 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 
 
+def on_activate(app):
+    global window, filename
+
+    window = Gtk.ApplicationWindow(application=app)
+    Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
+
+    if len(sys.argv) < 2:
+        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
+        dialog.open(window, None, on_have_filename, None)
+    else:
+        filename = sys.argv[1]
+        on_have_filename(None, None, None)
+    return
+
+
+def on_have_filename(dialog, async_result, data):
+    global filename
+
+    if dialog is not None:
+        gfile = dialog.open_finish(result=async_result)
+        if gfile is None:
+            print("Error getting file", file=sys.stderr)
+            sys.exit(1)
+        filename = gfile.get_path()
+
+    load_file()
+    configure_window_once()
+    return
+
+
 def load_file():
     global df, x
     df = None
@@ -105,21 +135,6 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     return
 
 
-def on_have_filename(dialog, async_result, data):
-    global filename
-
-    if dialog is not None:
-        gfile = dialog.open_finish(result=async_result)
-        if gfile is None:
-            print("Error getting file", file=sys.stderr)
-            sys.exit(1)
-        filename = gfile.get_path()
-
-    load_file()
-    configure_window_once()
-    return
-
-
 def configure_window_once():
     global axes_left, x_buttons_scroll, y_buttons_scroll, canvas
 
@@ -199,21 +214,6 @@ def configure_window_once():
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.set_visible(window, True)
-    return
-
-
-def on_activate(app):
-    global window, filename
-
-    window = Gtk.ApplicationWindow(application=app)
-    Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
-
-    if len(sys.argv) < 2:
-        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
-        dialog.open(window, None, on_have_filename, None)
-    else:
-        filename = sys.argv[1]
-        on_have_filename(None, None, None)
     return
 
 
