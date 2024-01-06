@@ -35,10 +35,17 @@ def load_file():
 
     df.insert(0, 'Row', df.reset_index().index)
     x = df.iloc[:, 0]
+    return
 
 
 def initialize_plots():
-    global group
+    global group, x_selection_box, y_selection_box
+
+    for line in axes_left.get_lines():
+        line.remove()
+
+    x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = df.columns[0]
     group = None
@@ -161,13 +168,14 @@ def on_delete_button_click(delete_button, user_data):
 
 def on_reload_button_clicked(reload_button):
     load_file()
+    initialize_plots()
     redraw_plots()
     return
 
 
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x, group
-    global x_buttons_box, y_buttons_box
+    global x_buttons_box, y_buttons_box, x_selection_box, y_selection_box
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
