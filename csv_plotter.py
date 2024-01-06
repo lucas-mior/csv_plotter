@@ -39,6 +39,13 @@ def set_margins(widget):
     return
 
 
+def on_entry_activate(entry):
+    buffer = Gtk.Entry.get_buffer(entry)
+    text = Gtk.EntryBuffer.get_text(buffer)
+    print("on_entry_activate: ", text)
+    return
+
+
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x
 
@@ -145,6 +152,9 @@ def on_open_response(dialog, async_result, data):
 
     Gtk.Box.append(x_selection_box, x_buttons_scroll)
     Gtk.Box.append(y_selection_box, y_buttons_scroll)
+    new_entry = Gtk.Entry()
+    Gtk.Box.append(y_selection_box, new_entry)
+    Gtk.Entry.connect(new_entry, "activate", on_entry_activate)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     Gtk.Paned.set_wide_handle(config_pane, True)
