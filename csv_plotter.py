@@ -21,6 +21,22 @@ from matplotlib.figure import Figure
 filename = None
 
 
+def load_file():
+    global df, x
+    df = None
+    try:
+        df = pd.read_csv(filename)
+    except Exception:
+        print(f"Error reading {filename}", file=sys.stderr)
+        sys.exit(1)
+    if df is None:
+        print(f"Error reading {filename}", file=sys.stderr)
+        sys.exit(1)
+
+    df.insert(0, 'Row', df.reset_index().index)
+    x = df.iloc[:, 0]
+
+
 def add_plot_name_nplots(name):
     global x, df
 
@@ -132,18 +148,7 @@ def on_open_response(dialog, async_result, data):
             sys.exit(1)
         filename = gfile.get_path()
 
-    df = None
-    try:
-        df = pd.read_csv(filename)
-    except Exception:
-        print(f"Error reading {filename}", file=sys.stderr)
-        sys.exit(1)
-    if df is None:
-        print(f"Error reading {filename}", file=sys.stderr)
-        sys.exit(1)
-
-    df.insert(0, 'Row', df.reset_index().index)
-    x = df.iloc[:, 0]
+    load_file()
 
     filebase = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
