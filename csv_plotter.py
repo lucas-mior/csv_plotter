@@ -118,7 +118,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     return
 
 
-def on_open_response(dialog, async_result, data):
+def on_have_filename(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x
     global x_selection_box, y_selection_box
     global x_buttons_scroll, y_buttons_scroll
@@ -219,10 +219,10 @@ def on_activate(app):
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
-        dialog.open(window, None, on_open_response, None)
+        dialog.open(window, None, on_have_filename, None)
     else:
         filename = sys.argv[1]
-        on_open_response(None, None, None)
+        on_have_filename(None, None, None)
     return
 
 
