@@ -309,8 +309,6 @@ def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
 
 
 def remove_plot(name):
-    global axes_left
-
     for line in axes_left.get_lines():
         if line.get_label() == name:
             line.remove()
