@@ -164,6 +164,7 @@ def initialize_plots(x_config_scroll, y_config_scroll):
                    xactive=True, yactive=False)
 
     for i, name in enumerate(df.columns[1:]):
+        # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         df.rename(columns={name: new}, inplace=True)
         if i < 10:
