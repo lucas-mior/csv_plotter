@@ -130,8 +130,6 @@ def add_buttons_xy(name, xactive=False, yactive=False):
 
 
 def on_entry_activate(entry):
-    global group
-
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -178,7 +176,7 @@ def on_reload_button_clicked(reload_button):
 
 
 def on_open_response(dialog, async_result, data):
-    global filename, window, df, axes_left, canvas, x, group
+    global filename, window, df, axes_left, canvas, x
     global x_selection_box, y_selection_box
     global x_buttons_scroll, y_buttons_scroll
 
