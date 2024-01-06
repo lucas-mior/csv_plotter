@@ -107,8 +107,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
 
 
 def on_have_filename(dialog, async_result, data):
-    global filename, window, df, axes_left, canvas
-    global x_buttons_scroll, y_buttons_scroll
+    global filename
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
@@ -118,6 +117,12 @@ def on_have_filename(dialog, async_result, data):
         filename = gfile.get_path()
 
     load_file()
+    configure_window_once()
+    return
+
+
+def configure_window_once():
+    global axes_left, x_buttons_scroll, y_buttons_scroll, canvas
 
     filebase = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
