@@ -43,6 +43,8 @@ def on_entry_activate(entry):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
     print("on_entry_activate: ", text)
+    local_dict = df.to_dict(orient='series')
+    pd.eval(text, local_dict=local_dict, target=df, inplace=True)
     return
 
 
