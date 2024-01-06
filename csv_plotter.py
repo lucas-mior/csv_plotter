@@ -289,7 +289,6 @@ def on_x_button_toggled(x_button):
 
     axes_left.set_xlabel(x.name)
     redraw_plots()
-    canvas.draw()
     return
 
 
