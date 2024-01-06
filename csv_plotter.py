@@ -159,7 +159,8 @@ def initialize_plots():
 
     name_first = df.columns[0]
     group = None
-    add_buttons_xy(name_first, x_buttons_box, y_buttons_box, xactive=True, yactive=False)
+    add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
+                   xactive=True, yactive=False)
 
     for i, name in enumerate(df.columns[1:]):
         new = str.replace(name, ".", "_")
@@ -177,7 +178,8 @@ def initialize_plots():
     return
 
 
-def add_buttons_xy(name, x_buttons_box, y_buttons_box, xactive=False, yactive=False):
+def add_buttons_xy(name, x_buttons_box, y_buttons_box,
+                   xactive=False, yactive=False):
     global group
 
     x_button = Gtk.ToggleButton(label=name, group=group)
