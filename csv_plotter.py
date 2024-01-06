@@ -78,7 +78,6 @@ def configure_window_once():
     toolbar = NavigationToolbar(canvas)
     axes_left = Figure.add_subplot(figure, 111)
     axes_left.set_title(f"{filebase}")
-    matplotlib.rcParams['lines.linewidth'] = 2
     # axes_right = axes_left.twinx()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -329,8 +328,11 @@ def add_plot_name_nplots(name):
     nplots = len(axes_left.get_lines())
 
     y = df[name]
-    linestyle = "solid" if nplots < 6 else "dashdot"
-    axes_left.plot(x, y, linestyle=linestyle, label=name)
+    if x.is_monotonic_increasing:
+        linestyle = "solid" if nplots < 6 else "dashdot"
+        axes_left.plot(x, y, linestyle=linestyle, label=name)
+    else:
+        axes_left.plot(x, y, 'o', markersize=1.5, label=name)
     return
 
 
