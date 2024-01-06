@@ -92,12 +92,12 @@ def configure_window_once():
     Gtk.Box.append(x_selection_box, x_label)
     Gtk.Box.append(y_selection_box, y_label)
 
-    x_buttons_scroll = Gtk.ScrolledWindow()
-    y_buttons_scroll = Gtk.ScrolledWindow()
+    x_config_scroll = Gtk.ScrolledWindow()
+    y_config_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
-                       x_buttons_scroll, y_buttons_scroll)
+                       x_config_scroll, y_config_scroll)
 
     toolbar_window = Gtk.Box()
     Gtk.Box.append(toolbar_window, toolbar)
@@ -106,23 +106,23 @@ def configure_window_once():
     Gtk.Box.append(plot_box, toolbar_window)
     Gtk.Box.append(plot_box, canvas)
 
-    initialize_plots(x_buttons_scroll, y_buttons_scroll)
+    initialize_plots(x_config_scroll, y_config_scroll)
 
-    Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
-    Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
-    Gtk.ScrolledWindow.set_policy(x_buttons_scroll,
+    Gtk.ScrolledWindow.set_vexpand(x_config_scroll, True)
+    Gtk.ScrolledWindow.set_vexpand(y_config_scroll, True)
+    Gtk.ScrolledWindow.set_policy(x_config_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-    Gtk.ScrolledWindow.set_policy(y_buttons_scroll,
+    Gtk.ScrolledWindow.set_policy(y_config_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
-    Gtk.Box.append(x_selection_box, x_buttons_scroll)
-    Gtk.Box.append(y_selection_box, y_buttons_scroll)
+    Gtk.Box.append(x_selection_box, x_config_scroll)
+    Gtk.Box.append(y_selection_box, y_config_scroll)
     new_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_entry, "add a plot...")
     Gtk.Entry.connect(new_entry, "activate", on_entry_activate,
-                      x_buttons_scroll, y_buttons_scroll)
+                      x_config_scroll, y_config_scroll)
     Gtk.Box.append(y_selection_box, new_entry)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
@@ -149,7 +149,7 @@ def configure_window_once():
     return
 
 
-def initialize_plots(x_buttons_scroll, y_buttons_scroll):
+def initialize_plots(x_config_scroll, y_config_scroll):
     global group
 
     for line in axes_left.get_lines():
@@ -174,8 +174,8 @@ def initialize_plots(x_buttons_scroll, y_buttons_scroll):
     axes_left.legend()
     axes_left.set_xlabel(x.name)
 
-    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
-    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
+    Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
     return
 
 
@@ -221,7 +221,7 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     return
 
 
-def on_entry_activate(entry, x_buttons_scroll, y_buttons_scroll):
+def on_entry_activate(entry, x_config_scroll, y_config_scroll):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -231,8 +231,8 @@ def on_entry_activate(entry, x_buttons_scroll, y_buttons_scroll):
 
     name = df.columns[-1]
 
-    x_buttons_box = x_buttons_scroll.get_child().get_child()
-    y_buttons_box = y_buttons_scroll.get_child().get_child()
+    x_buttons_box = x_config_scroll.get_child().get_child()
+    y_buttons_box = y_config_scroll.get_child().get_child()
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
     add_plot_name_nplots(name)
@@ -301,9 +301,9 @@ def on_y_button_toggled(y_button):
     return
 
 
-def on_reload_button_clicked(reload_button, x_buttons_scroll, y_buttons_scroll):
+def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
     reload_file_contents()
-    initialize_plots(x_buttons_scroll, y_buttons_scroll)
+    initialize_plots(x_config_scroll, y_config_scroll)
     redraw_plots()
     return
 
