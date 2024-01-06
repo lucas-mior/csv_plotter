@@ -58,6 +58,10 @@ def on_entry_activate(entry):
     Gtk.Box.append(y_buttons_box, y_button)
 
     plot_name_nplots(name, 4)
+    axes_left.relim()
+    axes_left.autoscale()
+    axes_left.legend()
+    canvas.draw()
     return
 
 
@@ -169,8 +173,9 @@ def on_open_response(dialog, async_result, data):
     Gtk.Box.append(x_selection_box, x_buttons_scroll)
     Gtk.Box.append(y_selection_box, y_buttons_scroll)
     new_entry = Gtk.Entry()
-    Gtk.Box.append(y_selection_box, new_entry)
+    Gtk.Entry.set_placeholder_text(new_entry, "add a plot...")
     Gtk.Entry.connect(new_entry, "activate", on_entry_activate)
+    Gtk.Box.append(y_selection_box, new_entry)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
     Gtk.Paned.set_wide_handle(config_pane, True)
