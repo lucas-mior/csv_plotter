@@ -40,16 +40,30 @@ def set_margins(widget):
 
 
 def on_entry_activate(entry):
+    global group, x_buttons_box, y_buttons_box
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
     print("on_entry_activate: ", text)
     local_dict = df.to_dict(orient='series')
     pd.eval(text, local_dict=local_dict, target=df, inplace=True)
+
+    name = df.columns[-1]
+    x_button = Gtk.ToggleButton(label=name, group=group)
+    y_button = Gtk.CheckButton(label=name, active=True)
+
+    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+
+    Gtk.Box.append(x_buttons_box, x_button)
+    Gtk.Box.append(y_buttons_box, y_button)
+
+    plot_name_nplots(name, 4)
     return
 
 
 def on_open_response(dialog, async_result, data):
-    global filename, window, df, axes_left, canvas, x
+    global filename, window, df, axes_left, canvas, x, group
+    global x_buttons_box, y_buttons_box
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
