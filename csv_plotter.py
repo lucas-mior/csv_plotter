@@ -66,7 +66,7 @@ def reload_file_contents():
 
 
 def configure_window_once():
-    global axes_left, x_buttons_scroll, y_buttons_scroll, canvas
+    global axes_left, canvas
 
     filebase = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
@@ -83,16 +83,6 @@ def configure_window_once():
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    reload_button = Gtk.Button.new_from_icon_name("document-revert")
-    Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
-
-    toolbar_window = Gtk.Box()
-    Gtk.Box.append(toolbar_window, toolbar)
-    Gtk.Box.append(toolbar_window, reload_button)
-
-    Gtk.Box.append(plot_box, toolbar_window)
-    Gtk.Box.append(plot_box, canvas)
-
     x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -105,7 +95,19 @@ def configure_window_once():
     x_buttons_scroll = Gtk.ScrolledWindow()
     y_buttons_scroll = Gtk.ScrolledWindow()
 
-    initialize_plots()
+    reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
+                       x_buttons_scroll, y_buttons_scroll)
+
+    toolbar_window = Gtk.Box()
+    Gtk.Box.append(toolbar_window, toolbar)
+    Gtk.Box.append(toolbar_window, reload_button)
+
+    Gtk.Box.append(plot_box, toolbar_window)
+    Gtk.Box.append(plot_box, canvas)
+
+
+    initialize_plots(x_buttons_scroll, y_buttons_scroll)
 
     Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
     Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
@@ -148,7 +150,7 @@ def configure_window_once():
     return
 
 
-def initialize_plots():
+def initialize_plots(x_buttons_scroll, y_buttons_scroll):
     global group
 
     for line in axes_left.get_lines():
@@ -302,9 +304,9 @@ def on_y_button_toggled(y_button):
     return
 
 
-def on_reload_button_clicked(reload_button):
+def on_reload_button_clicked(reload_button, x_buttons_scroll, y_buttons_scroll):
     reload_file_contents()
-    initialize_plots()
+    initialize_plots(x_buttons_scroll, y_buttons_scroll)
     redraw_plots()
     return
 
