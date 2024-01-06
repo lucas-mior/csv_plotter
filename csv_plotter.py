@@ -145,8 +145,8 @@ def on_open_response(dialog, async_result, data):
     df.insert(0, 'Row', df.reset_index().index)
     x = df.iloc[:, 0]
 
-    filename = os.path.basename(filename)
-    Gtk.ApplicationWindow.set_title(window, f"{program} - {filename}")
+    filebase = os.path.basename(filename)
+    Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
@@ -193,7 +193,7 @@ def on_open_response(dialog, async_result, data):
 
         add_buttons_xy(new, yactive=i < 10)
 
-    axes_left.set_title(f"{filename}")
+    axes_left.set_title(f"{filebase}")
     axes_left.legend()
     axes_left.set_xlabel(x.name)
 
