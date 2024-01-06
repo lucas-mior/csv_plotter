@@ -167,9 +167,9 @@ def initialize_plots(x_config_scroll, y_config_scroll):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         df.rename(columns={name: new}, inplace=True)
+
         if i < 10:
             add_plot_name_nplots(new)
-
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
     axes_left.legend()
