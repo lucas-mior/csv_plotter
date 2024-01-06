@@ -130,7 +130,7 @@ def add_buttons_xy(name, xactive=False, yactive=False):
 
 
 def on_entry_activate(entry):
-    global group, x_buttons_box, y_buttons_box
+    global group
 
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
