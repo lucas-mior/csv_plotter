@@ -39,13 +39,14 @@ def load_file():
 
 
 def initialize_plots():
-    global group, x_selection_box, y_selection_box
+    global group, x_buttons_box, y_buttons_box
+    global x_buttons_scroll, y_buttons_scroll
 
     for line in axes_left.get_lines():
         line.remove()
 
-    x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = df.columns[0]
     group = None
@@ -61,6 +62,9 @@ def initialize_plots():
 
     axes_left.legend()
     axes_left.set_xlabel(x.name)
+
+    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
     return
 
 
@@ -85,7 +89,7 @@ def set_margins(widget):
 
 
 def add_buttons_xy(name, xactive=False, yactive=False):
-    global group
+    global group, x_buttons_box, y_buttons_box
 
     x_button = Gtk.ToggleButton(label=name, group=group)
     y_button = Gtk.CheckButton(label=name, active=yactive)
@@ -175,7 +179,8 @@ def on_reload_button_clicked(reload_button):
 
 def on_open_response(dialog, async_result, data):
     global filename, window, df, axes_left, canvas, x, group
-    global x_buttons_box, y_buttons_box, x_selection_box, y_selection_box
+    global x_selection_box, y_selection_box
+    global x_buttons_scroll, y_buttons_scroll
 
     if dialog is not None:
         gfile = dialog.open_finish(result=async_result)
@@ -218,9 +223,6 @@ def on_open_response(dialog, async_result, data):
     set_margins(x_selection_box)
     set_margins(y_selection_box)
 
-    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
     x_label = Gtk.Label(label="Select X axis")
     y_label = Gtk.Label(label="Select columns to plot")
 
@@ -230,10 +232,10 @@ def on_open_response(dialog, async_result, data):
     set_margins(x_label)
     set_margins(y_label)
 
-    initialize_plots()
-
     x_buttons_scroll = Gtk.ScrolledWindow()
     y_buttons_scroll = Gtk.ScrolledWindow()
+
+    initialize_plots()
 
     Gtk.ScrolledWindow.set_vexpand(x_buttons_scroll, True)
     Gtk.ScrolledWindow.set_vexpand(y_buttons_scroll, True)
@@ -243,9 +245,6 @@ def on_open_response(dialog, async_result, data):
     Gtk.ScrolledWindow.set_policy(y_buttons_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-
-    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
-    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
 
     Gtk.Box.append(x_selection_box, x_buttons_scroll)
     Gtk.Box.append(y_selection_box, y_buttons_scroll)
