@@ -37,6 +37,26 @@ def load_file():
     x = df.iloc[:, 0]
 
 
+def initialize_plots():
+    global group
+
+    name_first = df.columns[0]
+    group = None
+    add_buttons_xy(name_first, xactive=True, yactive=False)
+
+    for i, name in enumerate(df.columns[1:]):
+        new = str.replace(name, ".", "_")
+        df.rename(columns={name: new}, inplace=True)
+        if i < 10:
+            add_plot_name_nplots(new)
+
+        add_buttons_xy(new, yactive=i < 10)
+
+    axes_left.legend()
+    axes_left.set_xlabel(x.name)
+    return
+
+
 def add_plot_name_nplots(name):
     global x, df
 
@@ -85,9 +105,9 @@ def add_buttons_xy(name, xactive=False, yactive=False):
     x_delete.set_halign(Gtk.Align.END)
     y_delete.set_halign(Gtk.Align.END)
 
-    Gtk.Button.connect(x_delete, 
+    Gtk.Button.connect(x_delete,
                        "clicked", on_delete_button_click, (x_button, y_button))
-    Gtk.Button.connect(y_delete, 
+    Gtk.Button.connect(y_delete,
                        "clicked", on_delete_button_click, (y_button, x_button))
 
     x_item.append(x_delete)
@@ -140,6 +160,8 @@ def on_delete_button_click(delete_button, user_data):
 
 
 def on_reload_button_clicked(reload_button):
+    load_file()
+    redraw_plots()
     return
 
 
@@ -165,6 +187,7 @@ def on_open_response(dialog, async_result, data):
     canvas.set_vexpand(True)
     toolbar = NavigationToolbar(canvas)
     axes_left = figure.add_subplot(111)
+    axes_left.set_title(f"{filebase}")
     matplotlib.rcParams['lines.linewidth'] = 2
     # axes_right = axes_left.twinx()
 
@@ -199,21 +222,7 @@ def on_open_response(dialog, async_result, data):
     set_margins(x_label)
     set_margins(y_label)
 
-    name_first = df.columns[0]
-    group = None
-    add_buttons_xy(name_first, xactive=True, yactive=False)
-
-    for i, name in enumerate(df.columns[1:]):
-        new = str.replace(name, ".", "_")
-        df.rename(columns={name: new}, inplace=True)
-        if i < 10:
-            add_plot_name_nplots(new)
-
-        add_buttons_xy(new, yactive=i < 10)
-
-    axes_left.set_title(f"{filebase}")
-    axes_left.legend()
-    axes_left.set_xlabel(x.name)
+    initialize_plots()
 
     x_buttons_scroll = Gtk.ScrolledWindow()
     y_buttons_scroll = Gtk.ScrolledWindow()
