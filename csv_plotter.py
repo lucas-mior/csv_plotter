@@ -49,9 +49,6 @@ def add_buttons_xy(name, group):
     x_item = Gtk.Box()
     y_item = Gtk.Box()
 
-    x_item.set_hexpand(True)
-    y_item.set_hexpand(True)
-
     x_item.append(x_button)
     y_item.append(y_button)
 
@@ -79,7 +76,7 @@ def on_entry_activate(entry):
     global group, x_buttons_box, y_buttons_box
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
-    print("on_entry_activate: ", text)
+
     local_dict = df.to_dict(orient='series')
     df[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
@@ -89,10 +86,7 @@ def on_entry_activate(entry):
     add_buttons_xy(name, group)
 
     plot_name_nplots(name, 4)
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
-    canvas.draw()
+    redraw_plots()
     return
 
 
@@ -115,10 +109,7 @@ def on_delete_icon_click(delete, user_data):
             line.remove()
             break
 
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
-    canvas.draw()
+    redraw_plots()
 
     _delete_parent(button1)
     _delete_parent(button2)
@@ -297,7 +288,7 @@ def on_x_button_toggled(x_button):
         plot_name_nplots(name, i)
 
     axes_left.set_xlabel(x.name)
-    replot()
+    redraw_plots()
     canvas.draw()
     return
 
@@ -311,7 +302,7 @@ def remove_plot(name):
     return
 
 
-def replot():
+def redraw_plots():
     axes_left.relim()
     axes_left.autoscale()
     axes_left.legend()
@@ -330,7 +321,7 @@ def on_y_button_toggled(y_button):
     else:
         plot_name_nplots(name, len(axes_left.get_lines()))
 
-    replot()
+    redraw_plots()
     return
 
 
