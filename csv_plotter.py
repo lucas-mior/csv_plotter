@@ -46,6 +46,7 @@ def on_entry_activate(entry):
     print("on_entry_activate: ", text)
     local_dict = df.to_dict(orient='series')
     df[text] = pd.eval(text, local_dict=local_dict)
+    Gtk.Entry.set_text(entry, "")
 
     name = df.columns[-1]
     x_button = Gtk.ToggleButton(label=name, group=group)
@@ -108,7 +109,7 @@ def on_open_response(dialog, async_result, data):
         new = str.replace(name, ".", "_")
         df.rename(columns={name: new}, inplace=True)
         if i < 10:
-            plot_name_nplots(df.columns[i], i)
+            plot_name_nplots(new, i)
 
     axes_left.set_title(f"{filename}")
     axes_left.legend()
