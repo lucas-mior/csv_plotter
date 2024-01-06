@@ -289,8 +289,6 @@ def on_x_button_toggled(x_button):
 
 
 def on_y_button_toggled(y_button):
-    global axes_left, x, df
-
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
