@@ -305,10 +305,10 @@ def on_y_button_toggled(y_button):
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
-    if not active:
-        remove_plot(name)
-    else:
+    if active
         plot_name_nplots(name, len(axes_left.get_lines()))
+    else:
+        remove_plot(name)
 
     redraw_plots()
     return
