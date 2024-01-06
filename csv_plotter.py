@@ -18,9 +18,6 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 
 
-filename = None
-
-
 def load_file():
     global df, x
     df = None
@@ -203,7 +200,7 @@ def on_have_filename(dialog, async_result, data):
 
 
 def on_activate(app):
-    global axes_left, x, df, window, filename
+    global window, filename
 
     window = Gtk.ApplicationWindow(application=app)
     Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
