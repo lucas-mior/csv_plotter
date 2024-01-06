@@ -65,76 +65,6 @@ def load_file():
     return
 
 
-def initialize_plots():
-    global group, x_buttons_box, y_buttons_box
-
-    for line in axes_left.get_lines():
-        line.remove()
-
-    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-    name_first = df.columns[0]
-    group = None
-    add_buttons_xy(name_first, xactive=True, yactive=False)
-
-    for i, name in enumerate(df.columns[1:]):
-        new = str.replace(name, ".", "_")
-        df.rename(columns={name: new}, inplace=True)
-        if i < 10:
-            add_plot_name_nplots(new)
-
-        add_buttons_xy(new, yactive=i < 10)
-
-    axes_left.legend()
-    axes_left.set_xlabel(x.name)
-
-    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
-    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
-    return
-
-
-def add_buttons_xy(name, xactive=False, yactive=False):
-    global group
-
-    x_button = Gtk.ToggleButton(label=name, group=group)
-    y_button = Gtk.CheckButton(label=name, active=yactive)
-
-    if group is None:
-        group = x_button
-
-    Gtk.ToggleButton.set_active(x_button, xactive)
-    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
-
-    x_item = Gtk.Box()
-    y_item = Gtk.Box()
-
-    x_item.append(x_button)
-    y_item.append(y_button)
-
-    x_delete = Gtk.Button.new_from_icon_name("edit-delete")
-    y_delete = Gtk.Button.new_from_icon_name("edit-delete")
-
-    x_delete.set_hexpand(True)
-    y_delete.set_hexpand(True)
-
-    x_delete.set_halign(Gtk.Align.END)
-    y_delete.set_halign(Gtk.Align.END)
-
-    Gtk.Button.connect(x_delete,
-                       "clicked", on_delete_button_click, (x_button, y_button))
-    Gtk.Button.connect(y_delete,
-                       "clicked", on_delete_button_click, (y_button, x_button))
-
-    x_item.append(x_delete)
-    y_item.append(y_delete)
-
-    Gtk.Box.append(x_buttons_box, x_item)
-    Gtk.Box.append(y_buttons_box, y_item)
-    return
-
-
 def configure_window_once():
     global axes_left, x_buttons_scroll, y_buttons_scroll, canvas
 
@@ -214,6 +144,76 @@ def configure_window_once():
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.set_visible(window, True)
+    return
+
+
+def initialize_plots():
+    global group, x_buttons_box, y_buttons_box
+
+    for line in axes_left.get_lines():
+        line.remove()
+
+    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+    name_first = df.columns[0]
+    group = None
+    add_buttons_xy(name_first, xactive=True, yactive=False)
+
+    for i, name in enumerate(df.columns[1:]):
+        new = str.replace(name, ".", "_")
+        df.rename(columns={name: new}, inplace=True)
+        if i < 10:
+            add_plot_name_nplots(new)
+
+        add_buttons_xy(new, yactive=i < 10)
+
+    axes_left.legend()
+    axes_left.set_xlabel(x.name)
+
+    Gtk.ScrolledWindow.set_child(x_buttons_scroll, x_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_buttons_scroll, y_buttons_box)
+    return
+
+
+def add_buttons_xy(name, xactive=False, yactive=False):
+    global group
+
+    x_button = Gtk.ToggleButton(label=name, group=group)
+    y_button = Gtk.CheckButton(label=name, active=yactive)
+
+    if group is None:
+        group = x_button
+
+    Gtk.ToggleButton.set_active(x_button, xactive)
+    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+
+    x_item = Gtk.Box()
+    y_item = Gtk.Box()
+
+    x_item.append(x_button)
+    y_item.append(y_button)
+
+    x_delete = Gtk.Button.new_from_icon_name("edit-delete")
+    y_delete = Gtk.Button.new_from_icon_name("edit-delete")
+
+    x_delete.set_hexpand(True)
+    y_delete.set_hexpand(True)
+
+    x_delete.set_halign(Gtk.Align.END)
+    y_delete.set_halign(Gtk.Align.END)
+
+    Gtk.Button.connect(x_delete,
+                       "clicked", on_delete_button_click, (x_button, y_button))
+    Gtk.Button.connect(y_delete,
+                       "clicked", on_delete_button_click, (y_button, x_button))
+
+    x_item.append(x_delete)
+    y_item.append(y_delete)
+
+    Gtk.Box.append(x_buttons_box, x_item)
+    Gtk.Box.append(y_buttons_box, y_item)
     return
 
 
