@@ -45,7 +45,7 @@ def on_entry_activate(entry):
     text = Gtk.EntryBuffer.get_text(buffer)
     print("on_entry_activate: ", text)
     local_dict = df.to_dict(orient='series')
-    pd.eval(text, local_dict=local_dict, target=df, inplace=True)
+    df[text] = pd.eval(text, local_dict=local_dict)
 
     name = df.columns[-1]
     x_button = Gtk.ToggleButton(label=name, group=group)
@@ -54,8 +54,13 @@ def on_entry_activate(entry):
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
 
-    Gtk.Box.append(x_buttons_box, x_button)
-    Gtk.Box.append(y_buttons_box, y_button)
+    x_item = Gtk.Box()
+    y_item = Gtk.Box()
+    x_item.append(x_button)
+    y_item.append(y_button)
+
+    Gtk.Box.append(x_buttons_box, x_item)
+    Gtk.Box.append(y_buttons_box, y_item)
 
     plot_name_nplots(name, 4)
     axes_left.relim()
@@ -100,9 +105,10 @@ def on_open_response(dialog, async_result, data):
     axes_left = figure.add_subplot(111)
     # axes_right = axes_left.twinx()
     for i, name in enumerate(df.columns[1:]):
-        plot_name_nplots(name, i)
-        if i >= 10:
-            break
+        new = str.replace(name, ".", "_")
+        df.rename(columns={name: new}, inplace=True)
+        if i < 10:
+            plot_name_nplots(df.columns[i], i)
 
     axes_left.set_title(f"{filename}")
     axes_left.legend()
