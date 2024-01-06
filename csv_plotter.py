@@ -88,7 +88,7 @@ def on_entry_activate(entry):
 
     name = df.columns[-1]
 
-    add_buttons_xy(name)
+    add_buttons_xy(name, yactive=True)
 
     plot_name_nplots(name, 4)
     redraw_plots()
