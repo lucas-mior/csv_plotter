@@ -39,6 +39,42 @@ def set_margins(widget):
     return
 
 
+def add_buttons_xy(name, group):
+    x_button = Gtk.ToggleButton(label=name, group=group)
+    y_button = Gtk.CheckButton(label=name, active=True)
+
+    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+
+    x_item = Gtk.Box()
+    y_item = Gtk.Box()
+
+    x_item.set_hexpand(True)
+    y_item.set_hexpand(True)
+
+    x_item.append(x_button)
+    y_item.append(y_button)
+
+    x_delete = Gtk.Button.new_from_icon_name("edit-delete")
+    y_delete = Gtk.Button.new_from_icon_name("edit-delete")
+
+    x_delete.set_hexpand(True)
+    y_delete.set_hexpand(True)
+
+    x_delete.set_halign(Gtk.Align.END)
+    y_delete.set_halign(Gtk.Align.END)
+
+    x_delete.connect("clicked", on_delete_icon_click, (x_button, y_button))
+    y_delete.connect("clicked", on_delete_icon_click, (y_button, x_button))
+
+    x_item.append(x_delete)
+    y_item.append(y_delete)
+
+    Gtk.Box.append(x_buttons_box, x_item)
+    Gtk.Box.append(y_buttons_box, y_item)
+    return
+
+
 def on_entry_activate(entry):
     global group, x_buttons_box, y_buttons_box
     buffer = Gtk.Entry.get_buffer(entry)
@@ -49,28 +85,8 @@ def on_entry_activate(entry):
     Gtk.Entry.set_text(entry, "")
 
     name = df.columns[-1]
-    x_button = Gtk.ToggleButton(label=name, group=group)
-    y_button = Gtk.CheckButton(label=name, active=True)
 
-    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
-
-    x_item = Gtk.Box()
-    y_item = Gtk.Box()
-    x_item.append(x_button)
-    y_item.append(y_button)
-
-    x_delete = Gtk.Button.new_from_icon_name("edit-delete")
-    y_delete = Gtk.Button.new_from_icon_name("edit-delete")
-
-    x_delete.connect("clicked", on_delete_icon_click, (x_button, y_button))
-    y_delete.connect("clicked", on_delete_icon_click, (y_button, x_button))
-
-    x_item.append(x_delete)
-    y_item.append(y_delete)
-
-    Gtk.Box.append(x_buttons_box, x_item)
-    Gtk.Box.append(y_buttons_box, y_item)
+    add_buttons_xy(name, group)
 
     plot_name_nplots(name, 4)
     axes_left.relim()
