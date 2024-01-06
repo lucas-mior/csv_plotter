@@ -165,7 +165,12 @@ def on_open_response(dialog, async_result, data):
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     set_margins(plot_box)
 
-    Gtk.Box.append(plot_box, toolbar)
+    reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    toolbar_window = Gtk.Box()
+    Gtk.Box.append(toolbar_window, toolbar)
+    Gtk.Box.append(toolbar_window, reload_button)
+
+    Gtk.Box.append(plot_box, toolbar_window)
     Gtk.Box.append(plot_box, canvas)
 
     x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
