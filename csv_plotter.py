@@ -21,7 +21,7 @@ from matplotlib.figure import Figure
 filename = None
 
 
-def plot_name_nplots(name, nplots):
+def add_plot_name_nplots(name, nplots):
     global axes_left, canvas, x, df
 
     y = df[name]
@@ -90,7 +90,7 @@ def on_entry_activate(entry):
 
     add_buttons_xy(name, yactive=True)
 
-    plot_name_nplots(name, 4)
+    add_plot_name_nplots(name, 4)
     redraw_plots()
     return
 
@@ -189,7 +189,7 @@ def on_open_response(dialog, async_result, data):
         new = str.replace(name, ".", "_")
         df.rename(columns={name: new}, inplace=True)
         if i < 10:
-            plot_name_nplots(new, i)
+            add_plot_name_nplots(new, i)
 
         add_buttons_xy(new, yactive=i < 10)
 
@@ -275,7 +275,7 @@ def on_x_button_toggled(x_button):
     axes_left.set_prop_cycle(None)
 
     for i, name in enumerate(plotted):
-        plot_name_nplots(name, i)
+        add_plot_name_nplots(name, i)
 
     axes_left.set_xlabel(x.name)
     redraw_plots()
@@ -305,8 +305,8 @@ def on_y_button_toggled(y_button):
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
-    if active
-        plot_name_nplots(name, len(axes_left.get_lines()))
+    if active:
+        add_plot_name_nplots(name, len(axes_left.get_lines()))
     else:
         remove_plot(name)
 
