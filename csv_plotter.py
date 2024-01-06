@@ -110,13 +110,14 @@ def on_delete_button_click(delete_button, user_data):
     x_button = user_data[0]
     y_button = user_data[1]
     name = x_button.get_label()
-    df.drop(name, axis=1)
 
-    remove_plot(name)
-    redraw_plots()
+    if name != x.name:
+        df.drop(name, axis=1)
 
-    _delete_parent(x_button)
-    _delete_parent(y_button)
+        remove_plot(name)
+        redraw_plots()
+        _delete_parent(x_button)
+        _delete_parent(y_button)
     return
 
 
