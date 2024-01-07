@@ -157,13 +157,6 @@ def configure_window_once():
     return
 
 
-def on_axis_button_click(axis_button):
-    print(f"on_axis_button_click({axis_button})")
-    # start, end = ax.get_xlim()
-    # ax.xaxis.set_ticks(np.arange(start, end, stepsize))
-    return
-
-
 def reinitialize_plots(x_config_scroll, y_config_scroll):
     global x_button_group
 
@@ -234,6 +227,13 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
 
     Gtk.Box.append(x_buttons_box, x_item)
     Gtk.Box.append(y_buttons_box, y_item)
+    return
+
+
+def on_axis_button_click(axis_button):
+    print(f"on_axis_button_click({axis_button})")
+    # start, end = ax.get_xlim()
+    # ax.xaxis.set_ticks(np.arange(start, end, stepsize))
     return
 
 
