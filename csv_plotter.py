@@ -97,6 +97,7 @@ def configure_window_once():
     y_config_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
                        x_config_scroll, y_config_scroll)
 
