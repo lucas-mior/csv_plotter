@@ -5,6 +5,8 @@ import sys
 import pandas as pd
 import numpy as np
 
+from pandas import DataFrame
+
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
@@ -62,7 +64,8 @@ def reload_file_contents():
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
-    df.insert(0, 'Row', df.reset_index().index)
+    rows = DataFrame.reset_index(df).index
+    DataFrame.insert(df, 0, 'Row', rows)
     x = df.iloc[:, 0]
     return
 
@@ -178,7 +181,7 @@ def reinitialize_plots(x_config_scroll, y_config_scroll):
     for i, name in enumerate(df.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
-        df.rename(columns={name: new}, inplace=True)
+        DataFrame.rename(df, columns={name: new}, inplace=True)
 
         if i < 10:
             add_plot_name_nplots(new)
@@ -259,7 +262,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
     name = x_button.get_label()
 
     if name != x.name:
-        df.drop(name, axis=1)
+        DataFrame.drop(df, name, axis=1)
 
         remove_plot(name)
         redraw_plots()
@@ -311,14 +314,18 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
-    local_dict = df.to_dict(orient='series')
+    local_dict = DataFrame.to_dict(df, orient='series')
     df[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
 
     name = df.columns[-1]
 
-    x_buttons_box = x_config_scroll.get_child().get_child()
-    y_buttons_box = y_config_scroll.get_child().get_child()
+    x_viewport = Gtk.ScrolledWindow.get_child(x_config_scroll)
+    y_viewport = Gtk.ScrolledWindow.get_child(y_config_scroll)
+
+    x_buttons_box = Gtk.Viewport.get_child(x_viewport)
+    y_buttons_box = Gtk.Viewport.get_child(y_viewport)
+
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
     add_plot_name_nplots(name)
