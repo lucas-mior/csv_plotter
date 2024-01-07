@@ -78,6 +78,7 @@ def configure_window_once():
     toolbar = NavigationToolbar(canvas)
     axes_left = Figure.add_subplot(figure, 111)
     axes_left.set_title(f"{filebase}")
+    axes_left.grid()
     # axes_right = axes_left.twinx()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -183,7 +184,7 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
                    xactive=False, yactive=False):
     global x_button_group
 
-    x_button = Gtk.ToggleButton(label=name, x_button_group=x_button_group)
+    x_button = Gtk.ToggleButton(label=name, group=x_button_group)
     y_button = Gtk.CheckButton(label=name, active=yactive)
 
     if x_button_group is None:
