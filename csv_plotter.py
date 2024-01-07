@@ -149,7 +149,7 @@ def configure_window_once():
 
 
 def reinitialize_plots(x_config_scroll, y_config_scroll):
-    global group
+    global x_button_group
 
     for line in axes_left.get_lines():
         line.remove()
@@ -158,7 +158,7 @@ def reinitialize_plots(x_config_scroll, y_config_scroll):
     y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = df.columns[0]
-    group = None
+    x_button_group = None
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
@@ -181,13 +181,13 @@ def reinitialize_plots(x_config_scroll, y_config_scroll):
 
 def add_buttons_xy(name, x_buttons_box, y_buttons_box,
                    xactive=False, yactive=False):
-    global group
+    global x_button_group
 
-    x_button = Gtk.ToggleButton(label=name, group=group)
+    x_button = Gtk.ToggleButton(label=name, x_button_group=x_button_group)
     y_button = Gtk.CheckButton(label=name, active=yactive)
 
-    if group is None:
-        group = x_button
+    if x_button_group is None:
+        x_button_group = x_button
 
     Gtk.ToggleButton.set_active(x_button, xactive)
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
