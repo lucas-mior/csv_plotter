@@ -53,20 +53,20 @@ def on_have_filename_ready(dialog, async_result, data):
 
 
 def reload_file_contents():
-    global df, x
-    df = None
+    global data_frame, x
+    data_frame = None
     try:
-        df = pd.read_csv(filename)
+        data_frame = pd.read_csv(filename)
     except Exception:
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
-    if df is None:
+    if data_frame is None:
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
-    rows = DataFrame.reset_index(df).index
-    DataFrame.insert(df, 0, 'Row', rows)
-    x = df.iloc[:, 0]
+    rows = DataFrame.reset_index(data_frame).index
+    DataFrame.insert(data_frame, 0, 'Row', rows)
+    x = data_frame.iloc[:, 0]
     return
 
 
@@ -173,15 +173,15 @@ def reinitialize_plots(x_config_scroll, y_config_scroll):
     x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    name_first = df.columns[0]
+    name_first = data_frame.columns[0]
     x_button_group = None
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
-    for i, name in enumerate(df.columns[1:]):
+    for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
-        DataFrame.rename(df, columns={name: new}, inplace=True)
+        DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
         if i < 10:
             add_plot_name_nplots(new)
@@ -262,7 +262,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
     name = x_button.get_label()
 
     if name != x.name:
-        DataFrame.drop(df, name, axis=1)
+        DataFrame.drop(data_frame, name, axis=1)
 
         remove_plot(name)
         redraw_plots()
@@ -272,7 +272,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
 
 
 def on_x_button_toggled(x_button):
-    global axes_left, x, df
+    global axes_left, x, data_frame
 
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
@@ -280,7 +280,7 @@ def on_x_button_toggled(x_button):
     if not active:
         return
 
-    x = df[name]
+    x = data_frame[name]
 
     plotted = []
     for line in Axes.get_lines(axes_left):
@@ -314,11 +314,11 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
-    local_dict = DataFrame.to_dict(df, orient='series')
-    df[text] = pd.eval(text, local_dict=local_dict)
+    local_dict = DataFrame.to_dict(data_frame, orient='series')
+    data_frame[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
 
-    name = df.columns[-1]
+    name = data_frame.columns[-1]
 
     x_viewport = Gtk.ScrolledWindow.get_child(x_config_scroll)
     y_viewport = Gtk.ScrolledWindow.get_child(y_config_scroll)
@@ -352,7 +352,7 @@ def redraw_plots():
 def add_plot_name_nplots(name):
     nplots = len(Axes.get_lines(axes_left))
 
-    y = df[name]
+    y = data_frame[name]
     if x.is_monotonic_increasing:
         linestyle = "solid" if nplots < 6 else "dashdot"
         Axes.plot(axes_left, x, y, linestyle=linestyle, label=name)
