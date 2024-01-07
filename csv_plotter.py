@@ -205,25 +205,25 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     x_item = Gtk.Box()
     y_item = Gtk.Box()
 
-    x_item.append(x_button)
-    y_item.append(y_button)
+    Gtk.Box.append(x_item, x_button)
+    Gtk.Box.append(y_item, y_button)
 
     x_delete = Gtk.Button.new_from_icon_name("edit-delete")
     y_delete = Gtk.Button.new_from_icon_name("edit-delete")
 
-    x_delete.set_hexpand(True)
-    y_delete.set_hexpand(True)
+    Gtk.Button.set_hexpand(x_delete, True)
+    Gtk.Button.set_hexpand(y_delete, True)
 
-    x_delete.set_halign(Gtk.Align.END)
-    y_delete.set_halign(Gtk.Align.END)
+    Gtk.Button.set_halign(x_delete, Gtk.Align.END)
+    Gtk.Button.set_halign(y_delete, Gtk.Align.END)
 
     Gtk.Button.connect(x_delete,
                        "clicked", on_delete_button_click, x_button, y_button)
     Gtk.Button.connect(y_delete,
                        "clicked", on_delete_button_click, y_button, x_button)
 
-    x_item.append(x_delete)
-    y_item.append(y_delete)
+    Gtk.Box.append(x_item, x_delete)
+    Gtk.Box.append(y_item, y_delete)
 
     Gtk.Box.append(x_buttons_box, x_item)
     Gtk.Box.append(y_buttons_box, y_item)
