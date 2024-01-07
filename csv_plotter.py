@@ -132,12 +132,13 @@ def configure_window_once():
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
-    Gtk.Box.append(x_selection_box, x_config_scroll)
-    Gtk.Box.append(y_selection_box, y_config_scroll)
     new_data_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_data_entry, "add a plot...")
     Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate,
                       x_config_scroll, y_config_scroll)
+
+    Gtk.Box.append(x_selection_box, x_config_scroll)
+    Gtk.Box.append(y_selection_box, y_config_scroll)
     Gtk.Box.append(y_selection_box, new_data_entry)
 
     config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
