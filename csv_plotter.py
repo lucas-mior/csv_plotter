@@ -75,10 +75,13 @@ def configure_window_once():
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
-    canvas.set_hexpand(True)
-    canvas.set_vexpand(True)
-    toolbar = NavigationToolbar(canvas)
     axes_left = Figure.add_subplot(figure, 111)
+
+    FigureCanvas.set_hexpand(canvas, True)
+    FigureCanvas.set_vexpand(canvas, True)
+
+    toolbar = NavigationToolbar(canvas)
+
     Axes.set_title(axes_left, f"{filebase}")
     Axes.grid(axes_left)
     # axes_right = axes_left.twinx()
@@ -335,7 +338,7 @@ def redraw_plots():
     Axes.relim(axes_left)
     Axes.autoscale(axes_left)
     Axes.legend(axes_left)
-    canvas.draw()
+    FigureCanvas.draw(canvas)
     return
 
 
