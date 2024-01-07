@@ -224,10 +224,10 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     Gtk.Button.set_halign(x_delete, Gtk.Align.END)
     Gtk.Button.set_halign(y_delete, Gtk.Align.END)
 
-    Gtk.Button.connect(x_delete,
-                       "clicked", on_delete_button_click, x_button, y_button)
-    Gtk.Button.connect(y_delete,
-                       "clicked", on_delete_button_click, y_button, x_button)
+    Gtk.Button.connect(x_delete, "clicked", on_delete_button_click,
+                       x_button, y_button)
+    Gtk.Button.connect(y_delete, "clicked", on_delete_button_click,
+                       y_button, x_button)
 
     Gtk.Box.append(x_item, x_delete)
     Gtk.Box.append(y_item, y_delete)
