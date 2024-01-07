@@ -27,7 +27,7 @@ def on_application_activation(app):
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
-        dialog.open(window, None, on_have_filename_ready, None)
+        Gtk.FileDialog.open(dialog, window, None, on_have_filename_ready, None)
     else:
         filename = sys.argv[1]
         on_have_filename_ready(None, None, None)
@@ -106,7 +106,7 @@ def configure_window_once():
                        x_config_scroll, y_config_scroll)
     Gtk.Button.connect(axis_button, "clicked", on_axis_button_click)
 
-    toolbar_box = Gtk.Box()
+    toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
     Gtk.Box.append(toolbar_box, axis_button)
     Gtk.Box.append(toolbar_box, reload_button)
@@ -202,8 +202,8 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
 
-    x_item = Gtk.Box()
-    y_item = Gtk.Box()
+    x_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    y_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
     Gtk.Box.append(x_item, x_button)
     Gtk.Box.append(y_item, y_button)
