@@ -98,11 +98,11 @@ def configure_window_once():
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
                        x_config_scroll, y_config_scroll)
 
-    toolbar_window = Gtk.Box()
-    Gtk.Box.append(toolbar_window, toolbar)
-    Gtk.Box.append(toolbar_window, reload_button)
+    toolbar_box = Gtk.Box()
+    Gtk.Box.append(toolbar_box, toolbar)
+    Gtk.Box.append(toolbar_box, reload_button)
 
-    Gtk.Box.append(plot_box, toolbar_window)
+    Gtk.Box.append(plot_box, toolbar_box)
     Gtk.Box.append(plot_box, canvas)
 
     reinitialize_plots(x_config_scroll, y_config_scroll)
