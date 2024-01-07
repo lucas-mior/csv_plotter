@@ -10,9 +10,10 @@ Interactively plot CSV files.
 - select X axis
 - create new curves by inserting expressions parsed by `pandas.eval()`
 - remove unwanted columns (for organization purposes)
+- command to reload file contents (in case you make external changes)
 
 ## Non-features
-- CSV edition (use a text/spreadsheet editor)
+- CSV edition (use a text/spreadsheet editor instead)
 - open more than one file
 
 ## TODO
