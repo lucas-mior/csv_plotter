@@ -25,3 +25,6 @@ Interactively plot CSV files.
 - matplotlib
 - pygobject
 - pandas
+
+## Screenshot
+![csv_plotter.py](https://github.com/lucas-mior/csv_plotter/blob/master/screenshot.png)
