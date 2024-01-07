@@ -260,7 +260,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
         Gtk.Box.remove(grand_parent, parent_box)
         return
 
-    name = Gtk.Button.get_label(x_button)
+    name = Gtk.ToggleButton.get_label(x_button)
 
     if name != x.name:
         DataFrame.drop(data_frame, name, axis=1)
