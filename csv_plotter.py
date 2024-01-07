@@ -97,12 +97,18 @@ def configure_window_once():
     y_config_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    axis_button = Gtk.Button.new_from_icon_name("new-document")
+
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
+    Gtk.Button.set_tooltip_text(axis_button, "Change axis ticks")
+
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
                        x_config_scroll, y_config_scroll)
+    Gtk.Button.connect(axis_button, "clicked", on_axis_button_click)
 
     toolbar_box = Gtk.Box()
     Gtk.Box.append(toolbar_box, toolbar)
+    Gtk.Box.append(toolbar_box, axis_button)
     Gtk.Box.append(toolbar_box, reload_button)
 
     Gtk.Box.append(plot_box, toolbar_box)
@@ -148,6 +154,13 @@ def configure_window_once():
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.set_visible(window, True)
+    return
+
+
+def on_axis_button_click(axis_button):
+    print(f"on_axis_button_click({axis_button})")
+    # start, end = ax.get_xlim()
+    # ax.xaxis.set_ticks(np.arange(start, end, stepsize))
     return
 
 
