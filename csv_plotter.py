@@ -8,6 +8,7 @@ import numpy as np
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
+from gi.repository import Gio
 
 import matplotlib
 from matplotlib.backends.backend_gtk4 \
@@ -37,11 +38,11 @@ def on_have_filename_ready(dialog, async_result, data):
     global filename
 
     if dialog is not None:
-        gfile = dialog.open_finish(result=async_result)
+        gfile = Gtk.FileDialog.open_finish(dialog, result=async_result)
         if gfile is None:
             print("Error getting file", file=sys.stderr)
             sys.exit(1)
-        filename = gfile.get_path()
+        filename = Gio.File.get_path(gfile)
 
     reload_file_contents()
     configure_window_once()
@@ -222,21 +223,9 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     return
 
 
-def on_entry_activate(entry, x_config_scroll, y_config_scroll):
-    buffer = Gtk.Entry.get_buffer(entry)
-    text = Gtk.EntryBuffer.get_text(buffer)
-
-    local_dict = df.to_dict(orient='series')
-    df[text] = pd.eval(text, local_dict=local_dict)
-    Gtk.Entry.set_text(entry, "")
-
-    name = df.columns[-1]
-
-    x_buttons_box = x_config_scroll.get_child().get_child()
-    y_buttons_box = y_config_scroll.get_child().get_child()
-    add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
-
-    add_plot_name_nplots(name)
+def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
+    reload_file_contents()
+    reinitialize_plots(x_config_scroll, y_config_scroll)
     redraw_plots()
     return
 
@@ -302,9 +291,21 @@ def on_y_button_toggled(y_button):
     return
 
 
-def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
-    reload_file_contents()
-    reinitialize_plots(x_config_scroll, y_config_scroll)
+def on_entry_activate(entry, x_config_scroll, y_config_scroll):
+    buffer = Gtk.Entry.get_buffer(entry)
+    text = Gtk.EntryBuffer.get_text(buffer)
+
+    local_dict = df.to_dict(orient='series')
+    df[text] = pd.eval(text, local_dict=local_dict)
+    Gtk.Entry.set_text(entry, "")
+
+    name = df.columns[-1]
+
+    x_buttons_box = x_config_scroll.get_child().get_child()
+    y_buttons_box = y_config_scroll.get_child().get_child()
+    add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
+
+    add_plot_name_nplots(name)
     redraw_plots()
     return
 
