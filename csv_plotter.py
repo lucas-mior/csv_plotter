@@ -17,6 +17,7 @@ from matplotlib.backends.backend_gtk4 \
 from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 
 
 def on_application_activation(app):
@@ -78,8 +79,8 @@ def configure_window_once():
     canvas.set_vexpand(True)
     toolbar = NavigationToolbar(canvas)
     axes_left = Figure.add_subplot(figure, 111)
-    axes_left.set_title(f"{filebase}")
-    axes_left.grid()
+    Axes.set_title(axes_left, f"{filebase}")
+    Axes.grid(axes_left)
     # axes_right = axes_left.twinx()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -160,7 +161,7 @@ def configure_window_once():
 def reinitialize_plots(x_config_scroll, y_config_scroll):
     global x_button_group
 
-    for line in axes_left.get_lines():
+    for line in Axes.get_lines(axes_left):
         line.remove()
 
     x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -180,8 +181,8 @@ def reinitialize_plots(x_config_scroll, y_config_scroll):
             add_plot_name_nplots(new)
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
-    axes_left.legend()
-    axes_left.set_xlabel(x.name)
+    Axes.legend(axes_left)
+    Axes.set_xlabel(axes_left, x.name)
 
     Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
@@ -276,16 +277,16 @@ def on_x_button_toggled(x_button):
     x = df[name]
 
     plotted = []
-    for line in axes_left.get_lines():
+    for line in Axes.get_lines(axes_left):
         list.append(plotted, line.get_label())
         line.remove()
 
-    axes_left.set_prop_cycle(None)
+    Axes.set_prop_cycle(axes_left, None)
 
     for name in plotted:
         add_plot_name_nplots(name)
 
-    axes_left.set_xlabel(x.name)
+    Axes.set_xlabel(axes_left, x.name)
     redraw_plots()
     return
 
@@ -323,7 +324,7 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
 
 def remove_plot(name):
-    for line in axes_left.get_lines():
+    for line in Axes.get_lines(axes_left):
         if line.get_label() == name:
             line.remove()
             break
@@ -331,22 +332,22 @@ def remove_plot(name):
 
 
 def redraw_plots():
-    axes_left.relim()
-    axes_left.autoscale()
-    axes_left.legend()
+    Axes.relim(axes_left)
+    Axes.autoscale(axes_left)
+    Axes.legend(axes_left)
     canvas.draw()
     return
 
 
 def add_plot_name_nplots(name):
-    nplots = len(axes_left.get_lines())
+    nplots = len(Axes.get_lines(axes_left))
 
     y = df[name]
     if x.is_monotonic_increasing:
         linestyle = "solid" if nplots < 6 else "dashdot"
-        axes_left.plot(x, y, linestyle=linestyle, label=name)
+        Axes.plot(axes_left, x, y, linestyle=linestyle, label=name)
     else:
-        axes_left.plot(x, y, 'o', markersize=1.5, label=name)
+        Axes.plot(axes_left, x, y, 'o', markersize=1.5, label=name)
     return
 
 
