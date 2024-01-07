@@ -254,21 +254,21 @@ def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
 
 def on_delete_button_click(delete_button, x_button, y_button):
 
-    def _delete_parent(button):
-        parent = Gtk.Button.get_parent(button)
-        grand_parent = Gtk.Box.get_parent(parent)
-        Gtk.Box.remove(grand_parent, parent)
+    def _delete_parent_box(button):
+        parent_box = Gtk.Button.get_parent(button)
+        grand_parent = Gtk.Box.get_parent(parent_box)
+        Gtk.Box.remove(grand_parent, parent_box)
         return
 
-    name = x_button.get_label()
+    name = Gtk.Button.get_label(x_button)
 
     if name != x.name:
         DataFrame.drop(data_frame, name, axis=1)
 
         remove_plot(name)
         redraw_plots()
-        _delete_parent(x_button)
-        _delete_parent(y_button)
+        _delete_parent_box(x_button)
+        _delete_parent_box(y_button)
     return
 
 
