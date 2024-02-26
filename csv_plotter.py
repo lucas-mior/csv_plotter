@@ -28,7 +28,7 @@ def on_application_activation(app):
     global window, filename
 
     window = Gtk.ApplicationWindow(application=app)
-    Gtk.ApplicationWindow.set_default_size(window, 1200, 900)
+    Gtk.ApplicationWindow.set_default_size(window, 1400, 900)
 
     if len(sys.argv) < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
@@ -154,7 +154,7 @@ def configure_window_once():
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     Gtk.Paned.set_wide_handle(window_pane, True)
-    Gtk.Paned.set_position(window_pane, 900)
+    Gtk.Paned.set_position(window_pane, 1100)
 
     Gtk.Paned.set_start_child(window_pane, plot_box)
     Gtk.Paned.set_end_child(window_pane, config_pane)
@@ -183,20 +183,26 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
-    namesy = ""
+    names_left = ""
+    names_right = ""
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
-        namesy += f" {new}"
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
-        if i < 10:
-            add_plot_name_nplots(new)
+        if i < 5:
+            add_plot_name_nplots(new, axes_left)
+            names_left += f" {new}"
+        elif i < 10:
+            add_plot_name_nplots(new, axes_right)
+            names_right += f" {new}"
+
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
     Axes.legend(axes_left)
     Axes.set_xlabel(axes_left, x.name)
-    Axes.set_ylabel(axes_left, namesy)
+    Axes.set_ylabel(axes_left, names_left)
+    Axes.set_ylabel(axes_right, names_right)
 
     Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
@@ -298,7 +304,7 @@ def on_x_button_toggled(x_button):
     Axes.set_prop_cycle(axes_left, None)
 
     for name in plotted:
-        add_plot_name_nplots(name)
+        add_plot_name_nplots(name, axes_left)
 
     Axes.set_xlabel(axes_left, x.name)
     redraw_plots()
@@ -310,7 +316,7 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot_name_nplots(name)
+        add_plot_name_nplots(name, axes_left)
     else:
         remove_plot(name)
 
@@ -336,7 +342,7 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
-    add_plot_name_nplots(name)
+    add_plot_name_nplots(name, axes_left)
     redraw_plots()
     return
 
@@ -357,15 +363,15 @@ def redraw_plots():
     return
 
 
-def add_plot_name_nplots(name):
-    nplots = len(Axes.get_lines(axes_left))
+def add_plot_name_nplots(name, axes):
+    nplots = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_left))
 
     y = data_frame[name]
     if x.is_monotonic_increasing:
         linestyle = "solid" if nplots < 6 else "dashdot"
-        Axes.plot(axes_left, x, y, linestyle=linestyle, label=name)
+        Axes.plot(axes, x, y, linestyle=linestyle, label=name)
     else:
-        Axes.plot(axes_left, x, y, 'o', markersize=1.5, label=name)
+        Axes.plot(axes, x, y, 'o', markersize=1.5, label=name)
     return
 
 
