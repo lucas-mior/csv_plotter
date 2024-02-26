@@ -173,7 +173,7 @@ def configure_window_once():
 
 
 def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
-    global x_button_group
+    global x_button_group, diff_mean
 
     for line in Axes.get_lines(axes_left):
         line.remove()
@@ -189,6 +189,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
                    xactive=True, yactive=False)
 
     ncolumns = len(data_frame.columns)
+
     diff_all = np.max(data_frame) - np.min(data_frame)
     diff_mean = np.median(diff_all)
 
@@ -197,13 +198,9 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
-        print("mean=", diff)
 
         if i < 10:
-            if diff < diff_mean:
-                add_plot_name_nplots(new, axes_left)
-            else:
-                add_plot_name_nplots(new, axes_right)
+            add_plot_name_nplots(new)
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
@@ -331,9 +328,9 @@ def on_x_button_toggled(x_button):
     Axes.set_prop_cycle(axes_right, color=mcolors.BASE_COLORS)
 
     for name in plotted_left:
-        add_plot_name_nplots(name, axes_left)
+        add_plot_name_nplots(name)
     for name in plotted_right:
-        add_plot_name_nplots(name, axes_right)
+        add_plot_name_nplots(name)
 
     Axes.set_xlabel(axes_left, x.name)
     redraw_plots()
@@ -345,10 +342,7 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        if random.choice([True, False]):
-            add_plot_name_nplots(name, axes_left)
-        else:
-            add_plot_name_nplots(name, axes_right)
+        add_plot_name_nplots(name)
     else:
         remove_plot(name)
 
@@ -374,10 +368,7 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
-    if random.choice([True, False]):
-        add_plot_name_nplots(name, axes_left)
-    else:
-        add_plot_name_nplots(name, axes_right)
+    add_plot_name_nplots(name)
     redraw_plots()
     return
 
@@ -401,17 +392,21 @@ def redraw_plots():
     Axes.relim(axes_right)
     Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
-    if len(Axes.get_lines(axes_left)) > 0:
-        Axes.legend(axes_left)
-    if len(Axes.get_lines(axes_right)) > 0:
-        Axes.legend(axes_right)
+    Axes.legend(axes_left)
+    Axes.legend(axes_right)
 
     FigureCanvas.draw(canvas)
     return
 
 
-def add_plot_name_nplots(name, axes):
+def add_plot_name_nplots(name):
     nplots = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
+
+    diff = np.max(data_frame[name]) - np.min(data_frame[name])
+    if diff < diff_mean:
+        axes = axes_left
+    else:
+        axes = axes_right
 
     y = data_frame[name]
     if x.is_monotonic_increasing:
