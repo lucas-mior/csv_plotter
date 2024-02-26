@@ -386,10 +386,10 @@ def remove_plot(name):
 
 def redraw_plots():
     Axes.relim(axes_left)
-    Axes.autoscale(axes_left)
-    Axes.legend(axes_left)
     Axes.relim(axes_right)
+    Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
+    Axes.legend(axes_left)
     Axes.legend(axes_right)
 
     set_axis_labels()
