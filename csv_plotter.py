@@ -4,6 +4,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import random
 
 from pandas import DataFrame
 
@@ -197,6 +198,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
     Axes.legend(axes_left)
+    Axes.legend(axes_right)
     Axes.set_xlabel(axes_left, x.name)
     set_axis_labels()
 
@@ -296,7 +298,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
 
 
 def on_x_button_toggled(x_button):
-    global axes_left, x, data_frame
+    global axes_left, axes_right, x, data_frame
 
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
@@ -306,15 +308,22 @@ def on_x_button_toggled(x_button):
 
     x = data_frame[name]
 
-    plotted = []
+    plotted_left = []
+    plotted_right = []
     for line in Axes.get_lines(axes_left):
-        list.append(plotted, line.get_label())
+        list.append(plotted_left, line.get_label())
+        line.remove()
+    for line in Axes.get_lines(axes_right):
+        list.append(plotted_right, line.get_label())
         line.remove()
 
     Axes.set_prop_cycle(axes_left, None)
+    Axes.set_prop_cycle(axes_right, None)
 
-    for name in plotted:
+    for name in plotted_left:
         add_plot_name_nplots(name, axes_left)
+    for name in plotted_right:
+        add_plot_name_nplots(name, axes_right)
 
     Axes.set_xlabel(axes_left, x.name)
     redraw_plots()
@@ -326,7 +335,10 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot_name_nplots(name, axes_left)
+        if random.choice([True, False]):
+            add_plot_name_nplots(name, axes_left)
+        else:
+            add_plot_name_nplots(name, axes_right)
     else:
         remove_plot(name)
 
@@ -352,7 +364,10 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
-    add_plot_name_nplots(name, axes_left)
+    if random.choice([True, False]):
+        add_plot_name_nplots(name, axes_left)
+    else:
+        add_plot_name_nplots(name, axes_right)
     redraw_plots()
     return
 
@@ -362,12 +377,14 @@ def remove_plot(name):
         if line.get_label() == name:
             line.remove()
             break
+    for line in Axes.get_lines(axes_right):
+        if line.get_label() == name:
+            line.remove()
+            break
     return
 
 
 def redraw_plots():
-    set_axis_labels()
-
     Axes.relim(axes_left)
     Axes.autoscale(axes_left)
     Axes.legend(axes_left)
@@ -375,6 +392,7 @@ def redraw_plots():
     Axes.autoscale(axes_right)
     Axes.legend(axes_right)
 
+    set_axis_labels()
     FigureCanvas.draw(canvas)
     return
 
