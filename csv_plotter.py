@@ -197,10 +197,10 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
-    Axes.legend(axes_left)
-    Axes.legend(axes_right)
     Axes.set_xlabel(axes_left, x.name)
     set_axis_labels()
+    Axes.legend(axes_left)
+    Axes.legend(axes_right)
 
     Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
@@ -210,11 +210,11 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 def set_axis_labels():
     names_left = ""
     for line in Axes.get_lines(axes_left):
-        names_left += f" {line.get_label()}"
+        names_left += f" {line.get_label()} "
 
     names_right = ""
     for line in Axes.get_lines(axes_right):
-        names_right += f" {line.get_label()}"
+        names_right += f" {line.get_label()} "
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
@@ -385,14 +385,15 @@ def remove_plot(name):
 
 
 def redraw_plots():
+    set_axis_labels()
+
     Axes.relim(axes_left)
     Axes.relim(axes_right)
     Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
-    Axes.legend(axes_left)
-    Axes.legend(axes_right)
+    Axes.legend(axes_left, loc='center left')
+    Axes.legend(axes_right, loc='center right')
 
-    set_axis_labels()
     FigureCanvas.draw(canvas)
     return
 
