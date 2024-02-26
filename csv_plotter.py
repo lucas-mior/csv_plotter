@@ -190,7 +190,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
     ncolumns = len(data_frame.columns)
 
-    diff_all = np.max(data_frame) - np.min(data_frame)
+    diff_all = np.max(data_frame, axis=0) - np.min(data_frame, axis=0)
     diff_mean = np.median(diff_all)
 
     for i, name in enumerate(data_frame.columns[1:]):
@@ -400,17 +400,17 @@ def redraw_plots():
 
 
 def add_plot_name_nplots(name):
-    nplots = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
-
     diff = np.max(data_frame[name]) - np.min(data_frame[name])
     if diff < diff_mean:
         axes = axes_left
     else:
         axes = axes_right
 
+    nplots = len(Axes.get_lines(axes))
+
     y = data_frame[name]
     if x.is_monotonic_increasing:
-        linestyle = "solid" if nplots < 6 else "dashdot"
+        linestyle = "solid" if nplots < 5 else "dashdot"
         Axes.plot(axes, x, y, linestyle=linestyle, label=name)
     else:
         Axes.plot(axes, x, y, 'o', markersize=1.5, label=name)
