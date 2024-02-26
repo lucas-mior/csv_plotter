@@ -93,8 +93,9 @@ def configure_window_once():
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
 
+    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
     Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
-    Axes.set_prop_cycle(axes_right, color=mcolors.BASE_COLORS)
+    Axes.set_prop_cycle(axes_right, color=base_colors)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
