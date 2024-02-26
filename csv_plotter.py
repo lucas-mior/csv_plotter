@@ -183,29 +183,39 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
-    names_left = ""
-    names_right = ""
+    ncolumns = len(data_frame.columns)
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
-        if i < 5:
+        if i < ncolumns/2 and i < 10:
             add_plot_name_nplots(new, axes_left)
-            names_left += f" {new}"
         elif i < 10:
             add_plot_name_nplots(new, axes_right)
-            names_right += f" {new}"
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
     Axes.legend(axes_left)
     Axes.set_xlabel(axes_left, x.name)
-    Axes.set_ylabel(axes_left, names_left)
-    Axes.set_ylabel(axes_right, names_right)
+    set_axis_labels()
 
     Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
+    return
+
+
+def set_axis_labels():
+    names_left = ""
+    for line in Axes.get_lines(axes_left):
+        names_left += f" {line.get_label()}"
+
+    names_right = ""
+    for line in Axes.get_lines(axes_right):
+        names_right += f" {line.get_label()}"
+
+    Axes.set_ylabel(axes_left, names_left)
+    Axes.set_ylabel(axes_right, names_right)
     return
 
 
@@ -356,15 +366,21 @@ def remove_plot(name):
 
 
 def redraw_plots():
+    set_axis_labels()
+
     Axes.relim(axes_left)
     Axes.autoscale(axes_left)
     Axes.legend(axes_left)
+    Axes.relim(axes_right)
+    Axes.autoscale(axes_right)
+    Axes.legend(axes_right)
+
     FigureCanvas.draw(canvas)
     return
 
 
 def add_plot_name_nplots(name, axes):
-    nplots = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_left))
+    nplots = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
 
     y = data_frame[name]
     if x.is_monotonic_increasing:
