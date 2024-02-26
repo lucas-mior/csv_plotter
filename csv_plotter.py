@@ -401,8 +401,10 @@ def redraw_plots():
     Axes.relim(axes_right)
     Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
-    Axes.legend(axes_left)
-    Axes.legend(axes_right)
+    if len(Axes.get_lines(axes_left)) > 0:
+        Axes.legend(axes_left)
+    if len(Axes.get_lines(axes_right)) > 0:
+        Axes.legend(axes_right)
 
     FigureCanvas.draw(canvas)
     return
