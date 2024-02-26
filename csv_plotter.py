@@ -21,6 +21,8 @@ from matplotlib.backends.backend_gtk4agg \
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
+matplotlib.rcParams.update({'font.size': 14})
+
 
 def on_application_activation(app):
     global window, filename
@@ -71,7 +73,7 @@ def reload_file_contents():
 
 
 def configure_window_once():
-    global axes_left, canvas
+    global axes_left, axes_right, canvas
 
     filebase = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
@@ -87,7 +89,7 @@ def configure_window_once():
 
     Axes.set_title(axes_left, f"{filebase}")
     Axes.grid(axes_left)
-    # axes_right = axes_left.twinx()
+    axes_right = Axes.twinx(axes_left)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -170,6 +172,8 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
     for line in Axes.get_lines(axes_left):
         line.remove()
+    for line in Axes.get_lines(axes_right):
+        line.remove()
 
     x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -179,9 +183,11 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
+    namesy = ""
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
+        namesy += f" {new}"
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
         if i < 10:
@@ -190,6 +196,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
     Axes.legend(axes_left)
     Axes.set_xlabel(axes_left, x.name)
+    Axes.set_ylabel(axes_left, namesy)
 
     Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
     Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
