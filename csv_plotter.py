@@ -228,7 +228,7 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     Gtk.Button.connect(x_delete, "clicked", on_delete_button_click,
                        x_button, y_button)
     Gtk.Button.connect(y_delete, "clicked", on_delete_button_click,
-                       y_button, x_button)
+                       x_button, y_button)
 
     Gtk.Box.append(x_item, x_delete)
     Gtk.Box.append(y_item, y_delete)
