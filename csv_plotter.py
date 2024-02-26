@@ -21,6 +21,7 @@ from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+import matplotlib.colors as mcolors
 
 matplotlib.rcParams.update({'font.size': 14})
 
@@ -91,6 +92,9 @@ def configure_window_once():
     Axes.set_title(axes_left, f"{filebase}")
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
+
+    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
+    Axes.set_prop_cycle(axes_right, color=mcolors.BASE_COLORS)
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -185,15 +189,21 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
                    xactive=True, yactive=False)
 
     ncolumns = len(data_frame.columns)
+    diff_all = np.max(data_frame) - np.min(data_frame)
+    diff_mean = np.median(diff_all)
+
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
+        diff = np.max(data_frame[name]) - np.min(data_frame[name])
+        print("mean=", diff)
 
-        if i < ncolumns/2 and i < 10:
-            add_plot_name_nplots(new, axes_left)
-        elif i < 10:
-            add_plot_name_nplots(new, axes_right)
+        if i < 10:
+            if diff < diff_mean:
+                add_plot_name_nplots(new, axes_left)
+            else:
+                add_plot_name_nplots(new, axes_right)
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
@@ -317,8 +327,8 @@ def on_x_button_toggled(x_button):
         list.append(plotted_right, line.get_label())
         line.remove()
 
-    Axes.set_prop_cycle(axes_left, None)
-    Axes.set_prop_cycle(axes_right, None)
+    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
+    Axes.set_prop_cycle(axes_right, color=mcolors.BASE_COLORS)
 
     for name in plotted_left:
         add_plot_name_nplots(name, axes_left)
@@ -391,8 +401,8 @@ def redraw_plots():
     Axes.relim(axes_right)
     Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
-    Axes.legend(axes_left, loc='center left')
-    Axes.legend(axes_right, loc='center right')
+    Axes.legend(axes_left)
+    Axes.legend(axes_right)
 
     FigureCanvas.draw(canvas)
     return
