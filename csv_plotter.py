@@ -172,7 +172,7 @@ def reconfigure_plots_and_buttons(config_scroll):
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, buttons_box, xactive=True)
+    add_buttons_xy(name_first, buttons_box, xactive=True, yactive=False)
 
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
@@ -206,7 +206,7 @@ def set_axis_labels():
     return
 
 
-def add_buttons_xy(name, buttons_box, xactive=False):
+def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
     global x_button_group
 
     def _set_margins(button):
@@ -214,7 +214,7 @@ def add_buttons_xy(name, buttons_box, xactive=False):
         button.set_margin_start(2)
 
     x_button = Gtk.CheckButton(group=x_button_group)
-    y_button_left = Gtk.CheckButton(active=True)
+    y_button_left = Gtk.CheckButton(active=yactive)
     y_button_right = Gtk.CheckButton(active=False)
     x_button.name = y_button_left.name = y_button_right.name = name
     buttons_label = Gtk.Label(label=name)
