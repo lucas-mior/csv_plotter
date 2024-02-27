@@ -205,7 +205,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
         if i < 10:
-            add_plot_by_name(new)
+            add_plot(new)
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
@@ -340,7 +340,7 @@ def on_x_button_toggled(x_button):
     configure_plot_colors()
 
     for name in plotted:
-        add_plot_by_name(name)
+        add_plot(name)
 
     Axes.set_xlabel(axes_left, x_data.name)
     redraw_plots()
@@ -352,7 +352,7 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot_by_name(name)
+        add_plot(name)
     else:
         remove_plot(name)
 
@@ -378,7 +378,7 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
     add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
 
-    add_plot_by_name(name)
+    add_plot(name)
     redraw_plots()
     return
 
@@ -409,7 +409,7 @@ def redraw_plots():
     return
 
 
-def add_plot_by_name(name):
+def add_plot(name):
     diff = np.max(data_frame[name]) - np.min(data_frame[name])
     if diff < diff_median:
         axes = axes_left
