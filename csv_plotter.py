@@ -194,8 +194,6 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
                    xactive=True, yactive=False)
 
-    ncolumns = len(data_frame.columns)
-
     diff_all = np.max(data_frame, axis=0) - np.min(data_frame, axis=0)
     diff_median = np.median(diff_all)
 
