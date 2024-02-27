@@ -192,11 +192,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, x_buttons_box, y_buttons_box,
-                   xactive=True, yactive=False)
-
-    diff_all = np.max(data_frame, axis=0) - np.min(data_frame, axis=0)
-    diff_median = np.median(diff_all)
+    add_buttons_xy(name_first, x_buttons_box, y_buttons_box, xactive=True)
 
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
@@ -204,10 +200,8 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
-        if i < 10:
-            add_plot(new)
-
-        add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
+        add_plot(new)
+        add_buttons_xy(new, x_buttons_box, y_buttons_box)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
@@ -234,24 +228,27 @@ def set_axis_labels():
 
 
 def add_buttons_xy(name, x_buttons_box, y_buttons_box,
-                   xactive=False, yactive=False):
+                   xactive=False):
     global x_button_group
 
     x_button = Gtk.ToggleButton(label=name, group=x_button_group)
-    y_button = Gtk.CheckButton(label=name, active=yactive)
+    y_button_left = Gtk.CheckButton(label=name, active=True)
+    y_button_right = Gtk.CheckButton(label=name, active=False)
 
     if x_button_group is None:
         x_button_group = x_button
 
     Gtk.ToggleButton.set_active(x_button, xactive)
     Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
-    Gtk.CheckButton.connect(y_button, "toggled", on_y_button_toggled)
+    Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_left_toggled)
+    Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_right_toggled)
 
     x_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     y_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
     Gtk.Box.append(x_item, x_button)
-    Gtk.Box.append(y_item, y_button)
+    Gtk.Box.append(y_item, y_button_left)
+    Gtk.Box.append(y_item, y_button_right)
 
     x_delete = Gtk.Button.new_from_icon_name("edit-delete")
     y_delete = Gtk.Button.new_from_icon_name("edit-delete")
@@ -262,10 +259,10 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     Gtk.Button.set_halign(x_delete, Gtk.Align.END)
     Gtk.Button.set_halign(y_delete, Gtk.Align.END)
 
-    Gtk.Button.connect(x_delete, "clicked", on_delete_button_click,
-                       x_button, y_button)
-    Gtk.Button.connect(y_delete, "clicked", on_delete_button_click,
-                       x_button, y_button)
+    # Gtk.Button.connect(x_delete, "clicked", on_delete_button_click,
+    #                    x_button, y_button)
+    # Gtk.Button.connect(y_delete, "clicked", on_delete_button_click,
+    #                    x_button, y_button)
 
     Gtk.Box.append(x_item, x_delete)
     Gtk.Box.append(y_item, y_delete)
@@ -347,14 +344,27 @@ def on_x_button_toggled(x_button):
     return
 
 
-def on_y_button_toggled(y_button):
+def on_y_button_left_toggled(y_button):
     name = Gtk.CheckButton.get_label(y_button)
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot(name)
+        add_plot(name, left=True)
     else:
-        remove_plot(name)
+        remove_plot(name, left=True)
+
+    redraw_plots()
+    return
+
+
+def on_y_button_right_toggled(y_button):
+    name = Gtk.CheckButton.get_label(y_button)
+    active = Gtk.CheckButton.get_active(y_button)
+
+    if active:
+        add_plot(name, left=False)
+    else:
+        remove_plot(name, left=False)
 
     redraw_plots()
     return
@@ -376,22 +386,24 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
     x_buttons_box = Gtk.Viewport.get_child(x_viewport)
     y_buttons_box = Gtk.Viewport.get_child(y_viewport)
 
-    add_buttons_xy(name, x_buttons_box, y_buttons_box, yactive=True)
+    add_buttons_xy(name, x_buttons_box, y_buttons_box)
 
     add_plot(name)
     redraw_plots()
     return
 
 
-def remove_plot(name):
-    for line in Axes.get_lines(axes_left):
-        if line.get_label() == name:
-            line.remove()
-            break
-    for line in Axes.get_lines(axes_right):
-        if line.get_label() == name:
-            line.remove()
-            break
+def remove_plot(name, left=True):
+    if left:
+        for line in Axes.get_lines(axes_left):
+            if line.get_label() == name:
+                line.remove()
+                break
+    else:
+        for line in Axes.get_lines(axes_right):
+            if line.get_label() == name:
+                line.remove()
+                break
     return
 
 
@@ -409,10 +421,8 @@ def redraw_plots():
     return
 
 
-def add_plot(name):
-    data = data_frame[name]
-    diff = np.max(data) - np.min(data)
-    if diff < diff_median:
+def add_plot(name, left=True):
+    if left:
         axes = axes_left
     else:
         axes = axes_right
