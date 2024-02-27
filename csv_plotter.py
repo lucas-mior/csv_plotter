@@ -57,7 +57,7 @@ def on_have_filename_ready(dialog, async_result, data):
 
 
 def reload_file_contents():
-    global data_frame, x
+    global data_frame, x_data
     data_frame = None
     try:
         data_frame = pd.read_csv(filename)
@@ -70,7 +70,7 @@ def reload_file_contents():
 
     rows = DataFrame.reset_index(data_frame).index
     DataFrame.insert(data_frame, 0, 'Row', rows)
-    x = data_frame.iloc[:, 0]
+    x_data = data_frame.iloc[:, 0]
     return
 
 
@@ -209,7 +209,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
         add_buttons_xy(new, x_buttons_box, y_buttons_box, yactive=i < 10)
 
-    Axes.set_xlabel(axes_left, x.name)
+    Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
     Axes.legend(axes_left)
     Axes.legend(axes_right)
@@ -220,7 +220,6 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
 
 def set_axis_labels():
-    global axis_labels
     names_left = ""
     names_right = ""
     if axis_labels:
@@ -277,10 +276,17 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
 
 
 def on_axis_button_toggled(axis_button):
-    name = Gtk.CheckButton.get_label(axis_button)
-    active = Gtk.CheckButton.get_active(axis_button)
     global axis_labels
-    axis_labels = active
+
+    try:
+        axis_labels
+    except NameError:
+        axis_labels = True
+        return
+
+    name = Gtk.CheckButton.get_label(axis_button)
+    axis_labels = Gtk.CheckButton.get_active(axis_button)
+
     redraw_plots()
     return
 
@@ -302,7 +308,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
 
     name = Gtk.ToggleButton.get_label(x_button)
 
-    if name != x.name:
+    if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1)
 
         remove_plot(name)
@@ -313,7 +319,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
 
 
 def on_x_button_toggled(x_button):
-    global axes_left, axes_right, x, data_frame
+    global axes_left, axes_right, x_data, data_frame
 
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
@@ -321,7 +327,7 @@ def on_x_button_toggled(x_button):
     if not active:
         return
 
-    x = data_frame[name]
+    x_data = data_frame[name]
 
     plotted_left = []
     plotted_right = []
@@ -339,7 +345,7 @@ def on_x_button_toggled(x_button):
     for name in plotted_right:
         add_plot_by_name(name)
 
-    Axes.set_xlabel(axes_left, x.name)
+    Axes.set_xlabel(axes_left, x_data.name)
     redraw_plots()
     return
 
@@ -416,11 +422,11 @@ def add_plot_by_name(name):
     nplots = len(Axes.get_lines(axes))
 
     y = data_frame[name]
-    if x.is_monotonic_increasing:
+    if x_data.is_monotonic_increasing:
         linestyle = "solid" if nplots < 5 else "dashdot"
-        Axes.plot(axes, x, y, linestyle=linestyle, label=name)
+        Axes.plot(axes, x_data, y, linestyle=linestyle, label=name)
     else:
-        Axes.plot(axes, x, y, 'o', markersize=1.5, label=name)
+        Axes.plot(axes, x_data, y, 'o', markersize=1.5, label=name)
     return
 
 
