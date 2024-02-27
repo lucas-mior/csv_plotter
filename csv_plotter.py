@@ -241,15 +241,14 @@ def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
     Gtk.Box.append(item, y_button_right)
     Gtk.Box.append(item, buttons_label)
 
-    delete = Gtk.Button.new_from_icon_name("edit-delete")
+    delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
-    Gtk.Button.set_hexpand(delete, True)
+    Gtk.Button.set_hexpand(delete_button, True)
+    Gtk.Button.set_halign(delete_button, Gtk.Align.END)
 
-    Gtk.Button.set_halign(delete, Gtk.Align.END)
+    Gtk.Button.connect(delete_button, "clicked", on_delete_button_click, x_button)
 
-    Gtk.Button.connect(delete, "clicked", on_delete_button_click, x_button)
-
-    Gtk.Box.append(item, delete)
+    Gtk.Box.append(item, delete_button)
 
     Gtk.Box.append(buttons_box, item)
     return
@@ -287,11 +286,12 @@ def on_delete_button_click(delete_button, x_button):
         return
 
     name = x_button.name
+    print(f"dropping {name}")
 
     if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1)
 
-        remove_plot(name)
+        remove_plot(name, left=True, right=True)
         redraw_plots()
         _delete_parent_box(x_button)
     return
@@ -337,7 +337,7 @@ def on_y_button_toggled(y_button):
     if active:
         add_plot(name, left)
     else:
-        remove_plot(name, left)
+        remove_plot(name, left, right=not left)
 
     redraw_plots()
     return
@@ -362,13 +362,13 @@ def on_entry_activate(entry, config_scroll):
     return
 
 
-def remove_plot(name, left=True):
+def remove_plot(name, left=True, right=False):
     if left:
         for line in Axes.get_lines(axes_left):
             if line.get_label() == name:
                 line.remove()
                 break
-    else:
+    if right:
         for line in Axes.get_lines(axes_right):
             if line.get_label() == name:
                 line.remove()
