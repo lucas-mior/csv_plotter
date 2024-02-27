@@ -410,7 +410,8 @@ def redraw_plots():
 
 
 def add_plot(name):
-    diff = np.max(data_frame[name]) - np.min(data_frame[name])
+    data = data_frame[name]
+    diff = np.max(data) - np.min(data)
     if diff < diff_median:
         axes = axes_left
     else:
