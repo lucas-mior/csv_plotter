@@ -74,6 +74,13 @@ def reload_file_contents():
     return
 
 
+def configure_plot_colors():
+    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
+    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
+    Axes.set_prop_cycle(axes_right, color=base_colors)
+    return
+
+
 def configure_window_once():
     global axes_left, axes_right, canvas
 
@@ -93,9 +100,7 @@ def configure_window_once():
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
 
-    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
-    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
-    Axes.set_prop_cycle(axes_right, color=base_colors)
+    configure_plot_colors()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -325,8 +330,7 @@ def on_x_button_toggled(x_button):
         list.append(plotted_right, line.get_label())
         line.remove()
 
-    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
-    Axes.set_prop_cycle(axes_right, color=mcolors.BASE_COLORS)
+    configure_plot_colors()
 
     for name in plotted_left:
         add_plot_name_nplots(name)
