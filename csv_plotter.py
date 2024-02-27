@@ -74,13 +74,6 @@ def reload_file_contents():
     return
 
 
-def configure_plot_colors():
-    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
-    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
-    Axes.set_prop_cycle(axes_right, color=base_colors)
-    return
-
-
 def configure_window_once():
     global axes_left, axes_right, canvas
 
@@ -157,6 +150,13 @@ def configure_window_once():
 
     Gtk.ApplicationWindow.set_child(window, window_pane)
     Gtk.ApplicationWindow.set_visible(window, True)
+    return
+
+
+def configure_plot_colors():
+    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
+    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
+    Axes.set_prop_cycle(axes_right, color=base_colors)
     return
 
 
