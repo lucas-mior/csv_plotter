@@ -92,8 +92,6 @@ def configure_window_once():
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
 
-    configure_plot_colors()
-
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -167,6 +165,7 @@ def reconfigure_plots_and_buttons(config_scroll):
     for line in Axes.get_lines(axes_right):
         line.remove()
 
+    configure_plot_colors()
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = data_frame.columns[0]
