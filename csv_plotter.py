@@ -277,13 +277,6 @@ def on_reload_button_clicked(reload_button, config_scroll):
 
 
 def on_delete_button_click(delete_button, x_button):
-
-    def _delete_parent_box(button):
-        parent_box = Gtk.Button.get_parent(button)
-        grand_parent = Gtk.Box.get_parent(parent_box)
-        Gtk.Box.remove(grand_parent, parent_box)
-        return
-
     name = x_button.name
 
     if name != x_data.name:
@@ -291,7 +284,10 @@ def on_delete_button_click(delete_button, x_button):
 
         remove_plot(name, left=True, right=True)
         redraw_plots()
-        _delete_parent_box(x_button)
+
+        parent_box = Gtk.Button.get_parent(x_button)
+        grand_parent = Gtk.Box.get_parent(parent_box)
+        Gtk.Box.remove(grand_parent, parent_box)
     return
 
 
