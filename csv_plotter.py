@@ -21,6 +21,7 @@ from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+from matplotlib.artist import Artist
 import matplotlib.colors as mcolors
 
 matplotlib.rcParams.update({'font.size': 14})
@@ -161,9 +162,9 @@ def reconfigure_plots_and_buttons(config_scroll):
     global x_button_group, diff_median
 
     for line in Axes.get_lines(axes_left):
-        line.remove()
+        Artist.remove(line)
     for line in Axes.get_lines(axes_right):
-        line.remove()
+        Artist.remove(line)
 
     configure_plot_colors()
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
