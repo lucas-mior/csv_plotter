@@ -395,7 +395,7 @@ def add_plot(name, left=True):
 
     y = data_frame[name]
     if x_data.is_monotonic_increasing:
-        linestyle = "solid" if nplots < 5 else "dashdot"
+        linestyle = random.choice(["solid", "dashdot", "dotted"])
         Axes.plot(axes, x_data, y, linestyle=linestyle, label=name)
     else:
         Axes.plot(axes, x_data, y, 'o', markersize=1.5, label=name)
