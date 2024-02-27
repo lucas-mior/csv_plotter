@@ -180,7 +180,7 @@ def reconfigure_plots_and_buttons(config_scroll):
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
-        add_plot(new)
+        add_plot(new, left=True)
         add_buttons_xy(new, buttons_box)
 
     Axes.set_xlabel(axes_left, x_data.name)
@@ -219,6 +219,9 @@ def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
     x_button.name = y_button_left.name = y_button_right.name = name
     buttons_label = Gtk.Label(label=name)
 
+    y_button_left.left = True
+    y_button_right.left = False
+
     _set_margins(x_button)
     _set_margins(y_button_left)
     _set_margins(y_button_right)
@@ -228,8 +231,8 @@ def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
 
     Gtk.CheckButton.set_active(x_button, xactive)
     Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
-    Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_left_toggled)
-    Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_right_toggled)
+    Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
+    Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
 
     item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
@@ -305,45 +308,36 @@ def on_x_button_toggled(x_button):
 
     x_data = data_frame[name]
 
-    plotted= []
+    plotted_left = []
+    plotted_right = []
     for line in Axes.get_lines(axes_left):
-        list.append(plotted, line.get_label())
+        list.append(plotted_left, line.get_label())
         line.remove()
     for line in Axes.get_lines(axes_right):
-        list.append(plotted, line.get_label())
+        list.append(plotted_right, line.get_label())
         line.remove()
 
     configure_plot_colors()
 
-    for name in plotted:
-        add_plot(name)
+    for name in plotted_left:
+        add_plot(name, left=True)
+    for name in plotted_right:
+        add_plot(name, left=False)
 
     Axes.set_xlabel(axes_left, x_data.name)
     redraw_plots()
     return
 
 
-def on_y_button_left_toggled(y_button):
+def on_y_button_toggled(y_button):
     name = y_button.name
+    left = y_button.left
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot(name, left=True)
+        add_plot(name, left)
     else:
-        remove_plot(name, left=True)
-
-    redraw_plots()
-    return
-
-
-def on_y_button_right_toggled(y_button):
-    name = y_button.name
-    active = Gtk.CheckButton.get_active(y_button)
-
-    if active:
-        add_plot(name, left=False)
-    else:
-        remove_plot(name, left=False)
+        remove_plot(name, left)
 
     redraw_plots()
     return
@@ -363,7 +357,7 @@ def on_entry_activate(entry, config_scroll):
     name = data_frame.columns[-1]
     add_buttons_xy(name, buttons_box)
 
-    add_plot(name)
+    add_plot(name, left=True)
     redraw_plots()
     return
 
