@@ -319,7 +319,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
 
 
 def on_x_button_toggled(x_button):
-    global axes_left, axes_right, x_data
+    global x_data
 
     name = Gtk.ToggleButton.get_label(x_button)
     active = Gtk.ToggleButton.get_active(x_button)
