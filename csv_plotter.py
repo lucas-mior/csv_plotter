@@ -232,8 +232,11 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     global x_button_group
 
     x_button = Gtk.ToggleButton(label=name, group=x_button_group)
-    y_button_left = Gtk.CheckButton(label=name, active=True)
-    y_button_right = Gtk.CheckButton(label=name, active=False)
+    y_button_left = Gtk.CheckButton(active=True)
+    y_button_right = Gtk.CheckButton(active=False)
+    y_button_left.var = name
+    y_button_right.var = name
+    y_buttons_label = Gtk.Label(label=name)
 
     if x_button_group is None:
         x_button_group = x_button
@@ -249,6 +252,7 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     Gtk.Box.append(x_item, x_button)
     Gtk.Box.append(y_item, y_button_left)
     Gtk.Box.append(y_item, y_button_right)
+    Gtk.Box.append(y_item, y_buttons_label)
 
     x_delete = Gtk.Button.new_from_icon_name("edit-delete")
     y_delete = Gtk.Button.new_from_icon_name("edit-delete")
@@ -345,7 +349,7 @@ def on_x_button_toggled(x_button):
 
 
 def on_y_button_left_toggled(y_button):
-    name = Gtk.CheckButton.get_label(y_button)
+    name = y_button.var
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
@@ -358,7 +362,7 @@ def on_y_button_left_toggled(y_button):
 
 
 def on_y_button_right_toggled(y_button):
-    name = Gtk.CheckButton.get_label(y_button)
+    name = y_button.var
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
