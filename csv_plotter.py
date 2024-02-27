@@ -329,20 +329,17 @@ def on_x_button_toggled(x_button):
 
     x_data = data_frame[name]
 
-    plotted_left = []
-    plotted_right = []
+    plotted= []
     for line in Axes.get_lines(axes_left):
-        list.append(plotted_left, line.get_label())
+        list.append(plotted, line.get_label())
         line.remove()
     for line in Axes.get_lines(axes_right):
-        list.append(plotted_right, line.get_label())
+        list.append(plotted, line.get_label())
         line.remove()
 
     configure_plot_colors()
 
-    for name in plotted_left:
-        add_plot_by_name(name)
-    for name in plotted_right:
+    for name in plotted:
         add_plot_by_name(name)
 
     Axes.set_xlabel(axes_left, x_data.name)
