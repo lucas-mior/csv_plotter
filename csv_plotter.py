@@ -117,14 +117,15 @@ def configure_window_once():
     y_config_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
-    axis_button = Gtk.Button.new_from_icon_name("new-document")
+    axis_button = Gtk.CheckButton(label="axis labels", active=True)
 
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
-    Gtk.Button.set_tooltip_text(axis_button, "Change axis ticks")
+    Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
                        x_config_scroll, y_config_scroll)
-    Gtk.Button.connect(axis_button, "clicked", on_axis_button_click)
+    Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
+    on_axis_button_toggled(axis_button)
 
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
@@ -219,13 +220,14 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
 
 
 def set_axis_labels():
+    global axis_labels
     names_left = ""
-    for line in Axes.get_lines(axes_left):
-        names_left += f" {line.get_label()} "
-
     names_right = ""
-    for line in Axes.get_lines(axes_right):
-        names_right += f" {line.get_label()} "
+    if axis_labels:
+        for line in Axes.get_lines(axes_left):
+            names_left += f" {line.get_label()} "
+        for line in Axes.get_lines(axes_right):
+            names_right += f" {line.get_label()} "
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
@@ -274,10 +276,12 @@ def add_buttons_xy(name, x_buttons_box, y_buttons_box,
     return
 
 
-def on_axis_button_click(axis_button):
-    print(f"on_axis_button_click({axis_button})")
-    # start, end = ax.get_xlim()
-    # ax.xaxis.set_ticks(np.arange(start, end, stepsize))
+def on_axis_button_toggled(axis_button):
+    name = Gtk.CheckButton.get_label(axis_button)
+    active = Gtk.CheckButton.get_active(axis_button)
+    global axis_labels
+    axis_labels = active
+    redraw_plots()
     return
 
 
