@@ -82,13 +82,12 @@ def configure_window_once():
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
-    axes_left = Figure.add_subplot(figure, 111)
+    toolbar = NavigationToolbar(canvas)
 
     FigureCanvas.set_hexpand(canvas, True)
     FigureCanvas.set_vexpand(canvas, True)
 
-    toolbar = NavigationToolbar(canvas)
-
+    axes_left = Figure.add_subplot(figure, 111)
     Axes.set_title(axes_left, f"{filebase}")
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
@@ -96,12 +95,11 @@ def configure_window_once():
     configure_plot_colors()
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-    selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     buttons_header = Gtk.Label(label="Select x axis and columns to plot")
 
-    Gtk.Box.append(selection_box, buttons_header)
+    Gtk.Box.append(config_box, buttons_header)
 
     config_scroll = Gtk.ScrolledWindow()
 
@@ -111,7 +109,7 @@ def configure_window_once():
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
-    Gtk.Button.connect(reload_button, "clicked", 
+    Gtk.Button.connect(reload_button, "clicked",
                        on_reload_button_clicked, config_scroll)
     Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
     on_axis_button_toggled(axis_button)
@@ -135,15 +133,15 @@ def configure_window_once():
     Gtk.Entry.set_placeholder_text(new_data_entry, "add a plot...")
     Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate, config_scroll)
 
-    Gtk.Box.append(selection_box, config_scroll)
-    Gtk.Box.append(selection_box, new_data_entry)
+    Gtk.Box.append(config_box, config_scroll)
+    Gtk.Box.append(config_box, new_data_entry)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     Gtk.Paned.set_wide_handle(window_pane, True)
     Gtk.Paned.set_position(window_pane, 1100)
 
     Gtk.Paned.set_start_child(window_pane, plot_box)
-    Gtk.Paned.set_end_child(window_pane, selection_box)
+    Gtk.Paned.set_end_child(window_pane, config_box)
 
     Gtk.Paned.set_shrink_start_child(window_pane, False)
     Gtk.Paned.set_shrink_end_child(window_pane, False)
@@ -287,7 +285,6 @@ def on_delete_button_click(delete_button, x_button):
         return
 
     name = x_button.name
-    print(f"dropping {name}")
 
     if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1)
