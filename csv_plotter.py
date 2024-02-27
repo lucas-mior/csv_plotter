@@ -210,8 +210,8 @@ def add_buttons_xy(name, buttons_box, xactive=False):
     global x_button_group
 
     def _set_margins(button):
-        button.set_margin_end(3)
-        button.set_margin_start(3)
+        button.set_margin_end(2)
+        button.set_margin_start(2)
 
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=True)
