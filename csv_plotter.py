@@ -26,10 +26,10 @@ import matplotlib.colors as mcolors
 matplotlib.rcParams.update({'font.size': 14})
 
 
-def on_application_activation(app):
+def on_application_activation(application):
     global window, filename
 
-    window = Gtk.ApplicationWindow(application=app)
+    window = Gtk.ApplicationWindow(application=application)
     Gtk.ApplicationWindow.set_default_size(window, 1400, 900)
 
     if len(sys.argv) < 2:
@@ -405,8 +405,8 @@ def add_plot(name, left=True):
 
 if __name__ == "__main__":
     program = os.path.basename(sys.argv[0])
-    app = Gtk.Application(application_id=f"{program}")
-    Gtk.Application.connect(app, 'activate', on_application_activation)
-    Gtk.Application.run(app, None)
+    application = Gtk.Application(application_id=f"{program}")
+    Gtk.Application.connect(application, 'activate', on_application_activation)
+    Gtk.Application.run(application, None)
 
     sys.exit(0)
