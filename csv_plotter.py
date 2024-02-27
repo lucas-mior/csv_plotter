@@ -131,7 +131,8 @@ def configure_window_once():
 
     new_data_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_data_entry, "add a plot...")
-    Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate, config_scroll)
+    Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate)
+    new_data_entry.config_scroll = config_scroll
 
     Gtk.Box.append(config_box, config_scroll)
     Gtk.Box.append(config_box, new_data_entry)
@@ -338,7 +339,7 @@ def on_y_button_toggled(y_button):
     return
 
 
-def on_entry_activate(entry, config_scroll):
+def on_entry_activate(entry):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -346,7 +347,7 @@ def on_entry_activate(entry, config_scroll):
     data_frame[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
 
-    viewport = Gtk.ScrolledWindow.get_child(config_scroll)
+    viewport = Gtk.ScrolledWindow.get_child(entry.config_scroll)
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
