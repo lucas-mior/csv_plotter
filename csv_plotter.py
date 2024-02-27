@@ -180,8 +180,9 @@ def reconfigure_plots_and_buttons(config_scroll):
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
-        add_plot(new, left=True)
-        add_buttons_xy(new, buttons_box)
+        if i < 10:
+            add_plot(new, left=True)
+        add_buttons_xy(new, buttons_box, yactive=i < 10)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
