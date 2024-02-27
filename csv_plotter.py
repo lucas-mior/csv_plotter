@@ -179,7 +179,7 @@ def configure_window_once():
 
 
 def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
-    global x_button_group, diff_mean
+    global x_button_group, diff_median
 
     for line in Axes.get_lines(axes_left):
         line.remove()
@@ -197,7 +197,7 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     ncolumns = len(data_frame.columns)
 
     diff_all = np.max(data_frame, axis=0) - np.min(data_frame, axis=0)
-    diff_mean = np.median(diff_all)
+    diff_median = np.median(diff_all)
 
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
@@ -406,7 +406,7 @@ def redraw_plots():
 
 def add_plot_by_name(name):
     diff = np.max(data_frame[name]) - np.min(data_frame[name])
-    if diff < diff_mean:
+    if diff < diff_median:
         axes = axes_left
     else:
         axes = axes_right
