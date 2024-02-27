@@ -357,12 +357,10 @@ def on_entry_activate(entry, y_config_scroll):
     data_frame[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
 
-    name = data_frame.columns[-1]
-
     y_viewport = Gtk.ScrolledWindow.get_child(y_config_scroll)
-
     buttons_box = Gtk.Viewport.get_child(y_viewport)
 
+    name = data_frame.columns[-1]
     add_buttons_xy(name, buttons_box)
 
     add_plot(name)
