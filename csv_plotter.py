@@ -107,11 +107,17 @@ def configure_window_once():
     x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    x_label = Gtk.Label(label="Select X axis")
-    y_label = Gtk.Label(label="Select columns to plot")
+    x_header = Gtk.Label(label="Select X axis")
+    y_L = Gtk.Label(label=" L ")
+    y_R = Gtk.Label(label=" R ")
+    y_header = Gtk.Label(label="Select columns to plot")
+    y_header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    y_header_box.append(y_L)
+    y_header_box.append(y_R)
+    y_header_box.append(y_header)
 
-    Gtk.Box.append(x_selection_box, x_label)
-    Gtk.Box.append(y_selection_box, y_label)
+    Gtk.Box.append(x_selection_box, x_header)
+    Gtk.Box.append(y_selection_box, y_header_box)
 
     x_config_scroll = Gtk.ScrolledWindow()
     y_config_scroll = Gtk.ScrolledWindow()
