@@ -109,8 +109,8 @@ def configure_window_once():
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
-    Gtk.Button.connect(reload_button, "clicked",
-                       on_reload_button_clicked, config_scroll)
+    Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
+    reload_button.config_scroll = config_scroll
     Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
     on_axis_button_toggled(axis_button)
 
@@ -269,9 +269,9 @@ def on_axis_button_toggled(axis_button):
     return
 
 
-def on_reload_button_clicked(reload_button, config_scroll):
+def on_reload_button_clicked(reload_button):
     reload_file_contents()
-    reconfigure_plots_and_buttons(config_scroll)
+    reconfigure_plots_and_buttons(reload_button.config_scroll)
     redraw_plots()
     return
 
