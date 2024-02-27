@@ -104,16 +104,12 @@ def configure_window_once():
 
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    x_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     y_selection_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    x_header = Gtk.Label(label="Select X axis")
-    y_header = Gtk.Label(label="Select columns to plot")
+    buttons_header = Gtk.Label(label="Select x axis and columns to plot")
 
-    Gtk.Box.append(x_selection_box, x_header)
-    Gtk.Box.append(y_selection_box, y_header)
+    Gtk.Box.append(y_selection_box, buttons_header)
 
-    x_config_scroll = Gtk.ScrolledWindow()
     y_config_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
@@ -122,8 +118,8 @@ def configure_window_once():
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
-    Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked,
-                       x_config_scroll, y_config_scroll)
+    Gtk.Button.connect(reload_button, "clicked", 
+                       on_reload_button_clicked, y_config_scroll)
     Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
     on_axis_button_toggled(axis_button)
 
@@ -135,41 +131,26 @@ def configure_window_once():
     Gtk.Box.append(plot_box, toolbar_box)
     Gtk.Box.append(plot_box, canvas)
 
-    reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll)
+    reconfigure_plots_and_buttons(y_config_scroll)
 
-    Gtk.ScrolledWindow.set_vexpand(x_config_scroll, True)
     Gtk.ScrolledWindow.set_vexpand(y_config_scroll, True)
-    Gtk.ScrolledWindow.set_policy(x_config_scroll,
-                                  hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                  vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
     Gtk.ScrolledWindow.set_policy(y_config_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
     new_data_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_data_entry, "add a plot...")
-    Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate,
-                      x_config_scroll, y_config_scroll)
+    Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate, y_config_scroll)
 
-    Gtk.Box.append(x_selection_box, x_config_scroll)
     Gtk.Box.append(y_selection_box, y_config_scroll)
     Gtk.Box.append(y_selection_box, new_data_entry)
-
-    config_pane = Gtk.Paned.new(orientation=Gtk.Orientation.VERTICAL)
-    Gtk.Paned.set_wide_handle(config_pane, True)
-
-    Gtk.Paned.set_start_child(config_pane, x_selection_box)
-    Gtk.Paned.set_end_child(config_pane, y_selection_box)
-
-    Gtk.Paned.set_shrink_start_child(config_pane, False)
-    Gtk.Paned.set_shrink_end_child(config_pane, False)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
     Gtk.Paned.set_wide_handle(window_pane, True)
     Gtk.Paned.set_position(window_pane, 1100)
 
     Gtk.Paned.set_start_child(window_pane, plot_box)
-    Gtk.Paned.set_end_child(window_pane, config_pane)
+    Gtk.Paned.set_end_child(window_pane, y_selection_box)
 
     Gtk.Paned.set_shrink_start_child(window_pane, False)
     Gtk.Paned.set_shrink_end_child(window_pane, False)
@@ -179,7 +160,7 @@ def configure_window_once():
     return
 
 
-def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
+def reconfigure_plots_and_buttons(y_config_scroll):
     global x_button_group, diff_median
 
     for line in Axes.get_lines(axes_left):
@@ -187,12 +168,11 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
     for line in Axes.get_lines(axes_right):
         line.remove()
 
-    x_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    y_buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, x_buttons_box, y_buttons_box, xactive=True)
+    add_buttons_xy(name_first, buttons_box, xactive=True)
 
     for i, name in enumerate(data_frame.columns[1:]):
         # TODO: dots bug expressions in pandas.eval(), find better solution
@@ -201,15 +181,14 @@ def reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll):
         diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
         add_plot(new)
-        add_buttons_xy(new, x_buttons_box, y_buttons_box)
+        add_buttons_xy(new, buttons_box)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
     Axes.legend(axes_left)
     Axes.legend(axes_right)
 
-    Gtk.ScrolledWindow.set_child(x_config_scroll, x_buttons_box)
-    Gtk.ScrolledWindow.set_child(y_config_scroll, y_buttons_box)
+    Gtk.ScrolledWindow.set_child(y_config_scroll, buttons_box)
     return
 
 
@@ -227,52 +206,49 @@ def set_axis_labels():
     return
 
 
-def add_buttons_xy(name, x_buttons_box, y_buttons_box,
-                   xactive=False):
+def add_buttons_xy(name, buttons_box, xactive=False):
     global x_button_group
 
-    x_button = Gtk.ToggleButton(label=name, group=x_button_group)
+    def _set_margins(button):
+        button.set_margin_end(3)
+        button.set_margin_start(3)
+
+    x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=True)
     y_button_right = Gtk.CheckButton(active=False)
-    y_button_left.var = name
-    y_button_right.var = name
-    y_buttons_label = Gtk.Label(label=name)
+    x_button.name = y_button_left.name = y_button_right.name = name
+    buttons_label = Gtk.Label(label=name)
+
+    _set_margins(x_button)
+    _set_margins(y_button_left)
+    _set_margins(y_button_right)
 
     if x_button_group is None:
         x_button_group = x_button
 
-    Gtk.ToggleButton.set_active(x_button, xactive)
-    Gtk.ToggleButton.connect(x_button, "toggled", on_x_button_toggled)
+    Gtk.CheckButton.set_active(x_button, xactive)
+    Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_left_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_right_toggled)
 
-    x_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     y_item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
-    Gtk.Box.append(x_item, x_button)
+    Gtk.Box.append(y_item, x_button)
     Gtk.Box.append(y_item, y_button_left)
     Gtk.Box.append(y_item, y_button_right)
-    Gtk.Box.append(y_item, y_buttons_label)
+    Gtk.Box.append(y_item, buttons_label)
 
-    x_delete = Gtk.Button.new_from_icon_name("edit-delete")
     y_delete = Gtk.Button.new_from_icon_name("edit-delete")
 
-    Gtk.Button.set_hexpand(x_delete, True)
     Gtk.Button.set_hexpand(y_delete, True)
 
-    Gtk.Button.set_halign(x_delete, Gtk.Align.END)
     Gtk.Button.set_halign(y_delete, Gtk.Align.END)
 
-    # Gtk.Button.connect(x_delete, "clicked", on_delete_button_click,
-    #                    x_button, y_button)
-    # Gtk.Button.connect(y_delete, "clicked", on_delete_button_click,
-    #                    x_button, y_button)
+    Gtk.Button.connect(y_delete, "clicked", on_delete_button_click, x_button)
 
-    Gtk.Box.append(x_item, x_delete)
     Gtk.Box.append(y_item, y_delete)
 
-    Gtk.Box.append(x_buttons_box, x_item)
-    Gtk.Box.append(y_buttons_box, y_item)
+    Gtk.Box.append(buttons_box, y_item)
     return
 
 
@@ -292,14 +268,14 @@ def on_axis_button_toggled(axis_button):
     return
 
 
-def on_reload_button_clicked(reload_button, x_config_scroll, y_config_scroll):
+def on_reload_button_clicked(reload_button, y_config_scroll):
     reload_file_contents()
-    reconfigure_plots_and_buttons(x_config_scroll, y_config_scroll)
+    reconfigure_plots_and_buttons(y_config_scroll)
     redraw_plots()
     return
 
 
-def on_delete_button_click(delete_button, x_button, y_button):
+def on_delete_button_click(delete_button, x_button):
 
     def _delete_parent_box(button):
         parent_box = Gtk.Button.get_parent(button)
@@ -307,7 +283,7 @@ def on_delete_button_click(delete_button, x_button, y_button):
         Gtk.Box.remove(grand_parent, parent_box)
         return
 
-    name = Gtk.ToggleButton.get_label(x_button)
+    name = x_button.name
 
     if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1)
@@ -315,15 +291,14 @@ def on_delete_button_click(delete_button, x_button, y_button):
         remove_plot(name)
         redraw_plots()
         _delete_parent_box(x_button)
-        _delete_parent_box(y_button)
     return
 
 
 def on_x_button_toggled(x_button):
     global x_data
 
-    name = Gtk.ToggleButton.get_label(x_button)
-    active = Gtk.ToggleButton.get_active(x_button)
+    name = x_button.name
+    active = Gtk.CheckButton.get_active(x_button)
 
     if not active:
         return
@@ -349,7 +324,7 @@ def on_x_button_toggled(x_button):
 
 
 def on_y_button_left_toggled(y_button):
-    name = y_button.var
+    name = y_button.name
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
@@ -362,7 +337,7 @@ def on_y_button_left_toggled(y_button):
 
 
 def on_y_button_right_toggled(y_button):
-    name = y_button.var
+    name = y_button.name
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
@@ -374,7 +349,7 @@ def on_y_button_right_toggled(y_button):
     return
 
 
-def on_entry_activate(entry, x_config_scroll, y_config_scroll):
+def on_entry_activate(entry, y_config_scroll):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
@@ -384,13 +359,11 @@ def on_entry_activate(entry, x_config_scroll, y_config_scroll):
 
     name = data_frame.columns[-1]
 
-    x_viewport = Gtk.ScrolledWindow.get_child(x_config_scroll)
     y_viewport = Gtk.ScrolledWindow.get_child(y_config_scroll)
 
-    x_buttons_box = Gtk.Viewport.get_child(x_viewport)
-    y_buttons_box = Gtk.Viewport.get_child(y_viewport)
+    buttons_box = Gtk.Viewport.get_child(y_viewport)
 
-    add_buttons_xy(name, x_buttons_box, y_buttons_box)
+    add_buttons_xy(name, buttons_box)
 
     add_plot(name)
     redraw_plots()
