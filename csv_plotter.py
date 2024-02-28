@@ -159,29 +159,50 @@ def configure_plot_colors():
     return
 
 
+def clean_plotted_get_list():
+    plotted_left = []
+    plotted_right = []
+
+    for line in Axes.get_lines(axes_left):
+        list.append(plotted_left, line.get_label())
+        Line2D.remove(line)
+    for line in Axes.get_lines(axes_right):
+        list.append(plotted_right, line.get_label())
+        Line2D.remove(line)
+
+    return plotted_left, plotted_right
+
+
 def reconfigure_plots_and_buttons(config_scroll):
     global x_button_group
 
-    for line in Axes.get_lines(axes_left):
-        Line2D.remove(line)
-    for line in Axes.get_lines(axes_right):
-        Line2D.remove(line)
+    plotted_left, plotted_right = clean_plotted_get_list()
 
     configure_plot_colors()
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, buttons_box, xactive=True, yactive=False)
+    add_buttons_xy(name_first, buttons_box, xactive=True)
 
     for i, name in enumerate(data_frame.columns[1:]):
+        left = right = False
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
-        if i < 10:
-            add_plot(new, left=True)
-        add_buttons_xy(new, buttons_box, yactive=i < 10)
+        if not plotted_left and not plotted_right:
+            if i < 10:
+                add_plot(new, left=True)
+                left = True
+        else:
+            if new in plotted_left:
+                add_plot(new, left=True)
+                left = True
+            if new in plotted_right:
+                add_plot(new, left=False)
+                right = True
+        add_buttons_xy(new, buttons_box, left=left, right=right)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
@@ -206,7 +227,7 @@ def set_axis_labels():
     return
 
 
-def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
+def add_buttons_xy(name, buttons_box, xactive=False, left=False, right=False):
     global x_button_group
 
     def _set_margins(button):
@@ -214,8 +235,8 @@ def add_buttons_xy(name, buttons_box, xactive=False, yactive=True):
         button.set_margin_start(2)
 
     x_button = Gtk.CheckButton(group=x_button_group)
-    y_button_left = Gtk.CheckButton(active=yactive)
-    y_button_right = Gtk.CheckButton(active=False)
+    y_button_left = Gtk.CheckButton(active=left)
+    y_button_right = Gtk.CheckButton(active=right)
     buttons_label = Gtk.Label(label=name)
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
@@ -351,7 +372,7 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
-    add_buttons_xy(name, buttons_box)
+    add_buttons_xy(name, buttons_box, left=True)
 
     add_plot(name, left=True)
     redraw_plots()
