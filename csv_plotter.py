@@ -101,7 +101,7 @@ def configure_window_once():
 
     Gtk.Box.append(config_box, buttons_header)
 
-    config_scroll = Gtk.ScrolledWindow()
+    selection_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     axis_button = Gtk.CheckButton(label="axis labels", active=True)
@@ -110,7 +110,7 @@ def configure_window_once():
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
-    reload_button.config_scroll = config_scroll
+    reload_button.selection_scroll = selection_scroll
     Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
     on_axis_button_toggled(axis_button)
 
@@ -122,19 +122,19 @@ def configure_window_once():
     Gtk.Box.append(plot_box, toolbar_box)
     Gtk.Box.append(plot_box, canvas)
 
-    reconfigure_plots_and_buttons(config_scroll)
+    reconfigure_plots_and_buttons(selection_scroll)
 
-    Gtk.ScrolledWindow.set_vexpand(config_scroll, True)
-    Gtk.ScrolledWindow.set_policy(config_scroll,
+    Gtk.ScrolledWindow.set_vexpand(selection_scroll, True)
+    Gtk.ScrolledWindow.set_policy(selection_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
     new_data_entry = Gtk.Entry()
     Gtk.Entry.set_placeholder_text(new_data_entry, "add a plot...")
     Gtk.Entry.connect(new_data_entry, "activate", on_entry_activate)
-    new_data_entry.config_scroll = config_scroll
+    new_data_entry.selection_scroll = selection_scroll
 
-    Gtk.Box.append(config_box, config_scroll)
+    Gtk.Box.append(config_box, selection_scroll)
     Gtk.Box.append(config_box, new_data_entry)
 
     window_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
@@ -173,7 +173,7 @@ def clean_plotted_get_list():
     return plotted_left, plotted_right
 
 
-def reconfigure_plots_and_buttons(config_scroll):
+def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group
 
     plotted_left, plotted_right = clean_plotted_get_list()
@@ -209,7 +209,7 @@ def reconfigure_plots_and_buttons(config_scroll):
     Axes.legend(axes_left)
     Axes.legend(axes_right)
 
-    Gtk.ScrolledWindow.set_child(config_scroll, buttons_box)
+    Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
     return
 
 
@@ -294,7 +294,7 @@ def on_axis_button_toggled(axis_button):
 
 def on_reload_button_clicked(reload_button):
     reload_file_contents()
-    reconfigure_plots_and_buttons(reload_button.config_scroll)
+    reconfigure_plots_and_buttons(reload_button.selection_scroll)
     redraw_plots()
     return
 
@@ -361,7 +361,7 @@ def on_entry_activate(entry):
     data_frame[text] = pd.eval(text, local_dict=local_dict)
     Gtk.Entry.set_text(entry, "")
 
-    viewport = Gtk.ScrolledWindow.get_child(entry.config_scroll)
+    viewport = Gtk.ScrolledWindow.get_child(entry.selection_scroll)
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
