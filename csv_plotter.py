@@ -160,7 +160,7 @@ def configure_plot_colors():
 
 
 def reconfigure_plots_and_buttons(config_scroll):
-    global x_button_group, diff_median
+    global x_button_group
 
     for line in Axes.get_lines(axes_left):
         Line2D.remove(line)
@@ -178,7 +178,6 @@ def reconfigure_plots_and_buttons(config_scroll):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
-        diff = np.max(data_frame[name]) - np.min(data_frame[name])
 
         if i < 10:
             add_plot(new, left=True)
