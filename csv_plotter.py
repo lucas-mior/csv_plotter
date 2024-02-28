@@ -164,10 +164,10 @@ def clean_plotted_get_list():
     plotted_right = []
 
     for line in Axes.get_lines(axes_left):
-        list.append(plotted_left, line.get_label())
+        list.append(plotted_left, Line2D.get_label(line))
         Line2D.remove(line)
     for line in Axes.get_lines(axes_right):
-        list.append(plotted_right, line.get_label())
+        list.append(plotted_right, Line2D.get_label(line))
         Line2D.remove(line)
 
     return plotted_left, plotted_right
