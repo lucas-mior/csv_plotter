@@ -375,13 +375,13 @@ def on_entry_activate(entry):
 def remove_plot(name, left=False, right=False):
     if left:
         for line in Axes.get_lines(axes_left):
-            if line.get_label() == name:
-                line.remove()
+            if Line2D.get_label(line) == name:
+                Line2D.remove(line)
                 break
     if right:
         for line in Axes.get_lines(axes_right):
-            if line.get_label() == name:
-                line.remove()
+            if Line2D.get_label(line) == name:
+                Line2D.remove(line)
                 break
     return
 
