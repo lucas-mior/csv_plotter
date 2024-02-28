@@ -245,8 +245,8 @@ def add_buttons_xy(name, buttons_box, xactive=False, left=False, right=False):
     y_button_right.name = name
     delete_button.name = name
 
-    y_button_left.left = True
-    y_button_right.left = False
+    y_button_left.is_left = True
+    y_button_right.is_left = False
 
     _set_margins(x_button)
     _set_margins(y_button_left)
@@ -341,13 +341,13 @@ def on_x_button_toggled(x_button):
 
 def on_y_button_toggled(y_button):
     name = y_button.name
-    left = y_button.left
+    is_left = y_button.is_left
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot(name, left)
+        add_plot(name, left=is_left)
     else:
-        remove_plot(name, left, right=not left)
+        remove_plot(name, left=is_left, right=not is_left)
 
     redraw_plots()
     return
@@ -372,7 +372,7 @@ def on_entry_activate(entry):
     return
 
 
-def remove_plot(name, left=True, right=False):
+def remove_plot(name, left=False, right=False):
     if left:
         for line in Axes.get_lines(axes_left):
             if line.get_label() == name:
@@ -405,8 +405,6 @@ def add_plot(name, left=True):
         axes = axes_left
     else:
         axes = axes_right
-
-    nplots = len(Axes.get_lines(axes))
 
     y = data_frame[name]
     if x_data.is_monotonic_increasing:
