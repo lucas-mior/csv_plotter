@@ -183,7 +183,7 @@ def reconfigure_plots_and_buttons(config_scroll):
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, buttons_box, xactive=True)
+    add_buttons_xy(name_first, buttons_box)
 
     for i, name in enumerate(data_frame.columns[1:]):
         left = right = False
@@ -227,7 +227,7 @@ def set_axis_labels():
     return
 
 
-def add_buttons_xy(name, buttons_box, xactive=False, left=False, right=False):
+def add_buttons_xy(name, buttons_box, left=False, right=False):
     global x_button_group
 
     def _set_margins(button):
@@ -254,8 +254,8 @@ def add_buttons_xy(name, buttons_box, xactive=False, left=False, right=False):
 
     if x_button_group is None:
         x_button_group = x_button
+        Gtk.CheckButton.set_active(x_button, True)
 
-    Gtk.CheckButton.set_active(x_button, xactive)
     Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
