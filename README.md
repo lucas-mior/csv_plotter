@@ -20,6 +20,9 @@ Interactively plot CSV files.
 - ~~Add new curves as linear combinations of the existing data~~.
 - Add option to configurate color, linesize and linestyle for each curve.
 - ~~Use left and right axes to fit plots with different amplitudes.~~
+- Improve the positioning of the legends, options:
+  * Always left and right, making axis clear and axis labels useless.
+  * Make only one legend box with both axis lines.
 
 ## Dependencies
 - matplotlib
