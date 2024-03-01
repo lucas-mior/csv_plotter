@@ -154,19 +154,9 @@ def configure_window_once():
 
 def configure_plot_colors():
     base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
-    length_tableu = len(mcolors.TABLEAU_COLORS)
-    length_base = len(base_colors)
 
-    tableau_styles = ["solid", "dotted", "dashdot"] * (length_tableu+1)
-    base_styles =    ["solid", "dotted", "dashdot"] * (length_base+1)
-
-    tableau_styles = tableau_styles[0:length_tableu]
-    base_styles = base_styles[0:length_base]
-    print("tableau_styles:", tableau_styles)
-    print("base_styles:", base_styles)
-
-    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS, linestyle=tableau_styles)
-    Axes.set_prop_cycle(axes_right, color=base_colors, linestyle=base_styles)
+    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
+    Axes.set_prop_cycle(axes_right, color=base_colors)
     return
 
 
@@ -419,7 +409,8 @@ def add_plot(name, left=True):
 
     y = data_frame[name]
     if x_data.is_monotonic_increasing:
-        Axes.plot(axes, x_data, y, label=name)
+        linestyle = random.choice(["solid", "solid", "dashdot", "dotted"])
+        Axes.plot(axes, x_data, y, linestyle=linestyle, label=name)
     else:
         Axes.plot(axes, x_data, y, 'o', markersize=1.5, label=name)
     return
