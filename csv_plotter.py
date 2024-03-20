@@ -184,7 +184,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons_xy(name_first, buttons_box)
+    add_buttons(name_first, buttons_box)
 
     for i, name in enumerate(data_frame.columns[1:]):
         left = right = False
@@ -205,7 +205,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
             if new in plotted_right:
                 add_plot(new, left=False)
                 right = True
-        add_buttons_xy(new, buttons_box, left=left, right=right)
+        add_buttons(new, buttons_box, left=left, right=right)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
@@ -229,7 +229,7 @@ def set_axis_labels():
     return
 
 
-def add_buttons_xy(name, buttons_box, left=False, right=False):
+def add_buttons(name, buttons_box, left=False, right=False):
     global x_button_group
 
     def _set_margins(button):
@@ -367,7 +367,7 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
-    add_buttons_xy(name, buttons_box, left=True)
+    add_buttons(name, buttons_box, left=True)
 
     add_plot(name, left=True)
     redraw_plots()
