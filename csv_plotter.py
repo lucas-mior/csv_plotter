@@ -192,7 +192,9 @@ def reconfigure_plots_and_buttons(selection_scroll):
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
-        if not plotted_left and not plotted_right:
+        if name == "time" or name == "hour":
+            pass
+        elif not plotted_left and not plotted_right:
             if i < 10:
                 add_plot(new, left=True)
                 left = True
@@ -207,8 +209,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
-    Axes.legend(axes_left)
-    Axes.legend(axes_right)
+    put_legends()
 
     Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
     return
@@ -387,6 +388,16 @@ def remove_plot(name, left=False, right=False):
     return
 
 
+def put_legends():
+    plotted = []
+    for line in Axes.get_lines(axes_left):
+        list.append(plotted, line)
+    for line in Axes.get_lines(axes_right):
+        list.append(plotted, line)
+    Axes.legend(axes_left, plotted, [p.get_label() for p in plotted])
+    return
+
+
 def redraw_plots():
     set_axis_labels()
 
@@ -394,8 +405,7 @@ def redraw_plots():
     Axes.relim(axes_right)
     Axes.autoscale(axes_left)
     Axes.autoscale(axes_right)
-    Axes.legend(axes_left)
-    Axes.legend(axes_right)
+    put_legends()
 
     FigureCanvas.draw(canvas)
     return
@@ -408,8 +418,12 @@ def add_plot(name, left=True):
         axes = axes_right
 
     y = data_frame[name]
+    nplotted = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
     if x_data.is_monotonic_increasing:
-        linestyle = random.choice(["solid", "solid", "dashdot", "dotted"])
+        if nplotted <= 2:
+            linestyle = "solid"
+        else:
+            linestyle = random.choice(["solid", "solid", "dashdot", "dotted"])
         Axes.plot(axes, x_data, y, linestyle=linestyle, label=name)
     else:
         Axes.plot(axes, x_data, y, 'o', markersize=1.5, label=name)
