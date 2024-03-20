@@ -112,7 +112,7 @@ def configure_window_once():
     axis_button = Gtk.CheckButton(label="axis labels", active=True)
 
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
-    Gtk.Button.set_tooltip_text(reload_button, "Save new file changes")
+    Gtk.Button.set_tooltip_text(save_button, "Save file changes on new file")
 
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
