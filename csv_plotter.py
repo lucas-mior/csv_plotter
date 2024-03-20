@@ -241,11 +241,13 @@ def add_buttons(name, buttons_box, left=False, right=False):
     y_button_right = Gtk.CheckButton(active=right)
     buttons_label = Gtk.Label(label=name)
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
+    style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
 
     x_button.name = name
     y_button_left.name = name
     y_button_right.name = name
     delete_button.name = name
+    style_button.name = name
 
     y_button_left.is_left = True
     y_button_right.is_left = False
@@ -262,6 +264,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
+    Gtk.Button.connect(style_button, "clicked", on_style_button_click)
 
     item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
@@ -270,9 +273,13 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Box.append(item, y_button_right)
     Gtk.Box.append(item, buttons_label)
     Gtk.Box.append(item, delete_button)
+    Gtk.Box.append(item, style_button)
 
     Gtk.Button.set_hexpand(delete_button, True)
+    Gtk.Button.set_hexpand(style_button, True)
+
     Gtk.Button.set_halign(delete_button, Gtk.Align.END)
+    Gtk.Button.set_halign(style_button, Gtk.Align.START)
 
     Gtk.Box.append(buttons_box, item)
     return
@@ -298,6 +305,21 @@ def on_reload_button_clicked(reload_button):
     reload_file_contents()
     reconfigure_plots_and_buttons(reload_button.selection_scroll)
     redraw_plots()
+    return
+
+
+def on_style_button_click(style_button):
+    name = style_button.name
+
+    if name != x_data.name:
+        DataFrame.drop(data_frame, name, axis=1)
+
+        remove_plot(name, left=True, right=True)
+        redraw_plots()
+
+        parent_box = Gtk.Button.get_parent(style_button)
+        grand_parent = Gtk.Box.get_parent(parent_box)
+        Gtk.Box.remove(grand_parent, parent_box)
     return
 
 
