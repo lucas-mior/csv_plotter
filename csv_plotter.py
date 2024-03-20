@@ -70,8 +70,11 @@ def reload_file_contents():
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
-    rows = DataFrame.reset_index(data_frame).index
-    DataFrame.insert(data_frame, 0, 'Row', rows)
+    # try:
+    #     rows = DataFrame.reset_index(data_frame).index
+    #     DataFrame.insert(data_frame, 0, 'Row', rows)
+    # except:
+    #     pass
     x_data = data_frame.iloc[:, 0]
     return
 
@@ -104,13 +107,21 @@ def configure_window_once():
     selection_scroll = Gtk.ScrolledWindow()
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
+    save_button = Gtk.Button.new_from_icon_name("document-save")
+
     axis_button = Gtk.CheckButton(label="axis labels", active=True)
 
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
+    Gtk.Button.set_tooltip_text(reload_button, "Save new file changes")
+
     Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
+    Gtk.Button.connect(save_button, "clicked", on_save_button_clicked)
+
     reload_button.selection_scroll = selection_scroll
+    save_button.selection_scroll = selection_scroll
+
     Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
     on_axis_button_toggled(axis_button)
 
@@ -118,6 +129,7 @@ def configure_window_once():
     Gtk.Box.append(toolbar_box, toolbar)
     Gtk.Box.append(toolbar_box, axis_button)
     Gtk.Box.append(toolbar_box, reload_button)
+    Gtk.Box.append(toolbar_box, save_button)
 
     Gtk.Box.append(plot_box, toolbar_box)
     Gtk.Box.append(plot_box, canvas)
@@ -175,7 +187,7 @@ def clean_plotted_get_list():
 
 
 def reconfigure_plots_and_buttons(selection_scroll):
-    global x_button_group
+    global x_button_group, data_frame
 
     plotted_left, plotted_right = clean_plotted_get_list()
 
@@ -308,6 +320,14 @@ def on_reload_button_clicked(reload_button):
     return
 
 
+def on_save_button_clicked(save_button):
+    newfile = str.rsplit(filename, '.', maxsplit=1)[0]
+    newfile += ".csv"
+    print("neefile:", newfile)
+    DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+    return
+
+
 def on_style_button_click(style_button):
     name = style_button.name
 
@@ -324,10 +344,12 @@ def on_style_button_click(style_button):
 
 
 def on_delete_button_click(delete_button):
+    global data_frame
     name = delete_button.name
 
     if name != x_data.name:
-        DataFrame.drop(data_frame, name, axis=1)
+        print(f"deleting {name}...")
+        DataFrame.drop(data_frame, name, axis=1, inplace=True)
 
         remove_plot(name, left=True, right=True)
         redraw_plots()
@@ -378,6 +400,8 @@ def on_y_button_toggled(y_button):
 
 
 def on_entry_activate(entry):
+    global data_frame
+
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
