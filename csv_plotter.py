@@ -322,8 +322,7 @@ def on_reload_button_clicked(reload_button):
 
 def on_save_button_clicked(save_button):
     newfile = str.rsplit(filename, '.', maxsplit=1)[0]
-    newfile += ".csv"
-    print("neefile:", newfile)
+    newfile += "_new.csv"
     DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
     return
 
