@@ -508,7 +508,10 @@ def put_legends():
         list.append(plotted, line)
     for line in Axes.get_lines(axes_right):
         list.append(plotted, line)
-    Axes.legend(axes_left, plotted, [p.get_label() for p in plotted])
+
+    names = [Line2D.get_label(line) for line in plotted]
+
+    Axes.legend(axes_left, plotted, names)
     return
 
 
