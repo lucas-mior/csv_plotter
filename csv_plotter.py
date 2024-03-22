@@ -70,11 +70,12 @@ def reload_file_contents():
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
-    # try:
-    #     rows = DataFrame.reset_index(data_frame).index
-    #     DataFrame.insert(data_frame, 0, 'Row', rows)
-    # except:
-    #     pass
+    if not "time" in data_frame.columns:
+        try:
+            rows = DataFrame.reset_index(data_frame).index
+            DataFrame.insert(data_frame, 0, 'Row', rows)
+        except:
+            pass
     x_data = data_frame.iloc[:, 0]
     return
 
