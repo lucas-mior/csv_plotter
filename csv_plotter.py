@@ -28,8 +28,8 @@ import matplotlib.colors as mcolors
 matplotlib.rcParams.update({'font.size': 14})
 
 base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
-base_colors = list(base_colors.values())
-tableau_colors = list(mcolors.TABLEAU_COLORS.values())
+base_colors = list(dict.keys(base_colors))
+tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
 colors_options = tableau_colors + base_colors
 styles_options = ["solid", "dashdot", "dotted"]
