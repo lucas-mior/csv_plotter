@@ -254,12 +254,14 @@ def add_buttons(name, buttons_box, left=False, right=False):
     y_button_right = Gtk.CheckButton(active=right)
     buttons_label = Gtk.Label(label=name)
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
+    color_button = Gtk.Button.new_from_icon_name("color-select-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
     x_button.name = name
     y_button_left.name = name
     y_button_right.name = name
     style_button.name = name
+    color_button.name = name
     delete_button.name = name
 
     y_button_left.is_left = True
@@ -277,6 +279,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
     Gtk.Button.connect(style_button, "clicked", on_style_button_click)
+    Gtk.Button.connect(color_button, "clicked", on_color_button_click)
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
 
     item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -286,12 +289,15 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Box.append(item, y_button_right)
     Gtk.Box.append(item, buttons_label)
     Gtk.Box.append(item, style_button)
+    Gtk.Box.append(item, color_button)
     Gtk.Box.append(item, delete_button)
 
     Gtk.Button.set_hexpand(style_button, True)
+    Gtk.Button.set_hexpand(color_button, False)
     Gtk.Button.set_hexpand(delete_button, False)
 
     Gtk.Button.set_halign(style_button, Gtk.Align.END)
+    Gtk.Button.set_halign(color_button, Gtk.Align.END)
     Gtk.Button.set_halign(delete_button, Gtk.Align.END)
 
     Gtk.Box.append(buttons_box, item)
@@ -337,6 +343,39 @@ def on_style_button_click(style_button):
             styles[name] = random.choice(styles_options)
     except Exception:
         styles[name] = random.choice(styles_options)
+
+    left = right = False
+
+    for line in Axes.get_lines(axes_left):
+        if Line2D.get_label(line) == name:
+            left = True
+            break
+    for line in Axes.get_lines(axes_right):
+        if Line2D.get_label(line) == name:
+            right = True
+            break
+
+    if left or right:
+        remove_plot(name, left, right)
+
+    if left:
+        add_plot(name, left=True)
+    if right:
+        add_plot(name, left=False)
+
+    redraw_plots()
+    return
+
+
+def on_color_button_click(color_button):
+    name = color_button.name
+
+    try:
+        old = colors[name]
+        while colors[name] == old:
+            colors[name] = random.choice(colors_options)
+    except Exception:
+        colors[name] = random.choice(colors_options)
 
     left = right = False
 
@@ -492,8 +531,6 @@ def add_plot(name, left=True):
         color = random.choice(colors_options)
         styles[name] = linestyle
         colors[name] = color
-
-    print("color:", color)
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, linestyle=linestyle, color=color, label=name)
