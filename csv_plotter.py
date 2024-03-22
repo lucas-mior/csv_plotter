@@ -5,6 +5,7 @@ import sys
 import pandas as pd
 import numpy as np
 import random
+from itertools import cycle
 
 from pandas import DataFrame
 
@@ -33,6 +34,9 @@ tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
 colors_options = tableau_colors + base_colors
 styles_options = ["solid", "dashdot", "dotted"]
+
+colors_cycle = cycle(colors_options)
+styles_cycle = cycle(styles_options)
 
 styles = {}
 colors = {}
@@ -325,12 +329,7 @@ def on_save_button_clicked(save_button):
 def on_style_button_click(style_button):
     name = style_button.name
 
-    try:
-        old = styles[name]
-        while styles[name] == old:
-            styles[name] = random.choice(styles_options)
-    except Exception:
-        styles[name] = random.choice(styles_options)
+    styles[name] = next(styles_cycle)
 
     left = right = False
 
@@ -358,12 +357,7 @@ def on_style_button_click(style_button):
 def on_color_button_click(color_button):
     name = color_button.name
 
-    try:
-        old = colors[name]
-        while colors[name] == old:
-            colors[name] = random.choice(colors_options)
-    except Exception:
-        colors[name] = random.choice(colors_options)
+    colors[name] = next(colors_cycle)
 
     left = right = False
 
