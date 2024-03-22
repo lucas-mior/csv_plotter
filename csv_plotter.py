@@ -393,6 +393,9 @@ def on_delete_button_click(delete_button):
         print(f"deleting {name}...")
         DataFrame.drop(data_frame, name, axis=1, inplace=True)
 
+        del colors[name]
+        del styles[name]
+
         remove_plot(name, left=True, right=True)
         redraw_plots()
 
