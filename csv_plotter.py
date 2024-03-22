@@ -231,14 +231,25 @@ def reconfigure_plots_and_buttons(selection_scroll):
 def set_axis_labels():
     names_left = ""
     names_right = ""
-    if axis_labels:
-        for line in Axes.get_lines(axes_left):
-            names_left += f" {line.get_label()} "
-        for line in Axes.get_lines(axes_right):
-            names_right += f" {line.get_label()} "
+    for line in Axes.get_lines(axes_left):
+        names_left += f" {line.get_label()} "
+    for line in Axes.get_lines(axes_right):
+        names_right += f" {line.get_label()} "
 
-    Axes.set_ylabel(axes_left, names_left)
-    Axes.set_ylabel(axes_right, names_right)
+    if axis_labels:
+        Axes.set_ylabel(axes_left, names_left)
+        Axes.set_ylabel(axes_right, names_right)
+
+    if names_left == "":
+        Axes.tick_params(axes_left, axis='y',
+                         left = False,
+                         labelbottom=False, labeltop=False,
+                         labelleft=False, labelright=False)
+    if names_right == "":
+        Axes.tick_params(axes_right, axis='y',
+                         right = False,
+                         labelbottom=False, labeltop=False,
+                         labelleft=False, labelright=False)
     return
 
 
