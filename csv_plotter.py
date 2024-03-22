@@ -200,6 +200,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
+        name = new
 
         colors[name] = next(colors_cycle)
         styles[name] = next(styles_cycle)
@@ -208,16 +209,16 @@ def reconfigure_plots_and_buttons(selection_scroll):
             pass
         elif not plotted_left and not plotted_right:
             if i < 10:
-                add_plot(new, axes_left)
+                add_plot(name, axes_left)
                 left = True
         else:
-            if new in plotted_left:
-                add_plot(new, axes_left)
+            if name in plotted_left:
+                add_plot(name, axes_left)
                 left = True
-            if new in plotted_right:
-                add_plot(new, axes_right)
+            if name in plotted_right:
+                add_plot(name, axes_right)
                 right = True
-        add_buttons(new, buttons_box, left=left, right=right)
+        add_buttons(name, buttons_box, left=left, right=right)
 
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
@@ -238,8 +239,12 @@ def set_axis_labels():
 
     if names_left == "":
         Axes.tick_params(axes_left, axis='y', left = False, labelleft=False)
+    else:
+        Axes.tick_params(axes_left, axis='y', left = True, labelleft=True)
     if names_right == "":
         Axes.tick_params(axes_right, axis='y', right = False, labelright=False)
+    else:
+        Axes.tick_params(axes_right, axis='y', right = True, labelright=True)
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
