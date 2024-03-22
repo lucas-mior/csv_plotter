@@ -208,14 +208,14 @@ def reconfigure_plots_and_buttons(selection_scroll):
             pass
         elif not plotted_left and not plotted_right:
             if i < 10:
-                add_plot(new, left=True)
+                add_plot(new, axes_left)
                 left = True
         else:
             if new in plotted_left:
-                add_plot(new, left=True)
+                add_plot(new, axes_left)
                 left = True
             if new in plotted_right:
-                add_plot(new, left=False)
+                add_plot(new, axes_right)
                 right = True
         add_buttons(new, buttons_box, left=left, right=right)
 
@@ -275,8 +275,8 @@ def add_buttons(name, buttons_box, left=False, right=False):
     color_button.name = name
     delete_button.name = name
 
-    y_button_left.is_left = True
-    y_button_right.is_left = False
+    y_button_left.axes = axes_left
+    y_button_right.axes = axes_right
 
     _set_margins(x_button)
     _set_margins(y_button_left)
@@ -345,13 +345,15 @@ def on_style_button_click(style_button):
             right = True
             break
 
-    if left or right:
-        remove_plot(name, left, right)
+    if left:
+        remove_plot(name, axes_left)
+    if right:
+        remove_plot(name, axes_right)
 
     if left:
-        add_plot(name, left=True)
+        add_plot(name, axes_left)
     if right:
-        add_plot(name, left=False)
+        add_plot(name, axes_right)
 
     redraw_plots()
     return
@@ -373,13 +375,15 @@ def on_color_button_click(color_button):
             right = True
             break
 
-    if left or right:
-        remove_plot(name, left, right)
+    if left:
+        remove_plot(name, axes_left)
+    if right:
+        remove_plot(name, axes_right)
 
     if left:
-        add_plot(name, left=True)
+        add_plot(name, axes_left)
     if right:
-        add_plot(name, left=False)
+        add_plot(name, axes_right)
 
     redraw_plots()
     return
@@ -396,7 +400,8 @@ def on_delete_button_click(delete_button):
         del colors[name]
         del styles[name]
 
-        remove_plot(name, left=True, right=True)
+        remove_plot(name, axes_left)
+        remove_plot(name, axes_right)
         redraw_plots()
 
         parent_box = Gtk.Button.get_parent(delete_button)
@@ -419,9 +424,9 @@ def on_x_button_toggled(x_button):
     plotted_left, plotted_right = clean_plotted_get_list()
 
     for name in plotted_left:
-        add_plot(name, left=True)
+        add_plot(name, axes_left)
     for name in plotted_right:
-        add_plot(name, left=False)
+        add_plot(name, axes_right)
 
     Axes.set_xlabel(axes_left, x_data.name)
     redraw_plots()
@@ -430,13 +435,13 @@ def on_x_button_toggled(x_button):
 
 def on_y_button_toggled(y_button):
     name = y_button.name
-    is_left = y_button.is_left
+    axes = y_button.axes
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
-        add_plot(name, left=is_left)
+        add_plot(name, axes)
     else:
-        remove_plot(name, left=is_left, right=not is_left)
+        remove_plot(name, axes)
 
     redraw_plots()
     return
@@ -460,24 +465,18 @@ def on_entry_activate(entry):
     colors[name] = next(colors_cycle)
     styles[name] = next(styles_cycle)
 
-    add_buttons(name, buttons_box, left=True)
+    add_buttons(name, buttons_box, left=False, right=True)
 
-    add_plot(name, left=True)
+    add_plot(name, axes_right)
     redraw_plots()
     return
 
 
-def remove_plot(name, left=False, right=False):
-    if left:
-        for line in Axes.get_lines(axes_left):
-            if Line2D.get_label(line) == name:
-                Line2D.remove(line)
-                break
-    if right:
-        for line in Axes.get_lines(axes_right):
-            if Line2D.get_label(line) == name:
-                Line2D.remove(line)
-                break
+def remove_plot(name, axes):
+    for line in Axes.get_lines(axes):
+        if Line2D.get_label(line) == name:
+            Line2D.remove(line)
+            break
     return
 
 
@@ -507,13 +506,8 @@ def redraw_plots():
     return
 
 
-def add_plot(name, left=True):
+def add_plot(name, axes):
     global styles
-
-    if left:
-        axes = axes_left
-    else:
-        axes = axes_right
 
     y = data_frame[name]
 
