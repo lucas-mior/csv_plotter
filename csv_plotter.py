@@ -119,12 +119,8 @@ def configure_window_once():
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     save_button = Gtk.Button.new_from_icon_name("document-save")
 
-    axis_button = Gtk.CheckButton(label="axis labels", active=True)
-
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.Button.set_tooltip_text(save_button, "Save file changes on new file")
-
-    Gtk.CheckButton.set_tooltip_text(axis_button, "Toggle axis labels")
 
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
     Gtk.Button.connect(save_button, "clicked", on_save_button_clicked)
@@ -132,12 +128,8 @@ def configure_window_once():
     reload_button.selection_scroll = selection_scroll
     save_button.selection_scroll = selection_scroll
 
-    Gtk.CheckButton.connect(axis_button, "toggled", on_axis_button_toggled)
-    on_axis_button_toggled(axis_button)
-
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
-    Gtk.Box.append(toolbar_box, axis_button)
     Gtk.Box.append(toolbar_box, reload_button)
     Gtk.Box.append(toolbar_box, save_button)
 
@@ -242,9 +234,8 @@ def set_axis_labels():
     if names_right == "":
         Axes.tick_params(axes_right, axis='y', right = False, labelright=False)
 
-    if axis_labels:
-        Axes.set_ylabel(axes_left, names_left)
-        Axes.set_ylabel(axes_right, names_right)
+    Axes.set_ylabel(axes_left, names_left)
+    Axes.set_ylabel(axes_right, names_right)
     return
 
 
@@ -314,22 +305,6 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Button.set_halign(delete_button, Gtk.Align.END)
 
     Gtk.Box.append(buttons_box, item)
-    return
-
-
-def on_axis_button_toggled(axis_button):
-    global axis_labels
-
-    try:
-        axis_labels
-    except NameError:
-        axis_labels = True
-        return
-
-    name = Gtk.CheckButton.get_label(axis_button)
-    axis_labels = Gtk.CheckButton.get_active(axis_button)
-
-    redraw_plots()
     return
 
 
