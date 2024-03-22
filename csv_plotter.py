@@ -528,7 +528,6 @@ def add_plot(name, left=True):
         axes = axes_right
 
     y = data_frame[name]
-    nplotted = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
 
     try:
         linestyle = styles[name]
