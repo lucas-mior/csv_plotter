@@ -21,9 +21,8 @@ Interactively plot CSV files.
 
 ## TODO
 - ~~Add new curves as linear combinations of the existing data~~.
-- Add option to configurate color, linesize and linestyle for each curve.
-  * ~~button to randomize color and style separately~~
-  * button to select color and style sequentially, not randomly
+- ~~Add option to configurate color, linesize and linestyle for each curve.~~
+  * ~~button to select color and style sequentially, not randomly~~
 - ~~Use left and right axes to fit plots with different amplitudes.~~
 - ~~Improve the positioning of the legends~~
   * ~~Make only one legend box with both axis lines.~~
