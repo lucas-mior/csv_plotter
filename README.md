@@ -10,17 +10,20 @@ Interactively plot CSV files.
 - select X axis
 - create new curves by inserting expressions parsed by `pandas.eval()`
 - remove unwanted columns (for organization purposes)
-    * Possibly save as a new file
+    * Possibly save as a new file (also save new curves)
 - command to reload file contents (in case you make external changes)
 
 ## Non-features
 - CSV edition (use a text/spreadsheet editor instead)
-    * You can only delete columns and save the remaining as a new file
+    * You can only delete columns and add new ones by inserting expressions
+      and save the resulting data frame as a new file
 - open more than one file
 
 ## TODO
 - ~~Add new curves as linear combinations of the existing data~~.
 - Add option to configurate color, linesize and linestyle for each curve.
+  * ~~button to randomize color and style separately~~
+  * button to select color and style sequentially, not randomly
 - ~~Use left and right axes to fit plots with different amplitudes.~~
 - ~~Improve the positioning of the legends~~
   * ~~Make only one legend box with both axis lines.~~
