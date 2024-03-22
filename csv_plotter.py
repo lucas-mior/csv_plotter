@@ -541,7 +541,7 @@ def add_plot(name, left=True):
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, linestyle=linestyle, color=color, label=name)
-    else:                                                            
+    else:
         Axes.plot(axes, x_data, y, 'o', markersize=1.5, color=color, label=name)
     return
 
