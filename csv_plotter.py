@@ -27,6 +27,15 @@ import matplotlib.colors as mcolors
 
 matplotlib.rcParams.update({'font.size': 14})
 
+base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
+base_colors = list(base_colors.values())
+tableau_colors = list(mcolors.TABLEAU_COLORS.values())
+
+colors_options = tableau_colors + base_colors
+styles_options = ["solid", "dashdot", "dotted"]
+
+styles = {}
+colors = {}
 
 def on_application_activation(application):
     global window, filename
@@ -165,14 +174,6 @@ def configure_window_once():
     return
 
 
-def configure_plot_colors():
-    base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
-
-    Axes.set_prop_cycle(axes_left, color=mcolors.TABLEAU_COLORS)
-    Axes.set_prop_cycle(axes_right, color=base_colors)
-    return
-
-
 def clean_plotted_get_list():
     plotted_left = []
     plotted_right = []
@@ -192,7 +193,6 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     plotted_left, plotted_right = clean_plotted_get_list()
 
-    configure_plot_colors()
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     name_first = data_frame.columns[0]
@@ -331,15 +331,33 @@ def on_save_button_clicked(save_button):
 def on_style_button_click(style_button):
     name = style_button.name
 
-    if name != x_data.name:
-        DataFrame.drop(data_frame, name, axis=1)
+    try:
+        old = styles[name]
+        while styles[name] == old:
+            styles[name] = random.choice(styles_options)
+    except Exception:
+        styles[name] = random.choice(styles_options)
 
-        remove_plot(name, left=True, right=True)
-        redraw_plots()
+    left = right = False
 
-        parent_box = Gtk.Button.get_parent(style_button)
-        grand_parent = Gtk.Box.get_parent(parent_box)
-        Gtk.Box.remove(grand_parent, parent_box)
+    for line in Axes.get_lines(axes_left):
+        if Line2D.get_label(line) == name:
+            left = True
+            break
+    for line in Axes.get_lines(axes_right):
+        if Line2D.get_label(line) == name:
+            right = True
+            break
+
+    if left or right:
+        remove_plot(name, left, right)
+
+    if left:
+        add_plot(name, left=True)
+    if right:
+        add_plot(name, left=False)
+
+    redraw_plots()
     return
 
 
@@ -372,8 +390,6 @@ def on_x_button_toggled(x_button):
     x_data = data_frame[name]
 
     plotted_left, plotted_right = clean_plotted_get_list()
-
-    configure_plot_colors()
 
     for name in plotted_left:
         add_plot(name, left=True)
@@ -458,6 +474,8 @@ def redraw_plots():
 
 
 def add_plot(name, left=True):
+    global styles
+
     if left:
         axes = axes_left
     else:
@@ -465,14 +483,22 @@ def add_plot(name, left=True):
 
     y = data_frame[name]
     nplotted = len(Axes.get_lines(axes_left)) + len(Axes.get_lines(axes_right))
+
+    try:
+        linestyle = styles[name]
+        color = colors[name]
+    except Exception:
+        linestyle = random.choice(styles_options)
+        color = random.choice(colors_options)
+        styles[name] = linestyle
+        colors[name] = color
+
+    print("color:", color)
+
     if x_data.is_monotonic_increasing:
-        if nplotted <= 2:
-            linestyle = "solid"
-        else:
-            linestyle = random.choice(["solid", "solid", "dashdot", "dotted"])
-        Axes.plot(axes, x_data, y, linestyle=linestyle, label=name)
-    else:
-        Axes.plot(axes, x_data, y, 'o', markersize=1.5, label=name)
+        Axes.plot(axes, x_data, y, linestyle=linestyle, color=color, label=name)
+    else:                                                            
+        Axes.plot(axes, x_data, y, 'o', markersize=1.5, color=color, label=name)
     return
 
 
