@@ -201,6 +201,9 @@ def reconfigure_plots_and_buttons(selection_scroll):
         new = str.replace(name, ".", "_")
         DataFrame.rename(data_frame, columns={name: new}, inplace=True)
 
+        colors[name] = next(colors_cycle)
+        styles[name] = next(styles_cycle)
+
         if name == "time" or name == "hour":
             pass
         elif not plotted_left and not plotted_right:
@@ -450,6 +453,10 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
+
+    colors[name] = next(colors_cycle)
+    styles[name] = next(styles_cycle)
+
     add_buttons(name, buttons_box, left=True)
 
     add_plot(name, left=True)
@@ -507,14 +514,8 @@ def add_plot(name, left=True):
 
     y = data_frame[name]
 
-    try:
-        linestyle = styles[name]
-        color = colors[name]
-    except Exception:
-        linestyle = random.choice(styles_options)
-        color = random.choice(colors_options)
-        styles[name] = linestyle
-        colors[name] = color
+    linestyle = styles[name]
+    color = colors[name]
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, label=name,
