@@ -268,7 +268,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     y_button_right = Gtk.CheckButton(active=right)
     buttons_label = Gtk.Label(label=name)
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
-    color_button = Gtk.Button.new_from_icon_name("color-select-symbolic")
+    color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
     Gtk.Button.set_tooltip_text(x_button, f"Set {name} as x axis")
