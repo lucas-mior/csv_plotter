@@ -224,14 +224,14 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     pre_plots = []
     Axes.set_xlabel(axes_left, x_data.name)
-    set_axis_labels()
+    configure_y_axis_labels_and_ticks()
     put_legends()
 
     Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
     return
 
 
-def set_axis_labels():
+def configure_y_axis_labels_and_ticks():
     names_left = ""
     names_right = ""
 
@@ -504,7 +504,7 @@ def put_legends():
 
 
 def redraw_plots():
-    set_axis_labels()
+    configure_y_axis_labels_and_ticks()
 
     Axes.relim(axes_left)
     Axes.relim(axes_right)
