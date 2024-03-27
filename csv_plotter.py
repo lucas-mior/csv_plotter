@@ -4,7 +4,6 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-import random
 from itertools import cycle
 
 from pandas import DataFrame
@@ -32,11 +31,8 @@ base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
 base_colors = list(dict.keys(base_colors))
 tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
-colors_options = tableau_colors + base_colors
-styles_options = ["solid", "dashdot", "dotted"]
-
-colors_cycle = cycle(colors_options)
-styles_cycle = cycle(styles_options)
+colors_cycle = cycle(tableau_colors + base_colors)
+styles_cycle = cycle(["solid", "dashdot", "dotted"])
 
 styles = {}
 colors = {}
@@ -194,6 +190,8 @@ def reconfigure_plots_and_buttons(selection_scroll):
     name_first = data_frame.columns[0]
     x_button_group = None
     add_buttons(name_first, buttons_box)
+    colors[name_first] = next(colors_cycle)
+    styles[name_first] = "solid"
 
     for i, name in enumerate(data_frame.columns[1:]):
         left = right = False
@@ -203,12 +201,12 @@ def reconfigure_plots_and_buttons(selection_scroll):
         name = new
 
         colors[name] = next(colors_cycle)
-        styles[name] = next(styles_cycle)
+        styles[name] = "solid"
 
         if name == "time" or name == "hour":
             pass
         elif not plotted_left and not plotted_right:
-            if i < 10:
+            if i < 5:
                 add_plot(name, axes_left)
                 left = True
         else:
