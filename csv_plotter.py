@@ -37,17 +37,24 @@ styles_cycle = cycle(["solid", "dashdot", "dotted"])
 styles = {}
 colors = {}
 
+pre_plots = []
+
 def on_application_activation(application):
-    global window, filename
+    global window, filename, pre_plots
 
     window = Gtk.ApplicationWindow(application=application)
     Gtk.ApplicationWindow.set_default_size(window, 1400, 900)
 
-    if len(sys.argv) < 2:
+    argc = len(sys.argv)
+
+    if argc < 2:
         dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
         Gtk.FileDialog.open(dialog, window, None, on_have_filename_ready, None)
     else:
         filename = sys.argv[1]
+        if argc > 2:
+            pre_plots = str.split(sys.argv[2], ",")
+            print("pre_plots:", sys.argv[2])
         on_have_filename_ready(None, None, None)
     return
 
@@ -181,7 +188,7 @@ def clean_plotted_get_list():
 
 
 def reconfigure_plots_and_buttons(selection_scroll):
-    global x_button_group, data_frame
+    global x_button_group, data_frame, pre_plots
 
     plotted_left, plotted_right = clean_plotted_get_list()
 
@@ -193,7 +200,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
     colors[name_first] = next(colors_cycle)
     styles[name_first] = "solid"
 
-    for i, name in enumerate(data_frame.columns[1:]):
+    for name in data_frame.columns[1:]:
         left = right = False
         # TODO: dots bug expressions in pandas.eval(), find better solution
         new = str.replace(name, ".", "_")
@@ -203,12 +210,9 @@ def reconfigure_plots_and_buttons(selection_scroll):
         colors[name] = next(colors_cycle)
         styles[name] = "solid"
 
-        if name == "time" or name == "hour":
-            pass
-        elif not plotted_left and not plotted_right:
-            if i < 5:
-                add_plot(name, axes_left)
-                left = True
+        if name in pre_plots:
+            add_plot(name, axes_left)
+            left = True
         else:
             if name in plotted_left:
                 add_plot(name, axes_left)
@@ -216,8 +220,10 @@ def reconfigure_plots_and_buttons(selection_scroll):
             if name in plotted_right:
                 add_plot(name, axes_right)
                 right = True
+
         add_buttons(name, buttons_box, left=left, right=right)
 
+    pre_plots = []
     Axes.set_xlabel(axes_left, x_data.name)
     set_axis_labels()
     put_legends()
