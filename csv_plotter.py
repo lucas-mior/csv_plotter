@@ -27,7 +27,7 @@ import matplotlib.colors as mcolors
 
 matplotlib.rcParams.update({'font.size': 14})
 
-base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w'}
+base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w' and k != 'y'}
 base_colors = list(dict.keys(base_colors))
 tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
