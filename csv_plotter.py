@@ -54,7 +54,6 @@ def on_application_activation(application):
         filename = sys.argv[1]
         if argc > 2:
             pre_plots = str.split(sys.argv[2], ",")
-            print("pre_plots:", sys.argv[2])
         on_have_filename_ready(None, None, None)
     return
 
@@ -237,9 +236,11 @@ def set_axis_labels():
     names_right = ""
 
     for line in Axes.get_lines(axes_left):
-        names_left += f" {line.get_label()} "
+        name = Line2D.get_label(line)
+        names_left += f" {name} "
     for line in Axes.get_lines(axes_right):
-        names_right += f" {line.get_label()} "
+        name = Line2D.get_label(line)
+        names_right += f" {name} "
 
     if names_left == "":
         Axes.tick_params(axes_left, axis='y', left = False, labelleft=False)
