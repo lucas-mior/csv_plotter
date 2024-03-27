@@ -243,13 +243,13 @@ def configure_y_axis_labels_and_ticks():
         names_right += f" {name} "
 
     if names_left == "":
-        Axes.tick_params(axes_left, axis='y', left = False, labelleft=False)
+        Axes.tick_params(axes_left, axis='y', left=False, labelleft=False)
     else:
-        Axes.tick_params(axes_left, axis='y', left = True, labelleft=True)
+        Axes.tick_params(axes_left, axis='y', left=True, labelleft=True)
     if names_right == "":
-        Axes.tick_params(axes_right, axis='y', right = False, labelright=False)
+        Axes.tick_params(axes_right, axis='y', right=False, labelright=False)
     else:
-        Axes.tick_params(axes_right, axis='y', right = True, labelright=True)
+        Axes.tick_params(axes_right, axis='y', right=True, labelright=True)
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
@@ -355,17 +355,7 @@ def on_style_button_click(style_button):
             right = True
             break
 
-    if left:
-        remove_plot(name, axes_left)
-    if right:
-        remove_plot(name, axes_right)
-
-    if left:
-        add_plot(name, axes_left)
-    if right:
-        add_plot(name, axes_right)
-
-    redraw_plots()
+    reset_plot(name, left, right)
     return
 
 
@@ -385,17 +375,7 @@ def on_color_button_click(color_button):
             right = True
             break
 
-    if left:
-        remove_plot(name, axes_left)
-    if right:
-        remove_plot(name, axes_right)
-
-    if left:
-        add_plot(name, axes_left)
-    if right:
-        add_plot(name, axes_right)
-
-    redraw_plots()
+    reset_plot(name, left, right)
     return
 
 
@@ -478,6 +458,21 @@ def on_entry_activate(entry):
     add_buttons(name, buttons_box, left=False, right=True)
 
     add_plot(name, axes_right)
+    redraw_plots()
+    return
+
+
+def reset_plot(name, left, right):
+    if left:
+        remove_plot(name, axes_left)
+    if right:
+        remove_plot(name, axes_right)
+
+    if left:
+        add_plot(name, axes_left)
+    if right:
+        add_plot(name, axes_right)
+
     redraw_plots()
     return
 
