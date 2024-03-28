@@ -266,7 +266,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
     y_button_right = Gtk.CheckButton(active=right)
-    buttons_label = Gtk.Label(label=name)
+    buttons_label = Gtk.EditableLabel.new(name)
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
