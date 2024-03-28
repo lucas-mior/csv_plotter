@@ -268,10 +268,20 @@ def on_buttons_label_notify_editing(editable_label, editing):
     styles[new_name] = styles.pop(old_name)
     colors[new_name] = colors.pop(old_name)
 
+    y_button_left = item.y_button_left
+    y_button_right = item.y_button_right
+
+    left = Gtk.CheckButton.get_active(y_button_left)
+    right = Gtk.CheckButton.get_active(y_button_right)
+
     remove_plot(old_name, axes_left)
     remove_plot(old_name, axes_right)
 
-    # add_buttons(new_name, buttons_box, left=False, right=False)
+    if left:
+        add_plot(new_name, axes_left)
+    if right:
+        add_plot(new_name, axes_right)
+
     item.name = new_name
 
     redraw_plots()
@@ -321,6 +331,8 @@ def add_buttons(name, buttons_box, left=False, right=False):
 
     item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     item.name = name
+    item.y_button_left = y_button_left
+    item.y_button_right = y_button_right
 
     Gtk.Box.append(item, x_button)
     Gtk.Box.append(item, y_button_left)
