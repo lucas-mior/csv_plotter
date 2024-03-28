@@ -3,7 +3,6 @@
 import os
 import sys
 import pandas as pd
-import numpy as np
 from itertools import cycle
 
 from pandas import DataFrame
@@ -21,13 +20,14 @@ from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
-from matplotlib.artist import Artist
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
 
 matplotlib.rcParams.update({'font.size': 14})
 
-base_colors = {k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w' and k != 'y'}
+base_colors = {
+    k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w' and k != 'y'
+}
 base_colors = list(dict.keys(base_colors))
 tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
@@ -38,6 +38,7 @@ styles = {}
 colors = {}
 
 pre_plots = []
+
 
 def on_application_activation(application):
     global window, filename, pre_plots
@@ -85,11 +86,11 @@ def reload_file_contents():
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
-    if not "time" in data_frame.columns:
+    if "time" not in data_frame.columns:
         try:
             rows = DataFrame.reset_index(data_frame).index
             DataFrame.insert(data_frame, 0, 'Row', rows)
-        except:
+        except Exception:
             pass
     x_data = data_frame.iloc[:, 0]
     return
@@ -270,12 +271,12 @@ def add_buttons(name, buttons_box, left=False, right=False):
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
-    Gtk.Button.set_tooltip_text(x_button, f"Set as x axis")
-    Gtk.Button.set_tooltip_text(y_button_left, f"Plot on left axis")
-    Gtk.Button.set_tooltip_text(y_button_right, f"Plot on right axis")
-    Gtk.Button.set_tooltip_text(style_button, f"Change line style")
-    Gtk.Button.set_tooltip_text(color_button, f"Change line color")
-    Gtk.Button.set_tooltip_text(delete_button, f"Delete from data")
+    Gtk.Button.set_tooltip_text(x_button, "Set as x axis")
+    Gtk.Button.set_tooltip_text(y_button_left, "Plot on left axis")
+    Gtk.Button.set_tooltip_text(y_button_right, "Plot on right axis")
+    Gtk.Button.set_tooltip_text(style_button, "Change line style")
+    Gtk.Button.set_tooltip_text(color_button, "Change line color")
+    Gtk.Button.set_tooltip_text(delete_button, "Delete from data")
 
     y_button_left.axes = axes_left
     y_button_right.axes = axes_right
