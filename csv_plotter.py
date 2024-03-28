@@ -172,24 +172,8 @@ def configure_window_once():
     return
 
 
-def clean_plotted_get_list():
-    plotted_left = []
-    plotted_right = []
-
-    for line in Axes.get_lines(axes_left):
-        list.append(plotted_left, Line2D.get_label(line))
-        Line2D.remove(line)
-    for line in Axes.get_lines(axes_right):
-        list.append(plotted_right, Line2D.get_label(line))
-        Line2D.remove(line)
-
-    return plotted_left, plotted_right
-
-
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
-
-    plotted_left, plotted_right = clean_plotted_get_list()
 
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -213,6 +197,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
             add_plot(name, axes_left)
             left = True
         else:
+            plotted_left, plotted_right = clean_plotted_get_list()
             if name in plotted_left:
                 add_plot(name, axes_left)
                 left = True
@@ -229,6 +214,20 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
     return
+
+
+def clean_plotted_get_list():
+    plotted_left = []
+    plotted_right = []
+
+    for line in Axes.get_lines(axes_left):
+        list.append(plotted_left, Line2D.get_label(line))
+        Line2D.remove(line)
+    for line in Axes.get_lines(axes_right):
+        list.append(plotted_right, Line2D.get_label(line))
+        Line2D.remove(line)
+
+    return plotted_left, plotted_right
 
 
 def configure_y_axis_labels_and_ticks():
@@ -253,38 +252,6 @@ def configure_y_axis_labels_and_ticks():
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
-    return
-
-
-def on_buttons_label_notify_editing(editable_label, editing):
-    if Gtk.EditableLabel.get_editing(editable_label):
-        return
-
-    item = Gtk.Button.get_parent(editable_label)
-    old_name = item.name
-    new_name = Gtk.EditableLabel.get_text(editable_label)
-
-    DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
-    styles[new_name] = styles.pop(old_name)
-    colors[new_name] = colors.pop(old_name)
-
-    y_button_left = item.y_button_left
-    y_button_right = item.y_button_right
-
-    left = Gtk.CheckButton.get_active(y_button_left)
-    right = Gtk.CheckButton.get_active(y_button_right)
-
-    remove_plot(old_name, axes_left)
-    remove_plot(old_name, axes_right)
-
-    if left:
-        add_plot(new_name, axes_left)
-    if right:
-        add_plot(new_name, axes_right)
-
-    item.name = new_name
-
-    redraw_plots()
     return
 
 
@@ -365,6 +332,38 @@ def on_save_button_clicked(save_button):
     newfile = str.rsplit(filename, '.', maxsplit=1)[0]
     newfile += "_new.csv"
     DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+    return
+
+
+def on_buttons_label_notify_editing(editable_label, editing):
+    if Gtk.EditableLabel.get_editing(editable_label):
+        return
+
+    item = Gtk.Button.get_parent(editable_label)
+    old_name = item.name
+    new_name = Gtk.EditableLabel.get_text(editable_label)
+
+    DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
+    styles[new_name] = styles.pop(old_name)
+    colors[new_name] = colors.pop(old_name)
+
+    y_button_left = item.y_button_left
+    y_button_right = item.y_button_right
+
+    left = Gtk.CheckButton.get_active(y_button_left)
+    right = Gtk.CheckButton.get_active(y_button_right)
+
+    remove_plot(old_name, axes_left)
+    remove_plot(old_name, axes_right)
+
+    if left:
+        add_plot(new_name, axes_left)
+    if right:
+        add_plot(new_name, axes_right)
+
+    item.name = new_name
+
+    redraw_plots()
     return
 
 
