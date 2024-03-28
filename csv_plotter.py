@@ -256,6 +256,15 @@ def configure_y_axis_labels_and_ticks():
     return
 
 
+def on_buttons_label_notify_editing(editable_button, editing):
+    if Gtk.EditableLabel.get_editing(editable_button):
+        print("editing:", editable_button)
+    else:
+        text = Gtk.EditableLabel.get_text(editable_button)
+        print("not editing:", text)
+    return
+
+
 def add_buttons(name, buttons_box, left=False, right=False):
     global x_button_group
 
@@ -299,6 +308,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
+    Gtk.EditableLabel.connect(buttons_label, "notify::editing", on_buttons_label_notify_editing)
     Gtk.Button.connect(style_button, "clicked", on_style_button_click)
     Gtk.Button.connect(color_button, "clicked", on_color_button_click)
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
