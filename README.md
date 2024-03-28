@@ -1,6 +1,8 @@
 # csv_plotter.py
 
 Interactively plot CSV files.
+## Demo
+![csv_plotter.py](https://github.com/lucas-mior/csv_plotter/blob/master/demo.gif)
 
 ## Features
 - matplotlib's plot window features:
