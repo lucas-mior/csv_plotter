@@ -256,12 +256,12 @@ def configure_y_axis_labels_and_ticks():
     return
 
 
-def on_buttons_label_notify_editing(editable_button, editing):
-    if Gtk.EditableLabel.get_editing(editable_button):
-        print("editing:", editable_button)
-    else:
-        text = Gtk.EditableLabel.get_text(editable_button)
-        print("not editing:", text)
+def on_buttons_label_notify_editing(editable_label, editing):
+    if Gtk.EditableLabel.get_editing(editable_label):
+        return
+
+    new_name = Gtk.EditableLabel.get_text(editable_label)
+    print("new_name:", new_name)
     return
 
 
