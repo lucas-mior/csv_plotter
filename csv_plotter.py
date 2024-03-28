@@ -265,7 +265,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
     y_button_right = Gtk.CheckButton(active=right)
-    buttons_label = Gtk.EditableLabel.new(name)
+    item_label = Gtk.EditableLabel.new(name)
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
@@ -291,7 +291,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
-    Gtk.EditableLabel.connect(buttons_label, "notify::editing", on_buttons_label_notify_editing)
+    Gtk.EditableLabel.connect(item_label, "notify::editing", on_item_label_notify_editing)
     Gtk.Button.connect(style_button, "clicked", on_style_button_click)
     Gtk.Button.connect(color_button, "clicked", on_color_button_click)
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
@@ -304,7 +304,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Box.append(item, x_button)
     Gtk.Box.append(item, y_button_left)
     Gtk.Box.append(item, y_button_right)
-    Gtk.Box.append(item, buttons_label)
+    Gtk.Box.append(item, item_label)
     Gtk.Box.append(item, style_button)
     Gtk.Box.append(item, color_button)
     Gtk.Box.append(item, delete_button)
@@ -335,7 +335,7 @@ def on_save_button_clicked(save_button):
     return
 
 
-def on_buttons_label_notify_editing(editable_label, editing):
+def on_item_label_notify_editing(editable_label, editing):
     if Gtk.EditableLabel.get_editing(editable_label):
         return
 
@@ -368,8 +368,7 @@ def on_buttons_label_notify_editing(editable_label, editing):
 
 
 def on_style_button_click(style_button):
-    item = Gtk.Button.get_parent(style_button)
-    name = item.name
+    name = get_button_name(style_button)
 
     styles[name] = next(styles_cycle)
 
@@ -431,11 +430,15 @@ def on_delete_button_click(delete_button):
     return
 
 
+def get_button_name(button):
+    item = Gtk.Button.get_parent(button)
+    return item.name
+
+
 def on_x_button_toggled(x_button):
     global x_data
 
-    item = Gtk.Button.get_parent(delete_button)
-    name = item.name
+    name = get_button_name(x_button)
     active = Gtk.CheckButton.get_active(x_button)
 
     if not active:
@@ -456,8 +459,7 @@ def on_x_button_toggled(x_button):
 
 
 def on_y_button_toggled(y_button):
-    item = Gtk.Button.get_parent(y_button)
-    name = item.name
+    name = get_button_name(y_button)
 
     axes = y_button.axes
     active = Gtk.CheckButton.get_active(y_button)
