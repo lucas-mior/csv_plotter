@@ -260,8 +260,23 @@ def on_buttons_label_notify_editing(editable_label, editing):
     if Gtk.EditableLabel.get_editing(editable_label):
         return
 
+    old_name = editable_label.name
     new_name = Gtk.EditableLabel.get_text(editable_label)
-    print("new_name:", new_name)
+
+    DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
+    styles[new_name] = styles.pop(old_name)
+    colors[new_name] = colors.pop(old_name)
+
+    remove_plot(old_name, axes_left)
+    remove_plot(old_name, axes_right)
+
+    parent_box = Gtk.Button.get_parent(editable_label)
+    buttons_box = Gtk.Box.get_parent(parent_box)
+    Gtk.Box.remove(buttons_box, parent_box)
+
+    add_buttons(new_name, buttons_box, left=False, right=False)
+
+    redraw_plots()
     return
 
 
@@ -290,6 +305,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     x_button.name = name
     y_button_left.name = name
     y_button_right.name = name
+    buttons_label.name = name
     style_button.name = name
     color_button.name = name
     delete_button.name = name
@@ -394,7 +410,6 @@ def on_delete_button_click(delete_button):
     name = delete_button.name
 
     if name != x_data.name:
-        print(f"deleting {name}...")
         DataFrame.drop(data_frame, name, axis=1, inplace=True)
 
         del colors[name]
