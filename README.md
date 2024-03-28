@@ -7,6 +7,7 @@ Interactively plot CSV files.
     * image saving
     * mouse interaction (zoom, crop...)
 - select which columns to plot
+- rename columns
 - select X axis
 - create new curves by inserting expressions parsed by `pandas.eval()`
 - remove unwanted columns (for organization purposes)
