@@ -260,7 +260,8 @@ def on_buttons_label_notify_editing(editable_label, editing):
     if Gtk.EditableLabel.get_editing(editable_label):
         return
 
-    old_name = editable_label.name
+    item = Gtk.Button.get_parent(editable_label)
+    old_name = item.name
     new_name = Gtk.EditableLabel.get_text(editable_label)
 
     DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
@@ -270,11 +271,8 @@ def on_buttons_label_notify_editing(editable_label, editing):
     remove_plot(old_name, axes_left)
     remove_plot(old_name, axes_right)
 
-    parent_box = Gtk.Button.get_parent(editable_label)
-    buttons_box = Gtk.Box.get_parent(parent_box)
-    Gtk.Box.remove(buttons_box, parent_box)
-
-    add_buttons(new_name, buttons_box, left=False, right=False)
+    # add_buttons(new_name, buttons_box, left=False, right=False)
+    item.name = new_name
 
     redraw_plots()
     return
@@ -302,14 +300,6 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Button.set_tooltip_text(color_button, f"Change {name} line color")
     Gtk.Button.set_tooltip_text(delete_button, f"Delete {name} from data")
 
-    x_button.name = name
-    y_button_left.name = name
-    y_button_right.name = name
-    buttons_label.name = name
-    style_button.name = name
-    color_button.name = name
-    delete_button.name = name
-
     y_button_left.axes = axes_left
     y_button_right.axes = axes_right
 
@@ -330,6 +320,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
 
     item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    item.name = name
 
     Gtk.Box.append(item, x_button)
     Gtk.Box.append(item, y_button_left)
@@ -366,7 +357,8 @@ def on_save_button_clicked(save_button):
 
 
 def on_style_button_click(style_button):
-    name = style_button.name
+    item = Gtk.Button.get_parent(style_button)
+    name = item.name
 
     styles[name] = next(styles_cycle)
 
@@ -386,7 +378,8 @@ def on_style_button_click(style_button):
 
 
 def on_color_button_click(color_button):
-    name = color_button.name
+    item = Gtk.Button.get_parent(color_button)
+    name = item.name
 
     colors[name] = next(colors_cycle)
 
@@ -407,7 +400,9 @@ def on_color_button_click(color_button):
 
 def on_delete_button_click(delete_button):
     global data_frame
-    name = delete_button.name
+
+    item = Gtk.Button.get_parent(delete_button)
+    name = item.name
 
     if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1, inplace=True)
@@ -428,7 +423,8 @@ def on_delete_button_click(delete_button):
 def on_x_button_toggled(x_button):
     global x_data
 
-    name = x_button.name
+    item = Gtk.Button.get_parent(delete_button)
+    name = item.name
     active = Gtk.CheckButton.get_active(x_button)
 
     if not active:
@@ -449,7 +445,9 @@ def on_x_button_toggled(x_button):
 
 
 def on_y_button_toggled(y_button):
-    name = y_button.name
+    item = Gtk.Button.get_parent(y_button)
+    name = item.name
+
     axes = y_button.axes
     active = Gtk.CheckButton.get_active(y_button)
 
