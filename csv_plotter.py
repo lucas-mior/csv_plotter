@@ -270,12 +270,12 @@ def add_buttons(name, buttons_box, left=False, right=False):
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
 
-    Gtk.Button.set_tooltip_text(x_button, f"Set {name} as x axis")
-    Gtk.Button.set_tooltip_text(y_button_left, f"Plot {name} on left axis")
-    Gtk.Button.set_tooltip_text(y_button_right, f"Plot {name} on right axis")
-    Gtk.Button.set_tooltip_text(style_button, f"Change {name} line style")
-    Gtk.Button.set_tooltip_text(color_button, f"Change {name} line color")
-    Gtk.Button.set_tooltip_text(delete_button, f"Delete {name} from data")
+    Gtk.Button.set_tooltip_text(x_button, f"Set as x axis")
+    Gtk.Button.set_tooltip_text(y_button_left, f"Plot on left axis")
+    Gtk.Button.set_tooltip_text(y_button_right, f"Plot on right axis")
+    Gtk.Button.set_tooltip_text(style_button, f"Change line style")
+    Gtk.Button.set_tooltip_text(color_button, f"Change line color")
+    Gtk.Button.set_tooltip_text(delete_button, f"Delete from data")
 
     y_button_left.axes = axes_left
     y_button_right.axes = axes_right
