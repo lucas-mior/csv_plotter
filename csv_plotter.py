@@ -557,12 +557,9 @@ def on_entry_activate(entry):
 def reset_plot(name, left, right):
     if left:
         remove_plot(name, axes_left)
-    if right:
-        remove_plot(name, axes_right)
-
-    if left:
         add_plot(name, axes_left)
     if right:
+        remove_plot(name, axes_right)
         add_plot(name, axes_right)
 
     redraw_plots()
