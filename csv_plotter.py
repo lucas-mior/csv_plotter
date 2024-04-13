@@ -38,6 +38,7 @@ styles = {}
 colors = {}
 
 pre_plots = []
+custom_left_label = None
 
 
 def on_application_activation(application):
@@ -123,6 +124,10 @@ def configure_window_once():
 
     selection_scroll = Gtk.ScrolledWindow()
 
+    custom_left_label_entry = Gtk.Entry()
+    Gtk.Entry.set_placeholder_text(custom_left_label_entry, "custom left label")
+    Gtk.Entry.connect(custom_left_label_entry, "activate", on_custom_label_activate)
+
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     save_button = Gtk.Button.new_from_icon_name("document-save")
     title_button = Gtk.CheckButton(active=True, label="Show title")
@@ -140,6 +145,7 @@ def configure_window_once():
 
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
+    Gtk.Box.append(toolbar_box, custom_left_label_entry)
     Gtk.Box.append(toolbar_box, reload_button)
     Gtk.Box.append(toolbar_box, save_button)
     Gtk.Box.append(toolbar_box, title_button)
@@ -235,7 +241,12 @@ def clean_plotted_get_list():
     return plotted_left, plotted_right
 
 
-def configure_y_axis_labels_and_ticks():
+def configure_y_axis_labels_and_ticks(new_custom_left_label=None):
+    global custom_left_label
+
+    if new_custom_left_label is not None:
+        custom_left_label = new_custom_left_label
+
     names_left = ""
     names_right = ""
 
@@ -254,6 +265,9 @@ def configure_y_axis_labels_and_ticks():
         Axes.tick_params(axes_right, axis='y', right=False, labelright=False)
     else:
         Axes.tick_params(axes_right, axis='y', right=True, labelright=True)
+
+    if custom_left_label is not None:
+        names_left = custom_left_label
 
     Axes.set_ylabel(axes_left, names_left)
     Axes.set_ylabel(axes_right, names_right)
@@ -346,6 +360,17 @@ def on_title_button_clicked(title_button):
         Axes.set_title(axes_left, filebase)
     else:
         Axes.set_title(axes_left, "")
+    redraw_plots()
+    return
+
+
+def on_custom_label_activate(entry):
+    buffer = Gtk.Entry.get_buffer(entry)
+    text = Gtk.EntryBuffer.get_text(buffer)
+
+    print("on_custom_label_activate: ", text)
+
+    configure_y_axis_labels_and_ticks(text)
     redraw_plots()
     return
 
