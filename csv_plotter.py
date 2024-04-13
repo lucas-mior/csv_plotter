@@ -97,7 +97,7 @@ def reload_file_contents():
 
 
 def configure_window_once():
-    global axes_left, axes_right, canvas
+    global axes_left, axes_right, canvas, filebase
 
     filebase = os.path.basename(filename)
     Gtk.ApplicationWindow.set_title(window, f"{program} - {filebase}")
@@ -125,12 +125,15 @@ def configure_window_once():
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     save_button = Gtk.Button.new_from_icon_name("document-save")
+    title_button = Gtk.CheckButton(active=True, label="Show title")
 
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.Button.set_tooltip_text(save_button, "Save file changes on new file")
+    Gtk.CheckButton.set_tooltip_text(title_button, "Toggle filename display")
 
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
     Gtk.Button.connect(save_button, "clicked", on_save_button_clicked)
+    Gtk.CheckButton.connect(title_button, "toggled", on_title_button_clicked)
 
     reload_button.selection_scroll = selection_scroll
     save_button.selection_scroll = selection_scroll
@@ -139,6 +142,7 @@ def configure_window_once():
     Gtk.Box.append(toolbar_box, toolbar)
     Gtk.Box.append(toolbar_box, reload_button)
     Gtk.Box.append(toolbar_box, save_button)
+    Gtk.Box.append(toolbar_box, title_button)
 
     Gtk.Box.append(plot_box, toolbar_box)
     Gtk.Box.append(plot_box, canvas)
@@ -333,6 +337,16 @@ def on_save_button_clicked(save_button):
     newfile = str.rsplit(filename, '.', maxsplit=1)[0]
     newfile += "_new.csv"
     DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+    return
+
+
+def on_title_button_clicked(title_button):
+    active = Gtk.CheckButton.get_active(title_button)
+    if active:
+        Axes.set_title(axes_left, filebase)
+    else:
+        Axes.set_title(axes_left, "")
+    redraw_plots()
     return
 
 
