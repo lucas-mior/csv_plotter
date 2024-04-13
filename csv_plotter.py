@@ -219,7 +219,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         add_buttons(name, buttons_box, left=left, right=right)
 
     pre_plots = []
-    Axes.set_xlabel(axes_left, x_data.name)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
     configure_y_axis_labels_and_ticks()
     put_legends()
 
@@ -269,8 +269,8 @@ def configure_y_axis_labels_and_ticks(new_custom_left_label=None):
     if custom_left_label is not None:
         names_left = custom_left_label
 
-    Axes.set_ylabel(axes_left, names_left)
-    Axes.set_ylabel(axes_right, names_right)
+    Axes.set_ylabel(axes_left, names_left, fontsize=18)
+    Axes.set_ylabel(axes_right, names_right, fontsize=18)
     return
 
 
@@ -376,6 +376,7 @@ def on_custom_label_activate(entry):
 
 
 def on_item_label_notify_editing(editable_label, editing):
+    global x_data
     if Gtk.EditableLabel.get_editing(editable_label):
         return
 
@@ -401,8 +402,11 @@ def on_item_label_notify_editing(editable_label, editing):
     if right:
         add_plot(new_name, axes_right)
 
-    item.name = new_name
+    if x_data.name == old_name:
+        x_data.name = new_name
+        Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
 
+    item.name = new_name
     redraw_plots()
     return
 
@@ -493,7 +497,7 @@ def on_x_button_toggled(x_button):
     for name in plotted_right:
         add_plot(name, axes_right)
 
-    Axes.set_xlabel(axes_left, x_data.name)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
     redraw_plots()
     return
 
