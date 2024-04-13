@@ -38,7 +38,10 @@ styles = {}
 colors = {}
 
 pre_plots = []
-custom_left_label = None
+custom_labels = {
+    "left": None,
+    "right": None,
+}
 
 
 def on_application_activation(application):
@@ -125,8 +128,15 @@ def configure_window_once():
     selection_scroll = Gtk.ScrolledWindow()
 
     custom_left_label_entry = Gtk.Entry()
+    custom_right_label_entry = Gtk.Entry()
+
     Gtk.Entry.set_placeholder_text(custom_left_label_entry, "custom left label")
+    Gtk.Entry.set_placeholder_text(custom_right_label_entry, "custom right label")
     Gtk.Entry.connect(custom_left_label_entry, "activate", on_custom_label_activate)
+    Gtk.Entry.connect(custom_right_label_entry, "activate", on_custom_label_activate)
+
+    custom_left_label_entry.axes = axes_left
+    custom_right_label_entry.axes = axes_right
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     save_button = Gtk.Button.new_from_icon_name("document-save")
@@ -146,6 +156,7 @@ def configure_window_once():
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
     Gtk.Box.append(toolbar_box, custom_left_label_entry)
+    Gtk.Box.append(toolbar_box, custom_right_label_entry)
     Gtk.Box.append(toolbar_box, reload_button)
     Gtk.Box.append(toolbar_box, save_button)
     Gtk.Box.append(toolbar_box, title_button)
@@ -241,11 +252,12 @@ def clean_plotted_get_list():
     return plotted_left, plotted_right
 
 
-def configure_y_axis_labels_and_ticks(new_custom_left_label=None):
-    global custom_left_label
+def configure_y_axis_labels_and_ticks(new_custom_label=None, axes=None):
+    global custom_labels
 
-    if new_custom_left_label is not None:
-        custom_left_label = new_custom_left_label
+    if new_custom_label is not None:
+        name = "left" if axes is axes_left else "right"
+        custom_labels[name] = new_custom_label
 
     names_left = ""
     names_right = ""
@@ -266,8 +278,10 @@ def configure_y_axis_labels_and_ticks(new_custom_left_label=None):
     else:
         Axes.tick_params(axes_right, axis='y', right=True, labelright=True)
 
-    if custom_left_label is not None:
-        names_left = custom_left_label
+    if custom_labels["left"] is not None:
+        names_left = custom_labels["left"]
+    if custom_labels["right"] is not None:
+        names_right = custom_labels["right"]
 
     Axes.set_ylabel(axes_left, names_left, fontsize=18)
     Axes.set_ylabel(axes_right, names_right, fontsize=18)
@@ -368,9 +382,7 @@ def on_custom_label_activate(entry):
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
-    print("on_custom_label_activate: ", text)
-
-    configure_y_axis_labels_and_ticks(text)
+    configure_y_axis_labels_and_ticks(text, entry.axes)
     redraw_plots()
     return
 
