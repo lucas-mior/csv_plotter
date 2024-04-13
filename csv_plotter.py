@@ -574,12 +574,17 @@ def put_legends():
 
     names = [Line2D.get_label(line) for line in plotted]
 
-    Axes.legend(axes_left, plotted, names)
+    Axes.legend(axes_left, plotted, names, fontsize=16)
     return
 
 
 def redraw_plots():
     configure_y_axis_labels_and_ticks()
+
+    Axes.set_xmargin(axes_left, 0.01)
+    Axes.set_xmargin(axes_right, 0.01)
+    Axes.set_ymargin(axes_left, 0.02)
+    Axes.set_ymargin(axes_right, 0.02)
 
     Axes.relim(axes_left)
     Axes.relim(axes_right)
