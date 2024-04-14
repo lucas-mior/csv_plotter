@@ -553,6 +553,7 @@ def on_entry_activate(entry):
         new_window = Gtk.Window(transient_for=window)
         Gtk.Window.set_child(new_window, message_box)
         Gtk.Window.set_visible(new_window, True)
+        return
 
     Gtk.Entry.set_text(entry, "")
 
