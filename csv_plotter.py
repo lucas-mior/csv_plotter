@@ -289,7 +289,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
 
     def _set_margins(button):
         Gtk.Button.set_margin_end(button, 2)
-        Gtk.Button.set_margin_start(button,2)
+        Gtk.Button.set_margin_start(button, 2)
 
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
@@ -537,6 +537,11 @@ def on_entry_activate(entry):
     except Exception as exception:
         title = Gtk.Label(label="Error evaluating expression")
         message = Gtk.Label(label=str(exception))
+
+        Gtk.Widget.set_margin_start(message, 50)
+        Gtk.Widget.set_margin_end(message, 50)
+        Gtk.Widget.set_margin_bottom(message, 30)
+        Gtk.Widget.set_margin_top(message, 30)
 
         header_bar = Gtk.HeaderBar()
         Gtk.HeaderBar.set_title_widget(header_bar, title)
