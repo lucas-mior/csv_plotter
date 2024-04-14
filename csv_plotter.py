@@ -207,10 +207,6 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     for name in data_frame.columns[1:]:
         left = right = False
-        # TODO: dots bug expressions in pandas.eval(), find better solution
-        new = str.replace(name, ".", "_")
-        DataFrame.rename(data_frame, columns={name: new}, inplace=True)
-        name = new
 
         colors[name] = next(colors_cycle)
         styles[name] = "solid"
