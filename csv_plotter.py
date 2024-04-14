@@ -357,7 +357,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
 def on_reload_button_clicked(reload_button):
     reload_file_contents()
     reconfigure_plots_and_buttons(reload_button.selection_scroll)
-    redraw_plots()
+    redraw_plots(full=True)
     return
 
 
@@ -510,7 +510,7 @@ def on_x_button_toggled(x_button):
         add_plot(name, axes_right)
 
     Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
-    redraw_plots()
+    redraw_plots(full=True)
     return
 
 
@@ -587,7 +587,7 @@ def put_legends():
     return
 
 
-def redraw_plots():
+def redraw_plots(full=False):
     configure_y_axis_labels_and_ticks()
 
     Axes.set_xmargin(axes_left, 0.01)
@@ -595,10 +595,11 @@ def redraw_plots():
     Axes.set_ymargin(axes_left, 0.02)
     Axes.set_ymargin(axes_right, 0.02)
 
-    Axes.relim(axes_left)
-    Axes.relim(axes_right)
-    Axes.autoscale(axes_left)
-    Axes.autoscale(axes_right)
+    if full:
+        Axes.relim(axes_left)
+        Axes.relim(axes_right)
+        Axes.autoscale(axes_left)
+        Axes.autoscale(axes_right)
     put_legends()
 
     FigureCanvas.draw(canvas)
