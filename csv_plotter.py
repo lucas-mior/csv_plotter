@@ -288,8 +288,8 @@ def add_buttons(name, buttons_box, left=False, right=False):
     global x_button_group
 
     def _set_margins(button):
-        button.set_margin_end(2)
-        button.set_margin_start(2)
+        Gtk.Button.set_margin_end(button, 2)
+        Gtk.Button.set_margin_start(button,2)
 
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
@@ -535,12 +535,20 @@ def on_entry_activate(entry):
     try:
         data_frame[text] = pd.eval(text, local_dict=local_dict)
     except Exception as exception:
-        dialog = Gtk.AlertDialog()
-        Gtk.AlertDialog.set_message(dialog, "Error evaluating expression")
-        Gtk.AlertDialog.set_detail(dialog, str(exception))
-        Gtk.AlertDialog.set_modal(dialog, True)
-        Gtk.AlertDialog.set_buttons(dialog, ["OK"])
-        Gtk.AlertDialog.show(dialog)
+        title = Gtk.Label(label="Error evaluating expression")
+        message = Gtk.Label(label=str(exception))
+
+        header_bar = Gtk.HeaderBar()
+        Gtk.HeaderBar.set_title_widget(header_bar, title)
+
+        message_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        Gtk.Box.append(message_box, header_bar)
+        Gtk.Box.append(message_box, message)
+
+        new_window = Gtk.Window(transient_for=window)
+        Gtk.Window.set_child(new_window, message_box)
+        Gtk.Window.set_visible(new_window, True)
+
     Gtk.Entry.set_text(entry, "")
 
     viewport = Gtk.ScrolledWindow.get_child(entry.selection_scroll)
