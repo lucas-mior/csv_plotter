@@ -532,7 +532,15 @@ def on_entry_activate(entry):
     text = Gtk.EntryBuffer.get_text(buffer)
 
     local_dict = DataFrame.to_dict(data_frame, orient='series')
-    data_frame[text] = pd.eval(text, local_dict=local_dict)
+    try:
+        data_frame[text] = pd.eval(text, local_dict=local_dict)
+    except Exception as exception:
+        dialog = Gtk.AlertDialog()
+        Gtk.AlertDialog.set_message(dialog, "Error evaluating expression")
+        Gtk.AlertDialog.set_detail(dialog, str(exception))
+        Gtk.AlertDialog.set_modal(dialog, True)
+        Gtk.AlertDialog.set_buttons(dialog, ["OK"])
+        Gtk.AlertDialog.show(dialog)
     Gtk.Entry.set_text(entry, "")
 
     viewport = Gtk.ScrolledWindow.get_child(entry.selection_scroll)
