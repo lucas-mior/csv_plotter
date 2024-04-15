@@ -3,6 +3,7 @@
 import os
 import sys
 import pandas as pd
+import numpy as np
 from itertools import cycle
 
 from pandas import DataFrame
@@ -23,7 +24,7 @@ from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
 
-matplotlib.rcParams.update({'font.size': 14})
+matplotlib.rcParams.update({'font.size': 22})
 
 base_colors = {
     k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w' and k != 'y'
@@ -32,7 +33,7 @@ base_colors = list(dict.keys(base_colors))
 tableau_colors = list(dict.keys(mcolors.TABLEAU_COLORS))
 
 colors_cycle = cycle(tableau_colors + base_colors)
-styles_cycle = cycle(["solid", "dashdot", "dotted"])
+styles_cycle = cycle(["solid", "dashdot", "dotted", "dashed"])
 
 styles = {}
 colors = {}
@@ -226,7 +227,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         add_buttons(name, buttons_box, left=left, right=right)
 
     pre_plots = []
-    Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=22)
     configure_y_axis_labels_and_ticks()
     put_legends()
 
@@ -605,13 +606,21 @@ def put_legends():
     return
 
 
+def custom_ticks(axes):
+    axes.locator_params(tight=True, nbins=4)
+    return
+
+
 def redraw_plots(full=False):
     configure_y_axis_labels_and_ticks()
 
     Axes.set_xmargin(axes_left, 0.01)
     Axes.set_xmargin(axes_right, 0.01)
     Axes.set_ymargin(axes_left, 0.02)
-    Axes.set_ymargin(axes_right, 0.02)
+    Axes.set_ymargin(axes_right, 0.2)
+
+    custom_ticks(axes_left)
+    custom_ticks(axes_right)
 
     if full:
         Axes.relim(axes_left)
@@ -634,7 +643,7 @@ def add_plot(name, axes):
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, label=name,
-                  linestyle=linestyle, color=color)
+                  linestyle=linestyle, color=color, linewidth=4)
     else:
         Axes.plot(axes, x_data, y, 'o', label=name,
                   markersize=1.5, color=color)
