@@ -506,7 +506,7 @@ def on_x_button_toggled(x_button):
     for name in plotted_right:
         add_plot(name, axes_right)
 
-    Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=22)
     redraw_plots(full=True)
     return
 
@@ -602,7 +602,7 @@ def put_legends():
 
     names = [Line2D.get_label(line) for line in plotted]
 
-    Axes.legend(axes_left, plotted, names, fontsize=16)
+    Axes.legend(axes_left, plotted, names, fontsize=22)
     return
 
 
