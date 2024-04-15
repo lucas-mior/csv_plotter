@@ -24,7 +24,8 @@ from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
 
-matplotlib.rcParams.update({'font.size': 22})
+FONTSIZE = 30
+matplotlib.rcParams.update({'font.size': FONTSIZE})
 
 base_colors = {
     k: v for k, v in mcolors.BASE_COLORS.items() if k != 'w' and k != 'y'
@@ -115,7 +116,6 @@ def configure_window_once():
     FigureCanvas.set_vexpand(canvas, True)
 
     axes_left = Figure.add_subplot(figure, 111)
-    Axes.set_title(axes_left, f"{filebase}")
     Axes.grid(axes_left)
     axes_right = Axes.twinx(axes_left)
 
@@ -141,7 +141,7 @@ def configure_window_once():
 
     reload_button = Gtk.Button.new_from_icon_name("document-revert")
     save_button = Gtk.Button.new_from_icon_name("document-save")
-    title_button = Gtk.CheckButton(active=True, label="Show title")
+    title_button = Gtk.CheckButton(active=False, label="Show title")
 
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.Button.set_tooltip_text(save_button, "Save file changes on new file")
@@ -227,7 +227,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         add_buttons(name, buttons_box, left=left, right=right)
 
     pre_plots = []
-    Axes.set_xlabel(axes_left, x_data.name, fontsize=22)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
     configure_y_axis_labels_and_ticks()
     put_legends()
 
@@ -280,8 +280,8 @@ def configure_y_axis_labels_and_ticks(new_custom_label=None, axes=None):
     if custom_labels["right"] is not None:
         names_right = custom_labels["right"]
 
-    Axes.set_ylabel(axes_left, names_left, fontsize=18)
-    Axes.set_ylabel(axes_right, names_right, fontsize=18)
+    Axes.set_ylabel(axes_left, names_left, fontsize=FONTSIZE)
+    Axes.set_ylabel(axes_right, names_right, fontsize=FONTSIZE)
     return
 
 
@@ -413,7 +413,7 @@ def on_item_label_notify_editing(editable_label, editing):
 
     if x_data.name == old_name:
         x_data.name = new_name
-        Axes.set_xlabel(axes_left, x_data.name, fontsize=18)
+        Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
 
     item.name = new_name
     redraw_plots()
@@ -506,7 +506,7 @@ def on_x_button_toggled(x_button):
     for name in plotted_right:
         add_plot(name, axes_right)
 
-    Axes.set_xlabel(axes_left, x_data.name, fontsize=22)
+    Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
     redraw_plots(full=True)
     return
 
@@ -602,12 +602,13 @@ def put_legends():
 
     names = [Line2D.get_label(line) for line in plotted]
 
-    Axes.legend(axes_left, plotted, names, fontsize=22)
+    Axes.legend(axes_left, plotted, names, fontsize=FONTSIZE)
     return
 
 
 def custom_ticks(axes):
-    axes.locator_params(tight=True, nbins=4)
+    Axes.locator_params(axes, axis="y", tight=True, nbins=4)
+    Axes.locator_params(axes, axis="x", tight=True, nbins=5)
     return
 
 
@@ -619,14 +620,14 @@ def redraw_plots(full=False):
     Axes.set_ymargin(axes_left, 0.02)
     Axes.set_ymargin(axes_right, 0.2)
 
-    custom_ticks(axes_left)
-    custom_ticks(axes_right)
-
     if full:
         Axes.relim(axes_left)
         Axes.relim(axes_right)
         Axes.autoscale(axes_left)
         Axes.autoscale(axes_right)
+
+    custom_ticks(axes_left)
+    custom_ticks(axes_right)
     put_legends()
 
     FigureCanvas.draw(canvas)
@@ -643,7 +644,7 @@ def add_plot(name, axes):
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, label=name,
-                  linestyle=linestyle, color=color, linewidth=4)
+                  linestyle=linestyle, color=color, linewidth=3)
     else:
         Axes.plot(axes, x_data, y, 'o', label=name,
                   markersize=1.5, color=color)
