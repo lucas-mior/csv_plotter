@@ -143,20 +143,37 @@ def configure_window_once():
     save_button = Gtk.Button.new_from_icon_name("document-save")
     title_button = Gtk.CheckButton(active=False, label="Show title")
 
+    tick_button_minus = Gtk.Button.new_from_icon_name("document-save")
+    tick_button_plus = Gtk.Button.new_from_icon_name("view-list-bullet-symbolic-rtl.svg")
+    tick_button_minus.axes = tick_button_plus.axes = axes_left
+    tick_button_minus.nbins = tick_button_plus.nbins = 4
+    tick_button_minus.other = tick_button_plus
+    tick_button_plus.other = tick_button_minus
+    tick_button_minus.diff = -1
+    tick_button_plus.diff = +1
+
     Gtk.Button.set_tooltip_text(reload_button, "Reload file contents")
     Gtk.Button.set_tooltip_text(save_button, "Save file changes on new file")
     Gtk.CheckButton.set_tooltip_text(title_button, "Toggle filename display")
 
+    Gtk.Button.set_tooltip_text(tick_button_minus, "less ticks")
+    Gtk.Button.set_tooltip_text(tick_button_plus, "more ticks")
+
     Gtk.Button.connect(reload_button, "clicked", on_reload_button_clicked)
     Gtk.Button.connect(save_button, "clicked", on_save_button_clicked)
     Gtk.CheckButton.connect(title_button, "toggled", on_title_button_clicked)
+
+    Gtk.Button.connect(tick_button_minus, "clicked", on_ticks_button_clicked)
+    Gtk.Button.connect(tick_button_plus, "clicked", on_ticks_button_clicked)
 
     reload_button.selection_scroll = selection_scroll
     save_button.selection_scroll = selection_scroll
 
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     Gtk.Box.append(toolbar_box, toolbar)
+    Gtk.Box.append(toolbar_box, tick_button_minus)
     Gtk.Box.append(toolbar_box, custom_left_label_entry)
+    Gtk.Box.append(toolbar_box, tick_button_plus)
     Gtk.Box.append(toolbar_box, custom_right_label_entry)
     Gtk.Box.append(toolbar_box, reload_button)
     Gtk.Box.append(toolbar_box, save_button)
@@ -229,6 +246,8 @@ def reconfigure_plots_and_buttons(selection_scroll):
     pre_plots = []
     Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
     configure_y_axis_labels_and_ticks()
+    custom_ticks(axes_left)
+    custom_ticks(axes_right)
     put_legends()
 
     Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
@@ -526,6 +545,18 @@ def on_y_button_toggled(y_button):
     return
 
 
+def on_ticks_button_clicked(button, axis="y"):
+    button.nbins += button.diff
+    button.nbins = min(button.nbins, 10)
+    button.nbins = max(button.nbins, 1)
+
+    button.other.nbins = button.nbins
+
+    Axes.locator_params(button.axes, axis=axis, tight=True, nbins=button.nbins)
+    redraw_plots()
+    return
+
+
 def on_entry_activate(entry):
     global data_frame
 
@@ -626,8 +657,6 @@ def redraw_plots(full=False):
         Axes.autoscale(axes_left)
         Axes.autoscale(axes_right)
 
-    custom_ticks(axes_left)
-    custom_ticks(axes_right)
     put_legends()
 
     FigureCanvas.draw(canvas)
