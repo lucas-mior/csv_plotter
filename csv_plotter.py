@@ -215,7 +215,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         if name in pre_plots:
             add_plot(name, axes_left)
             left = True
-        else:
+        elif len(pre_plots) == 0:
             plotted_left, plotted_right = clean_plotted_get_list()
             if name in plotted_left:
                 add_plot(name, axes_left)
