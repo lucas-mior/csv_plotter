@@ -275,6 +275,9 @@ def configure_y_axis_labels_and_ticks(new_custom_label=None, axes=None):
     else:
         Axes.tick_params(axes_right, axis='y', right=True, labelright=True)
 
+    Axes.ticklabel_format(axes_left, useOffset=False)
+    Axes.ticklabel_format(axes_right, useOffset=False)
+
     if custom_labels["left"] is not None:
         names_left = custom_labels["left"]
     if custom_labels["right"] is not None:
@@ -644,7 +647,7 @@ def add_plot(name, axes):
 
     if x_data.is_monotonic_increasing:
         Axes.plot(axes, x_data, y, label=name,
-                  linestyle=linestyle, color=color, alpha=0.9, linewidth=3)
+                  linestyle=linestyle, color=color, alpha=0.9, linewidth=2)
     else:
         Axes.plot(axes, x_data, y, 'o', label=name,
                   markersize=1.5, color=color)
