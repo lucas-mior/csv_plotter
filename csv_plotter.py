@@ -24,7 +24,7 @@ from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
 
-FONTSIZE = 30
+FONTSIZE = 22
 matplotlib.rcParams.update({'font.size': FONTSIZE})
 
 base_colors = {
