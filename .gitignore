@@ -5,3 +5,4 @@ csv_plotter
 *.out
 .cache/
 compile_commands.json
+temp_delete_me
