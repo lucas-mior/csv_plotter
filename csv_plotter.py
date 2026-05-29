@@ -239,10 +239,10 @@ def clean_plotted_get_list():
     plotted_left = []
     plotted_right = []
 
-    for line in Axes.get_lines(axes_left):
+    for line in list(Axes.get_lines(axes_left)):
         list.append(plotted_left, Line2D.get_label(line))
         Line2D.remove(line)
-    for line in Axes.get_lines(axes_right):
+    for line in list(Axes.get_lines(axes_right)):
         list.append(plotted_right, Line2D.get_label(line))
         Line2D.remove(line)
 
@@ -656,7 +656,7 @@ def add_plot(name, axes):
 
 if __name__ == "__main__":
     program = os.path.basename(sys.argv[0])
-    application = Gtk.Application(application_id=f"{program}")
+    application = Gtk.Application(application_id="com.example.plotter")
     Gtk.Application.connect(application, 'activate', on_application_activation)
     Gtk.Application.run(application, None)
 
