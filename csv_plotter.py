@@ -199,10 +199,22 @@ def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
 
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    namespace_boxes = {}
 
     name_first = data_frame.columns[0]
     x_button_group = None
-    add_buttons(name_first, buttons_box)
+
+    ns_first = str.split(name_first, ".")[0]
+    expander_first = Gtk.Expander(label=ns_first)
+    ns_box_first = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    
+    Gtk.Expander.set_expanded(expander_first, True)
+    Gtk.Expander.set_child(expander_first, ns_box_first)
+    Gtk.Box.append(buttons_box, expander_first)
+    
+    namespace_boxes[ns_first] = ns_box_first
+
+    add_buttons(name_first, ns_box_first)
     colors[name_first] = next(colors_cycle)
     styles[name_first] = "solid"
 
@@ -224,7 +236,17 @@ def reconfigure_plots_and_buttons(selection_scroll):
                 add_plot(name, axes_right)
                 right = True
 
-        add_buttons(name, buttons_box, left=left, right=right)
+        ns = str.split(name, ".")[0]
+
+        if ns not in namespace_boxes:
+            expander = Gtk.Expander(label=ns)
+            ns_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            Gtk.Expander.set_expanded(expander, True)
+            Gtk.Expander.set_child(expander, ns_box)
+            Gtk.Box.append(buttons_box, expander)
+            namespace_boxes[ns] = ns_box
+
+        add_buttons(name, namespace_boxes[ns], left=left, right=right)
 
     pre_plots = []
     Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
@@ -569,7 +591,26 @@ def on_entry_activate(entry):
     colors[name] = next(colors_cycle)
     styles[name] = next(styles_cycle)
 
-    add_buttons(name, buttons_box, left=False, right=True)
+    ns = str.split(name, ".")[0]
+
+    ns_box = None
+    child = Gtk.Widget.get_first_child(buttons_box)
+    
+    while child is not None:
+        if isinstance(child, Gtk.Expander):
+            if Gtk.Expander.get_label(child) == ns:
+                ns_box = Gtk.Expander.get_child(child)
+                break
+        child = Gtk.Widget.get_next_sibling(child)
+
+    if ns_box is None:
+        expander = Gtk.Expander(label=ns)
+        ns_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        Gtk.Expander.set_expanded(expander, True)
+        Gtk.Expander.set_child(expander, ns_box)
+        Gtk.Box.append(buttons_box, expander)
+
+    add_buttons(name, ns_box, left=False, right=True)
 
     add_plot(name, axes_right)
     redraw_plots()
