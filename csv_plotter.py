@@ -200,6 +200,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     namespace_boxes = {}
+    ns_colors = {}
 
     name_first = data_frame.columns[0]
     x_button_group = None
@@ -214,29 +215,37 @@ def reconfigure_plots_and_buttons(selection_scroll):
     
     namespace_boxes[ns_first] = ns_box_first
 
+    ns_colors[ns_first] = next(colors_cycle)
+
     add_buttons(name_first, ns_box_first)
-    colors[name_first] = next(colors_cycle)
+    colors[name_first] = ns_colors[ns_first]
     styles[name_first] = "solid"
 
     for name in data_frame.columns[1:]:
-        left = right = False
+        left = False
+        right = False
 
-        colors[name] = next(colors_cycle)
+        ns = str.split(name, ".")[0]
+        if ns not in ns_colors:
+            ns_colors[ns] = next(colors_cycle)
+
+        colors[name] = ns_colors[ns]
         styles[name] = "solid"
 
         if name in pre_plots:
+            styles[name] = "solid"
             add_plot(name, axes_left)
             left = True
         elif len(pre_plots) == 0:
             plotted_left, plotted_right = clean_plotted_get_list()
             if name in plotted_left:
+                styles[name] = "solid"
                 add_plot(name, axes_left)
                 left = True
             if name in plotted_right:
+                styles[name] = "dashed"
                 add_plot(name, axes_right)
                 right = True
-
-        ns = str.split(name, ".")[0]
 
         if ns not in namespace_boxes:
             expander = Gtk.Expander(label=ns)
@@ -450,7 +459,8 @@ def on_style_button_click(style_button):
 
     styles[name] = next(styles_cycle)
 
-    left = right = False
+    left = False
+    right = False
 
     for line in Axes.get_lines(axes_left):
         if Line2D.get_label(line) == name:
@@ -471,7 +481,8 @@ def on_color_button_click(color_button):
 
     colors[name] = next(colors_cycle)
 
-    left = right = False
+    left = False
+    right = False
 
     for line in Axes.get_lines(axes_left):
         if Line2D.get_label(line) == name:
@@ -543,6 +554,10 @@ def on_y_button_toggled(y_button):
     active = Gtk.CheckButton.get_active(y_button)
 
     if active:
+        if axes is axes_left:
+            styles[name] = "solid"
+        else:
+            styles[name] = "dashed"
         add_plot(name, axes)
     else:
         remove_plot(name, axes)
@@ -587,11 +602,19 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
-
-    colors[name] = next(colors_cycle)
-    styles[name] = next(styles_cycle)
-
     ns = str.split(name, ".")[0]
+
+    color_assigned = False
+    for col in data_frame.columns[:-1]:
+        if str.split(col, ".")[0] == ns:
+            colors[name] = colors[col]
+            color_assigned = True
+            break
+    
+    if not color_assigned:
+        colors[name] = next(colors_cycle)
+
+    styles[name] = "dashed"
 
     ns_box = None
     child = Gtk.Widget.get_first_child(buttons_box)
