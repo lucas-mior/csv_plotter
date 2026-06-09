@@ -208,11 +208,11 @@ def reconfigure_plots_and_buttons(selection_scroll):
     ns_first = str.split(name_first, ".")[0]
     expander_first = Gtk.Expander(label=ns_first)
     ns_box_first = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    
+
     Gtk.Expander.set_expanded(expander_first, True)
     Gtk.Expander.set_child(expander_first, ns_box_first)
     Gtk.Box.append(buttons_box, expander_first)
-    
+
     namespace_boxes[ns_first] = ns_box_first
 
     ns_colors[ns_first] = next(colors_cycle)
@@ -610,7 +610,7 @@ def on_entry_activate(entry):
             colors[name] = colors[col]
             color_assigned = True
             break
-    
+
     if not color_assigned:
         colors[name] = next(colors_cycle)
 
@@ -618,7 +618,7 @@ def on_entry_activate(entry):
 
     ns_box = None
     child = Gtk.Widget.get_first_child(buttons_box)
-    
+
     while child is not None:
         if isinstance(child, Gtk.Expander):
             if Gtk.Expander.get_label(child) == ns:
