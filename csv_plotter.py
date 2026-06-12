@@ -208,42 +208,54 @@ def reconfigure_plots_and_buttons(selection_scroll):
     ns_first = str.split(name_first, ".")[0]
     expander_first = Gtk.Expander(label=ns_first)
     ns_box_first = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
+    
     Gtk.Expander.set_expanded(expander_first, True)
     Gtk.Expander.set_child(expander_first, ns_box_first)
     Gtk.Box.append(buttons_box, expander_first)
-
+    
     namespace_boxes[ns_first] = ns_box_first
 
-    ns_colors[ns_first] = next(colors_cycle)
+    if any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name_first, ".")):
+        colors[name_first] = "black"
+        styles[name_first] = "dotted"
+    else:
+        ns_colors[ns_first] = next(colors_cycle)
+        colors[name_first] = ns_colors[ns_first]
+        styles[name_first] = "solid"
 
     add_buttons(name_first, ns_box_first)
-    colors[name_first] = ns_colors[ns_first]
-    styles[name_first] = "solid"
 
     for name in data_frame.columns[1:]:
         left = False
         right = False
 
         ns = str.split(name, ".")[0]
-        if ns not in ns_colors:
-            ns_colors[ns] = next(colors_cycle)
+        is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name, "."))
 
-        colors[name] = ns_colors[ns]
-        styles[name] = "solid"
+        if is_ref:
+            colors[name] = "black"
+            styles[name] = "dotted"
+        else:
+            if ns not in ns_colors:
+                ns_colors[ns] = next(colors_cycle)
+            colors[name] = ns_colors[ns]
+            styles[name] = "solid"
 
         if name in pre_plots:
-            styles[name] = "solid"
+            if not is_ref:
+                styles[name] = "solid"
             add_plot(name, axes_left)
             left = True
         elif len(pre_plots) == 0:
             plotted_left, plotted_right = clean_plotted_get_list()
             if name in plotted_left:
-                styles[name] = "solid"
+                if not is_ref:
+                    styles[name] = "solid"
                 add_plot(name, axes_left)
                 left = True
             if name in plotted_right:
-                styles[name] = "dashed"
+                if not is_ref:
+                    styles[name] = "dashed"
                 add_plot(name, axes_right)
                 right = True
 
@@ -552,12 +564,16 @@ def on_y_button_toggled(y_button):
 
     axes = y_button.axes
     active = Gtk.CheckButton.get_active(y_button)
+    is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name, "."))
 
     if active:
-        if axes is axes_left:
-            styles[name] = "solid"
+        if is_ref:
+            styles[name] = "dotted"
         else:
-            styles[name] = "dashed"
+            if axes is axes_left:
+                styles[name] = "solid"
+            else:
+                styles[name] = "dashed"
         add_plot(name, axes)
     else:
         remove_plot(name, axes)
@@ -604,21 +620,29 @@ def on_entry_activate(entry):
     name = data_frame.columns[-1]
     ns = str.split(name, ".")[0]
 
-    color_assigned = False
-    for col in data_frame.columns[:-1]:
-        if str.split(col, ".")[0] == ns:
-            colors[name] = colors[col]
-            color_assigned = True
-            break
+    is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name, "."))
 
-    if not color_assigned:
-        colors[name] = next(colors_cycle)
+    if is_ref:
+        colors[name] = "black"
+        styles[name] = "dotted"
+    else:
+        color_assigned = False
+        for col in data_frame.columns[:-1]:
+            if str.split(col, ".")[0] == ns:
+                col_is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(col, "."))
+                if not col_is_ref:
+                    colors[name] = colors[col]
+                    color_assigned = True
+                    break
+        
+        if not color_assigned:
+            colors[name] = next(colors_cycle)
 
-    styles[name] = "dashed"
+        styles[name] = "dashed"
 
     ns_box = None
     child = Gtk.Widget.get_first_child(buttons_box)
-
+    
     while child is not None:
         if isinstance(child, Gtk.Expander):
             if Gtk.Expander.get_label(child) == ns:
