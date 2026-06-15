@@ -4,6 +4,10 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+try:
+    import h5py
+except ImportError:
+    h5py = None
 from itertools import cycle
 
 from pandas import DataFrame
@@ -45,6 +49,10 @@ custom_labels = {
     "right": None,
 }
 
+file_type = None
+column_units = {}
+HDF5_EXTENSIONS = (".h5", ".hdf5")
+
 
 def on_application_activation(application):
     global window, filename, pre_plots
@@ -55,7 +63,7 @@ def on_application_activation(application):
     argc = len(sys.argv)
 
     if argc < 2:
-        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV file")
+        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV or HDF5 file")
         Gtk.FileDialog.open(dialog, window, None, on_have_filename_ready, None)
     else:
         filename = sys.argv[1]
@@ -80,13 +88,118 @@ def on_have_filename_ready(dialog, async_result, data):
     return
 
 
+def filename_has_hdf5_extension(path):
+    extension = os.path.splitext(path)[1]
+    return extension.lower() in HDF5_EXTENSIONS
+
+
+def file_is_hdf5(path):
+    if h5py is None:
+        return filename_has_hdf5_extension(path)
+
+    try:
+        return h5py.is_hdf5(path)
+    except Exception:
+        return filename_has_hdf5_extension(path)
+
+
+def decode_hdf5_string(text):
+    if isinstance(text, bytes):
+        raw_text = text
+    elif isinstance(text, np.bytes_):
+        raw_text = bytes(text)
+    else:
+        return str(text)
+
+    raw_text = raw_text.split(b"\0", maxsplit=1)[0]
+    return raw_text.decode("utf-8")
+
+
+def read_hdf5_strings(hdf5_file, dataset_name, count=None):
+    values = hdf5_file[dataset_name][()]
+    strings = [decode_hdf5_string(value) for value in values]
+
+    if count is not None and len(strings) != count:
+        raise ValueError(
+            f"HDF5 dataset {dataset_name} has {len(strings)} entries, "
+            f"expected {count}")
+    return strings
+
+
+def read_hdf5_data_frame(path):
+    if h5py is None:
+        raise ImportError("h5py is required to read HDF5 files")
+
+    with h5py.File(path, "r") as hdf5_file:
+        if "data" not in hdf5_file:
+            raise ValueError("HDF5 file does not have a /data dataset")
+        if "names" not in hdf5_file:
+            raise ValueError("HDF5 file does not have a /names dataset")
+
+        data = np.array(hdf5_file["data"], dtype=np.float64)
+        if data.ndim != 2:
+            raise ValueError("HDF5 /data dataset must have 2 dimensions")
+
+        ncolumns = data.shape[1]
+        names = read_hdf5_strings(hdf5_file, "names", ncolumns)
+        if "units" in hdf5_file:
+            units = read_hdf5_strings(hdf5_file, "units", ncolumns)
+        else:
+            units = [""]*ncolumns
+
+    return pd.DataFrame(data, columns=names), dict(zip(names, units))
+
+
+def fixed_hdf5_strings(strings):
+    strings = [str(s) for s in strings]
+    width = 1
+    for string in strings:
+        width = max(width, len(string.encode("utf-8")) + 1)
+
+    values = []
+    for string in strings:
+        value = string.encode("utf-8")[:width - 1]
+        values.append(value)
+
+    return np.array(values, dtype=f"S{width}")
+
+
+def save_hdf5_data_frame(path):
+    if h5py is None:
+        raise ImportError("h5py is required to save HDF5 files")
+
+    names = [str(name) for name in data_frame.columns]
+    units = [column_units.get(name, "") for name in names]
+    data = data_frame.to_numpy(dtype=np.float64)
+
+    with h5py.File(path, "w") as hdf5_file:
+        hdf5_file.create_dataset("data", data=data)
+        hdf5_file.create_dataset("names", data=fixed_hdf5_strings(names))
+        hdf5_file.create_dataset("units", data=fixed_hdf5_strings(units))
+    return
+
+
+def new_file_name():
+    root = str.rsplit(filename, '.', maxsplit=1)[0]
+    if file_type == "hdf5":
+        return root + "_new.h5"
+    return root + "_new.csv"
+
+
 def reload_file_contents():
-    global data_frame, x_data
+    global data_frame, x_data, file_type, column_units
+
     data_frame = None
     try:
-        data_frame = pd.read_csv(filename)
-    except Exception:
-        print(f"Error reading {filename}", file=sys.stderr)
+        if file_is_hdf5(filename):
+            data_frame, column_units = read_hdf5_data_frame(filename)
+            file_type = "hdf5"
+        else:
+            data_frame = pd.read_csv(filename)
+            column_units = {name: "" for name in data_frame.columns}
+            file_type = "csv"
+    except Exception as exception:
+        print(f"Error reading {filename}: {exception}", file=sys.stderr)
         sys.exit(1)
     if data_frame is None:
         print(f"Error reading {filename}", file=sys.stderr)
@@ -96,6 +209,7 @@ def reload_file_contents():
         try:
             rows = DataFrame.reset_index(data_frame).index
             DataFrame.insert(data_frame, 0, 'Row', rows)
+            column_units["Row"] = ""
         except Exception:
             pass
     x_data = data_frame.iloc[:, 0]
@@ -405,9 +519,14 @@ def on_reload_button_clicked(reload_button):
 
 
 def on_save_button_clicked(save_button):
-    newfile = str.rsplit(filename, '.', maxsplit=1)[0]
-    newfile += "_new.csv"
-    DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+    newfile = new_file_name()
+    try:
+        if file_type == "hdf5":
+            save_hdf5_data_frame(newfile)
+        else:
+            DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+    except Exception as exception:
+        print(f"Error saving {newfile}: {exception}", file=sys.stderr)
     return
 
 
@@ -442,6 +561,7 @@ def on_item_label_notify_editing(editable_label, editing):
     DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
     styles[new_name] = styles.pop(old_name)
     colors[new_name] = colors.pop(old_name)
+    column_units[new_name] = column_units.pop(old_name, "")
 
     y_button_left = item.y_button_left
     y_button_right = item.y_button_right
@@ -520,6 +640,8 @@ def on_delete_button_click(delete_button):
 
         del colors[name]
         del styles[name]
+        if name in column_units:
+            del column_units[name]
 
         remove_plot(name, axes_left)
         remove_plot(name, axes_right)
@@ -618,6 +740,7 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
+    column_units[name] = ""
     ns = str.split(name, ".")[0]
 
     is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name, "."))
