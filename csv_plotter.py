@@ -406,6 +406,37 @@ def clean_plotted_get_list():
     return plotted_left, plotted_right
 
 
+def format_axis_unit(unit):
+    unit = str(unit).strip()
+    if unit == "":
+        return None
+    if unit.startswith("[") and unit.endswith("]"):
+        return unit
+    return f"[{unit}]"
+
+
+def get_axes_label_from_units(axes):
+    labels = []
+    seen = set()
+
+    for line in Axes.get_lines(axes):
+        name = Line2D.get_label(line)
+        unit = column_units.get(name, "")
+        label = format_axis_unit(unit)
+        if label is not None and label not in seen:
+            labels.append(label)
+            seen.add(label)
+
+    if len(labels) > 0:
+        return ", ".join(labels)
+
+    names = ""
+    for line in Axes.get_lines(axes):
+        name = Line2D.get_label(line)
+        names += f" {name} "
+    return names
+
+
 def configure_y_axis_labels_and_ticks(new_custom_label=None, axes=None):
     global custom_labels
 
@@ -413,35 +444,31 @@ def configure_y_axis_labels_and_ticks(new_custom_label=None, axes=None):
         name = "left" if axes is axes_left else "right"
         custom_labels[name] = new_custom_label
 
-    names_left = ""
-    names_right = ""
+    has_left_plots = len(Axes.get_lines(axes_left)) != 0
+    has_right_plots = len(Axes.get_lines(axes_right)) != 0
 
-    for line in Axes.get_lines(axes_left):
-        name = Line2D.get_label(line)
-        names_left += f" {name} "
-    for line in Axes.get_lines(axes_right):
-        name = Line2D.get_label(line)
-        names_right += f" {name} "
-
-    if names_left == "":
-        Axes.tick_params(axes_left, axis='y', left=False, labelleft=False)
-    else:
+    if has_left_plots:
         Axes.tick_params(axes_left, axis='y', left=True, labelleft=True)
-    if names_right == "":
-        Axes.tick_params(axes_right, axis='y', right=False, labelright=False)
     else:
+        Axes.tick_params(axes_left, axis='y', left=False, labelleft=False)
+    if has_right_plots:
         Axes.tick_params(axes_right, axis='y', right=True, labelright=True)
+    else:
+        Axes.tick_params(axes_right, axis='y', right=False, labelright=False)
 
     Axes.ticklabel_format(axes_left, useOffset=False)
     Axes.ticklabel_format(axes_right, useOffset=False)
 
-    if custom_labels["left"] is not None:
-        names_left = custom_labels["left"]
-    if custom_labels["right"] is not None:
-        names_right = custom_labels["right"]
+    label_left = get_axes_label_from_units(axes_left)
+    label_right = get_axes_label_from_units(axes_right)
 
-    Axes.set_ylabel(axes_left, names_left, fontsize=FONTSIZE)
-    Axes.set_ylabel(axes_right, names_right, fontsize=FONTSIZE)
+    if custom_labels["left"] is not None:
+        label_left = custom_labels["left"]
+    if custom_labels["right"] is not None:
+        label_right = custom_labels["right"]
+
+    Axes.set_ylabel(axes_left, label_left, fontsize=FONTSIZE)
+    Axes.set_ylabel(axes_right, label_right, fontsize=FONTSIZE)
     return
 
 
