@@ -322,11 +322,11 @@ def reconfigure_plots_and_buttons(selection_scroll):
     ns_first = str.split(name_first, ".")[0]
     expander_first = Gtk.Expander(label=ns_first)
     ns_box_first = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    
+
     Gtk.Expander.set_expanded(expander_first, True)
     Gtk.Expander.set_child(expander_first, ns_box_first)
     Gtk.Box.append(buttons_box, expander_first)
-    
+
     namespace_boxes[ns_first] = ns_box_first
 
     if any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name_first, ".")):
@@ -784,7 +784,7 @@ def on_entry_activate(entry):
                     colors[name] = colors[col]
                     color_assigned = True
                     break
-        
+
         if not color_assigned:
             colors[name] = next(colors_cycle)
 
@@ -792,7 +792,7 @@ def on_entry_activate(entry):
 
     ns_box = None
     child = Gtk.Widget.get_first_child(buttons_box)
-    
+
     while child is not None:
         if isinstance(child, Gtk.Expander):
             if Gtk.Expander.get_label(child) == ns:
@@ -835,15 +835,32 @@ def remove_plot(name, axes):
 
 
 def put_legends():
-    plotted = []
+    plotted_left = []
     for line in Axes.get_lines(axes_left):
-        list.append(plotted, line)
+        list.append(plotted_left, line)
+
+    names_left = [Line2D.get_label(line) for line in plotted_left]
+
+    if len(plotted_left) > 0:
+        Axes.legend(axes_left, plotted_left, names_left, fontsize=FONTSIZE, loc="upper left", bbox_to_anchor=(0.0, -0.1))
+    else:
+        legend_left = Axes.get_legend(axes_left)
+        if legend_left is not None:
+            legend_left.remove()
+
+    plotted_right = []
     for line in Axes.get_lines(axes_right):
-        list.append(plotted, line)
+        list.append(plotted_right, line)
 
-    names = [Line2D.get_label(line) for line in plotted]
+    names_right = [Line2D.get_label(line) for line in plotted_right]
 
-    Axes.legend(axes_left, plotted, names, fontsize=FONTSIZE)
+    if len(plotted_right) > 0:
+        Axes.legend(axes_right, plotted_right, names_right, fontsize=FONTSIZE, loc="upper right", bbox_to_anchor=(1.0, -0.1))
+    else:
+        legend_right = Axes.get_legend(axes_right)
+        if legend_right is not None:
+            legend_right.remove()
+
     return
 
 

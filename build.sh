@@ -6,7 +6,9 @@ PREFIX="${PREFIX:-/usr/local}"
 # Allow DESTDIR to be passed via environment, default to empty
 DESTDIR="${DESTDIR:-}"
 
-case "$1" in
+target="${1:-install}"
+
+case "$target" in
     install)
         # The dependency check for csv_plotter.py is handled implicitly; 
         # 'install' will fail if the file doesn't exist.
