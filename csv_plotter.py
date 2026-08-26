@@ -618,6 +618,13 @@ def data_series(name):
     return data_frame[name]
 
 
+def plottable_item_label(name):
+    named_value = hdf5_named_value_by_display_name.get(name)
+    if named_value is not None:
+        return named_value["name"]
+    return name
+
+
 
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
@@ -800,7 +807,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
     y_button_right = Gtk.CheckButton(active=right)
-    item_label = Gtk.EditableLabel.new(name)
+    item_label = Gtk.EditableLabel.new(plottable_item_label(name))
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
