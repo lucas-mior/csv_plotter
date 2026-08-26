@@ -55,6 +55,7 @@ file_type = None
 column_units = {}
 hdf5_named_values = []
 hdf5_named_value_by_display_name = {}
+hdf5_simulation_metadata = []
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 
@@ -166,6 +167,28 @@ def read_hdf5_named_values(hdf5_file, kind):
     return result
 
 
+def read_hdf5_simulation_metadata(hdf5_file):
+    names_path = "simulation_metadata_names"
+    values_path = "simulation_metadata_values"
+    paths = [names_path, values_path]
+
+    if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        return []
+    if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        raise ValueError("HDF5 file has incomplete /simulation_metadata_*")
+
+    names = read_hdf5_strings(hdf5_file, names_path)
+    values = read_hdf5_strings(hdf5_file, values_path, len(names))
+
+    result = []
+    for name, value in zip(names, values):
+        result.append({
+            "name": name,
+            "value": value,
+        })
+    return result
+
+
 def read_hdf5_data_frame(path):
     if h5py is None:
         raise ImportError("h5py is required to read HDF5 files")
@@ -190,9 +213,10 @@ def read_hdf5_data_frame(path):
         named_values = []
         named_values += read_hdf5_named_values(hdf5_file, "parameter")
         named_values += read_hdf5_named_values(hdf5_file, "constant")
+        simulation_metadata = read_hdf5_simulation_metadata(hdf5_file)
 
     data_frame = pd.DataFrame(data, columns=names)
-    return data_frame, dict(zip(names, units)), named_values
+    return data_frame, dict(zip(names, units)), named_values, simulation_metadata
 
 
 def fixed_hdf5_strings(strings):
@@ -224,6 +248,20 @@ def write_hdf5_named_values(hdf5_file, kind, named_values):
     return
 
 
+def write_hdf5_simulation_metadata(hdf5_file, simulation_metadata):
+    if len(simulation_metadata) == 0:
+        return
+
+    names = [value["name"] for value in simulation_metadata]
+    values = [value["value"] for value in simulation_metadata]
+
+    hdf5_file.create_dataset("simulation_metadata_names",
+                             data=fixed_hdf5_strings(names))
+    hdf5_file.create_dataset("simulation_metadata_values",
+                             data=fixed_hdf5_strings(values))
+    return
+
+
 def save_hdf5_data_frame(path):
     if h5py is None:
         raise ImportError("h5py is required to save HDF5 files")
@@ -238,6 +276,7 @@ def save_hdf5_data_frame(path):
         hdf5_file.create_dataset("units", data=fixed_hdf5_strings(units))
         write_hdf5_named_values(hdf5_file, "parameter", hdf5_named_values)
         write_hdf5_named_values(hdf5_file, "constant", hdf5_named_values)
+        write_hdf5_simulation_metadata(hdf5_file, hdf5_simulation_metadata)
     return
 
 
@@ -267,16 +306,25 @@ def configure_hdf5_named_values(named_values):
     return
 
 
+def configure_hdf5_simulation_metadata(simulation_metadata):
+    global hdf5_simulation_metadata
+
+    hdf5_simulation_metadata = simulation_metadata
+    return
+
+
 def reload_file_contents():
     global data_frame, x_data, file_type, column_units
 
     data_frame = None
     configure_hdf5_named_values([])
+    configure_hdf5_simulation_metadata([])
     try:
         if file_is_hdf5(filename):
-            data_frame, column_units, named_values = read_hdf5_data_frame(
-                filename)
+            data_frame, column_units, named_values, simulation_metadata \
+                = read_hdf5_data_frame(filename)
             configure_hdf5_named_values(named_values)
+            configure_hdf5_simulation_metadata(simulation_metadata)
             file_type = "hdf5"
         else:
             data_frame = pd.read_csv(filename)
@@ -415,9 +463,20 @@ def metadata_kind_title(kind):
 
 
 def metadata_value_text(value):
+    if isinstance(value, str):
+        return value
     if np.isfinite(value):
         return f"{value:.16g}"
     return str(value)
+
+
+def simulation_metadata_display_name(name):
+    display_names = {
+        "started_at": "Started at",
+        "ended_at": "Ended at",
+        "pre_initialized": "Pre-initialized via cy_system_init",
+    }
+    return display_names.get(name, name.replace("_", " ").title())
 
 
 def metadata_values_for_kind(kind):
@@ -437,6 +496,38 @@ def make_metadata_label(text, bold=False, monospace=False):
     if bold:
         Gtk.Widget.add_css_class(label, "heading")
     return label
+
+
+def append_simulation_metadata_section(content_box):
+    if len(hdf5_simulation_metadata) == 0:
+        return
+
+    title = make_metadata_label("Simulation", bold=True)
+    Gtk.Widget.set_margin_top(title, 12)
+    Gtk.Widget.set_margin_bottom(title, 6)
+    Gtk.Box.append(content_box, title)
+
+    grid = Gtk.Grid()
+    Gtk.Grid.set_row_spacing(grid, 4)
+    Gtk.Grid.set_column_spacing(grid, 24)
+    Gtk.Widget.set_hexpand(grid, True)
+
+    headers = ["Name", "Value"]
+    for index, header in enumerate(headers):
+        label = make_metadata_label(header, bold=True)
+        Gtk.Grid.attach(grid, label, index, 0, 1, 1)
+
+    row = 1
+    for value in hdf5_simulation_metadata:
+        name = simulation_metadata_display_name(value["name"])
+        cells = [name, metadata_value_text(value["value"])]
+        for index, cell in enumerate(cells):
+            label = make_metadata_label(cell, monospace=index == 1)
+            Gtk.Grid.attach(grid, label, index, row, 1, 1)
+        row += 1
+
+    Gtk.Box.append(content_box, grid)
+    return
 
 
 def append_metadata_section(content_box, kind):
@@ -485,13 +576,14 @@ def reconfigure_metadata_tab(metadata_scroll):
     title = make_metadata_label("Simulation metadata", bold=True)
     Gtk.Box.append(content_box, title)
 
-    if len(hdf5_named_values) == 0:
+    if len(hdf5_named_values) == 0 and len(hdf5_simulation_metadata) == 0:
         if file_type == "hdf5":
             message = "This HDF5 file does not contain simulation metadata."
         else:
             message = "CSV files do not contain simulation metadata."
         Gtk.Box.append(content_box, make_metadata_label(message))
     else:
+        append_simulation_metadata_section(content_box)
         append_metadata_section(content_box, "parameter")
         append_metadata_section(content_box, "constant")
 
