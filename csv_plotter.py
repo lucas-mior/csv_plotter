@@ -488,107 +488,118 @@ def metadata_values_for_kind(kind):
     return values
 
 
-def make_metadata_label(text, bold=False, monospace=False):
-    label = Gtk.Label(label=text)
-    Gtk.Label.set_xalign(label, 0.0)
-    Gtk.Label.set_selectable(label, True)
-    if monospace:
-        Gtk.Widget.add_css_class(label, "monospace")
-    if bold:
-        Gtk.Widget.add_css_class(label, "heading")
-    return label
+def metadata_table_text(headers, rows):
+    text_rows = []
+    for row in rows:
+        text_rows.append([metadata_value_text(cell) for cell in row])
+
+    widths = []
+    for index, header in enumerate(headers):
+        width = len(header)
+        for row in text_rows:
+            width = max(width, len(row[index]))
+        widths.append(width)
+
+    lines = []
+    cells = []
+    for index, header in enumerate(headers):
+        if index == len(headers) - 1:
+            cells.append(header)
+        else:
+            cells.append(f"{header:<{widths[index]}}")
+    lines.append("  ".join(cells))
+
+    for row in text_rows:
+        cells = []
+        for index, cell in enumerate(row):
+            if index == len(row) - 1:
+                cells.append(cell)
+            else:
+                cells.append(f"{cell:<{widths[index]}}")
+        lines.append("  ".join(cells))
+    return "\n".join(lines)
 
 
-def append_simulation_metadata_section(content_box):
-    if len(hdf5_simulation_metadata) == 0:
+def append_metadata_text_section(lines, title, headers, rows):
+    if len(rows) == 0:
         return
 
-    title = make_metadata_label("Simulation", bold=True)
-    Gtk.Widget.set_margin_top(title, 12)
-    Gtk.Widget.set_margin_bottom(title, 6)
-    Gtk.Box.append(content_box, title)
+    if len(lines) > 0:
+        lines.append("")
+    lines.append(title)
+    lines.append(metadata_table_text(headers, rows))
+    return
 
-    grid = Gtk.Grid()
-    Gtk.Grid.set_row_spacing(grid, 4)
-    Gtk.Grid.set_column_spacing(grid, 24)
-    Gtk.Widget.set_hexpand(grid, True)
 
-    headers = ["Name", "Value"]
-    for index, header in enumerate(headers):
-        label = make_metadata_label(header, bold=True)
-        Gtk.Grid.attach(grid, label, index, 0, 1, 1)
-
-    row = 1
+def simulation_metadata_rows():
+    rows = []
     for value in hdf5_simulation_metadata:
-        name = simulation_metadata_display_name(value["name"])
-        cells = [name, metadata_value_text(value["value"])]
-        for index, cell in enumerate(cells):
-            label = make_metadata_label(cell, monospace=index == 1)
-            Gtk.Grid.attach(grid, label, index, row, 1, 1)
-        row += 1
-
-    Gtk.Box.append(content_box, grid)
-    return
+        rows.append([
+            simulation_metadata_display_name(value["name"]),
+            value["value"],
+        ])
+    return rows
 
 
-def append_metadata_section(content_box, kind):
-    values = metadata_values_for_kind(kind)
-    if len(values) == 0:
-        return
+def metadata_rows_for_kind(kind):
+    rows = []
+    for named_value in metadata_values_for_kind(kind):
+        rows.append([
+            named_value["name"],
+            named_value["value"],
+            named_value["unit"],
+            named_value["display_name"],
+        ])
+    return rows
 
-    title = make_metadata_label(metadata_kind_title(kind), bold=True)
-    Gtk.Widget.set_margin_top(title, 12)
-    Gtk.Widget.set_margin_bottom(title, 6)
-    Gtk.Box.append(content_box, title)
 
-    grid = Gtk.Grid()
-    Gtk.Grid.set_row_spacing(grid, 4)
-    Gtk.Grid.set_column_spacing(grid, 24)
-    Gtk.Widget.set_hexpand(grid, True)
+def metadata_tab_text():
+    lines = ["Simulation metadata"]
 
-    headers = ["Name", "Value", "Unit", "Plot name"]
-    for index, header in enumerate(headers):
-        label = make_metadata_label(header, bold=True)
-        Gtk.Grid.attach(grid, label, index, 0, 1, 1)
+    append_metadata_text_section(lines, "File", ["Name", "Value"], [
+        ["Filename", filename],
+    ])
 
-    row = 1
-    for named_value in values:
-        name = named_value["name"]
-        value = metadata_value_text(named_value["value"])
-        unit = named_value["unit"]
-        display_name = named_value["display_name"]
-        cells = [name, value, unit, display_name]
-        for index, cell in enumerate(cells):
-            label = make_metadata_label(cell, monospace=index != 2)
-            Gtk.Grid.attach(grid, label, index, row, 1, 1)
-        row += 1
+    if len(hdf5_named_values) == 0 and len(hdf5_simulation_metadata) == 0:
+        lines.append("")
+        if file_type == "hdf5":
+            lines.append("This HDF5 file does not contain simulation metadata.")
+        else:
+            lines.append("CSV files do not contain simulation metadata.")
+    else:
+        append_metadata_text_section(lines, "Simulation", ["Name", "Value"],
+                                     simulation_metadata_rows())
+        append_metadata_text_section(lines, "Parameters",
+                                     ["Name", "Value", "Unit", "Plot name"],
+                                     metadata_rows_for_kind("parameter"))
+        append_metadata_text_section(lines, "Constants",
+                                     ["Name", "Value", "Unit", "Plot name"],
+                                     metadata_rows_for_kind("constant"))
 
-    Gtk.Box.append(content_box, grid)
-    return
+    return "\n".join(lines) + "\n"
+
+
+def make_metadata_text_view(text):
+    buffer = Gtk.TextBuffer()
+    Gtk.TextBuffer.set_text(buffer, text, -1)
+
+    text_view = Gtk.TextView.new_with_buffer(buffer)
+    Gtk.TextView.set_editable(text_view, False)
+    Gtk.TextView.set_cursor_visible(text_view, False)
+    Gtk.TextView.set_monospace(text_view, True)
+    Gtk.TextView.set_wrap_mode(text_view, Gtk.WrapMode.NONE)
+    Gtk.TextView.set_left_margin(text_view, 12)
+    Gtk.TextView.set_right_margin(text_view, 12)
+    Gtk.TextView.set_top_margin(text_view, 12)
+    Gtk.TextView.set_bottom_margin(text_view, 12)
+    Gtk.Widget.set_hexpand(text_view, True)
+    Gtk.Widget.set_vexpand(text_view, True)
+    return text_view
 
 
 def reconfigure_metadata_tab(metadata_scroll):
-    content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    Gtk.Widget.set_margin_start(content_box, 12)
-    Gtk.Widget.set_margin_end(content_box, 12)
-    Gtk.Widget.set_margin_top(content_box, 12)
-    Gtk.Widget.set_margin_bottom(content_box, 12)
-
-    title = make_metadata_label("Simulation metadata", bold=True)
-    Gtk.Box.append(content_box, title)
-
-    if len(hdf5_named_values) == 0 and len(hdf5_simulation_metadata) == 0:
-        if file_type == "hdf5":
-            message = "This HDF5 file does not contain simulation metadata."
-        else:
-            message = "CSV files do not contain simulation metadata."
-        Gtk.Box.append(content_box, make_metadata_label(message))
-    else:
-        append_simulation_metadata_section(content_box)
-        append_metadata_section(content_box, "parameter")
-        append_metadata_section(content_box, "constant")
-
-    Gtk.ScrolledWindow.set_child(metadata_scroll, content_box)
+    text_view = make_metadata_text_view(metadata_tab_text())
+    Gtk.ScrolledWindow.set_child(metadata_scroll, text_view)
     return
 
 
