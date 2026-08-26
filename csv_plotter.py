@@ -325,6 +325,7 @@ def configure_window_once():
     Gtk.Box.append(config_box, buttons_header)
 
     selection_scroll = Gtk.ScrolledWindow()
+    metadata_scroll = Gtk.ScrolledWindow()
 
     custom_left_label_entry = Gtk.Entry()
     custom_right_label_entry = Gtk.Entry()
@@ -350,6 +351,7 @@ def configure_window_once():
     Gtk.CheckButton.connect(title_button, "toggled", on_title_button_clicked)
 
     reload_button.selection_scroll = selection_scroll
+    reload_button.metadata_scroll = metadata_scroll
     save_button.selection_scroll = selection_scroll
 
     toolbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -364,10 +366,15 @@ def configure_window_once():
     Gtk.Box.append(plot_box, canvas)
 
     reconfigure_plots_and_buttons(selection_scroll)
+    reconfigure_metadata_tab(metadata_scroll)
 
     Gtk.ScrolledWindow.set_vexpand(selection_scroll, True)
     Gtk.ScrolledWindow.set_policy(selection_scroll,
                                   hscrollbar_policy=Gtk.PolicyType.NEVER,
+                                  vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
+    Gtk.ScrolledWindow.set_vexpand(metadata_scroll, True)
+    Gtk.ScrolledWindow.set_policy(metadata_scroll,
+                                  hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
 
     new_data_entry = Gtk.Entry()
@@ -388,8 +395,107 @@ def configure_window_once():
     Gtk.Paned.set_shrink_start_child(window_pane, False)
     Gtk.Paned.set_shrink_end_child(window_pane, False)
 
-    Gtk.ApplicationWindow.set_child(window, window_pane)
+    notebook = Gtk.Notebook()
+    Gtk.Notebook.set_tab_pos(notebook, Gtk.PositionType.TOP)
+    Gtk.Notebook.append_page(notebook, window_pane, Gtk.Label(label="Plot"))
+    Gtk.Notebook.append_page(notebook, metadata_scroll,
+                             Gtk.Label(label="Metadata"))
+
+    Gtk.ApplicationWindow.set_child(window, notebook)
     Gtk.ApplicationWindow.set_visible(window, True)
+    return
+
+
+def metadata_kind_title(kind):
+    if kind == "parameter":
+        return "Parameters"
+    if kind == "constant":
+        return "Constants"
+    return kind.replace("_", " ").title()
+
+
+def metadata_value_text(value):
+    if np.isfinite(value):
+        return f"{value:.16g}"
+    return str(value)
+
+
+def metadata_values_for_kind(kind):
+    values = []
+    for named_value in hdf5_named_values:
+        if named_value["kind"] == kind:
+            values.append(named_value)
+    return values
+
+
+def make_metadata_label(text, bold=False, monospace=False):
+    label = Gtk.Label(label=text)
+    Gtk.Label.set_xalign(label, 0.0)
+    Gtk.Label.set_selectable(label, True)
+    if monospace:
+        Gtk.Widget.add_css_class(label, "monospace")
+    if bold:
+        Gtk.Widget.add_css_class(label, "heading")
+    return label
+
+
+def append_metadata_section(content_box, kind):
+    values = metadata_values_for_kind(kind)
+    if len(values) == 0:
+        return
+
+    title = make_metadata_label(metadata_kind_title(kind), bold=True)
+    Gtk.Widget.set_margin_top(title, 12)
+    Gtk.Widget.set_margin_bottom(title, 6)
+    Gtk.Box.append(content_box, title)
+
+    grid = Gtk.Grid()
+    Gtk.Grid.set_row_spacing(grid, 4)
+    Gtk.Grid.set_column_spacing(grid, 24)
+    Gtk.Widget.set_hexpand(grid, True)
+
+    headers = ["Name", "Value", "Unit", "Plot name"]
+    for index, header in enumerate(headers):
+        label = make_metadata_label(header, bold=True)
+        Gtk.Grid.attach(grid, label, index, 0, 1, 1)
+
+    row = 1
+    for named_value in values:
+        name = named_value["name"]
+        value = metadata_value_text(named_value["value"])
+        unit = named_value["unit"]
+        display_name = named_value["display_name"]
+        cells = [name, value, unit, display_name]
+        for index, cell in enumerate(cells):
+            label = make_metadata_label(cell, monospace=index != 2)
+            Gtk.Grid.attach(grid, label, index, row, 1, 1)
+        row += 1
+
+    Gtk.Box.append(content_box, grid)
+    return
+
+
+def reconfigure_metadata_tab(metadata_scroll):
+    content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    Gtk.Widget.set_margin_start(content_box, 12)
+    Gtk.Widget.set_margin_end(content_box, 12)
+    Gtk.Widget.set_margin_top(content_box, 12)
+    Gtk.Widget.set_margin_bottom(content_box, 12)
+
+    title = make_metadata_label("Simulation metadata", bold=True)
+    Gtk.Box.append(content_box, title)
+
+    if len(hdf5_named_values) == 0:
+        if file_type == "hdf5":
+            message = "This HDF5 file does not contain simulation metadata."
+        else:
+            message = "CSV files do not contain simulation metadata."
+        Gtk.Box.append(content_box, make_metadata_label(message))
+    else:
+        append_metadata_section(content_box, "parameter")
+        append_metadata_section(content_box, "constant")
+
+    Gtk.ScrolledWindow.set_child(metadata_scroll, content_box)
     return
 
 
@@ -669,6 +775,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
 def on_reload_button_clicked(reload_button):
     reload_file_contents()
     reconfigure_plots_and_buttons(reload_button.selection_scroll)
+    reconfigure_metadata_tab(reload_button.metadata_scroll)
     redraw_plots(full=True)
     return
 
