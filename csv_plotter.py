@@ -472,8 +472,9 @@ def metadata_value_text(value):
 
 def simulation_metadata_display_name(name):
     display_names = {
-        "started_at": "Started at",
-        "ended_at": "Ended at",
+        "simulation_date": "Simulation date (UTC)",
+        "started_at": "Started at (UTC)",
+        "ended_at": "Ended at (UTC)",
         "pre_initialized": "Pre-initialized via cy_system_init",
     }
     return display_names.get(name, name.replace("_", " ").title())
