@@ -672,7 +672,7 @@ def on_delete_button_click(delete_button):
 
         remove_plot(name, axes_left)
         remove_plot(name, axes_right)
-        redraw_plots()
+        redraw_plots(autoscale_y=True)
 
         parent_box = Gtk.Button.get_parent(delete_button)
         grand_parent = Gtk.Box.get_parent(parent_box)
@@ -727,7 +727,7 @@ def on_y_button_toggled(y_button):
     else:
         remove_plot(name, axes)
 
-    redraw_plots()
+    redraw_plots(autoscale_y=True)
     return
 
 
@@ -810,7 +810,7 @@ def on_entry_activate(entry):
     add_buttons(name, ns_box, left=False, right=True)
 
     add_plot(name, axes_right)
-    redraw_plots()
+    redraw_plots(autoscale_y=True)
     return
 
 
@@ -870,7 +870,7 @@ def custom_ticks(axes):
     return
 
 
-def redraw_plots(full=False):
+def redraw_plots(full=False, autoscale_y=False):
     configure_y_axis_labels_and_ticks()
 
     Axes.set_xmargin(axes_left, 0.01)
@@ -878,11 +878,15 @@ def redraw_plots(full=False):
     Axes.set_ymargin(axes_left, 0.02)
     Axes.set_ymargin(axes_right, 0.2)
 
-    if full:
+    if full or autoscale_y:
         Axes.relim(axes_left)
         Axes.relim(axes_right)
+    if full:
         Axes.autoscale(axes_left)
         Axes.autoscale(axes_right)
+    elif autoscale_y:
+        Axes.autoscale(axes_left, axis="y")
+        Axes.autoscale(axes_right, axis="y")
 
     custom_ticks(axes_left)
     custom_ticks(axes_right)
