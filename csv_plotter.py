@@ -2,6 +2,8 @@
 
 import os
 import sys
+import keyword
+import re
 import pandas as pd
 import numpy as np
 try:
@@ -51,6 +53,8 @@ custom_labels = {
 
 file_type = None
 column_units = {}
+hdf5_named_values = []
+hdf5_named_value_by_display_name = {}
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 
@@ -126,6 +130,42 @@ def read_hdf5_strings(hdf5_file, dataset_name, count=None):
     return strings
 
 
+def hdf5_dataset_exists(hdf5_file, dataset_name):
+    return dataset_name in hdf5_file
+
+
+def read_hdf5_named_values(hdf5_file, kind):
+    names_path = f"{kind}_names"
+    units_path = f"{kind}_units"
+    values_path = f"{kind}_values"
+    paths = [names_path, units_path, values_path]
+
+    if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        return []
+    if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        raise ValueError(f"HDF5 file has incomplete /{kind}_* metadata")
+
+    names = read_hdf5_strings(hdf5_file, names_path)
+    units = read_hdf5_strings(hdf5_file, units_path, len(names))
+    values = np.array(hdf5_file[values_path], dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError(f"HDF5 /{values_path} dataset must have 1 dimension")
+    if len(values) != len(names):
+        raise ValueError(
+            f"HDF5 dataset /{values_path} has {len(values)} entries, "
+            f"expected {len(names)}")
+
+    result = []
+    for name, unit, value in zip(names, units, values):
+        result.append({
+            "kind": kind,
+            "name": name,
+            "unit": unit,
+            "value": float(value),
+        })
+    return result
+
+
 def read_hdf5_data_frame(path):
     if h5py is None:
         raise ImportError("h5py is required to read HDF5 files")
@@ -147,7 +187,12 @@ def read_hdf5_data_frame(path):
         else:
             units = [""]*ncolumns
 
-    return pd.DataFrame(data, columns=names), dict(zip(names, units))
+        named_values = []
+        named_values += read_hdf5_named_values(hdf5_file, "parameter")
+        named_values += read_hdf5_named_values(hdf5_file, "constant")
+
+    data_frame = pd.DataFrame(data, columns=names)
+    return data_frame, dict(zip(names, units)), named_values
 
 
 def fixed_hdf5_strings(strings):
@@ -164,6 +209,21 @@ def fixed_hdf5_strings(strings):
     return np.array(values, dtype=f"S{width}")
 
 
+def write_hdf5_named_values(hdf5_file, kind, named_values):
+    values = [value for value in named_values if value["kind"] == kind]
+    if len(values) == 0:
+        return
+
+    names = [value["name"] for value in values]
+    units = [value["unit"] for value in values]
+    data = np.array([value["value"] for value in values], dtype=np.float64)
+
+    hdf5_file.create_dataset(f"{kind}_names", data=fixed_hdf5_strings(names))
+    hdf5_file.create_dataset(f"{kind}_units", data=fixed_hdf5_strings(units))
+    hdf5_file.create_dataset(f"{kind}_values", data=data)
+    return
+
+
 def save_hdf5_data_frame(path):
     if h5py is None:
         raise ImportError("h5py is required to save HDF5 files")
@@ -176,6 +236,8 @@ def save_hdf5_data_frame(path):
         hdf5_file.create_dataset("data", data=data)
         hdf5_file.create_dataset("names", data=fixed_hdf5_strings(names))
         hdf5_file.create_dataset("units", data=fixed_hdf5_strings(units))
+        write_hdf5_named_values(hdf5_file, "parameter", hdf5_named_values)
+        write_hdf5_named_values(hdf5_file, "constant", hdf5_named_values)
     return
 
 
@@ -186,13 +248,35 @@ def new_file_name():
     return root + "_new.csv"
 
 
+def hdf5_named_value_display_name(named_value):
+    name = named_value["name"]
+    if named_value["kind"] == "parameter":
+        return f"parameters.{name}"
+    return f"constants.{name}"
+
+
+def configure_hdf5_named_values(named_values):
+    global hdf5_named_values, hdf5_named_value_by_display_name
+
+    hdf5_named_values = named_values
+    hdf5_named_value_by_display_name = {}
+    for named_value in hdf5_named_values:
+        display_name = hdf5_named_value_display_name(named_value)
+        named_value["display_name"] = display_name
+        hdf5_named_value_by_display_name[display_name] = named_value
+    return
+
+
 def reload_file_contents():
     global data_frame, x_data, file_type, column_units
 
     data_frame = None
+    configure_hdf5_named_values([])
     try:
         if file_is_hdf5(filename):
-            data_frame, column_units = read_hdf5_data_frame(filename)
+            data_frame, column_units, named_values = read_hdf5_data_frame(
+                filename)
+            configure_hdf5_named_values(named_values)
             file_type = "hdf5"
         else:
             data_frame = pd.read_csv(filename)
@@ -309,6 +393,34 @@ def configure_window_once():
     return
 
 
+def metadata_name(name):
+    return name in hdf5_named_value_by_display_name
+
+
+def metadata_unit(name):
+    named_value = hdf5_named_value_by_display_name.get(name)
+    if named_value is None:
+        return ""
+    return named_value["unit"]
+
+
+def plottable_names():
+    names = [str(name) for name in data_frame.columns]
+    for named_value in hdf5_named_values:
+        names.append(named_value["display_name"])
+    return names
+
+
+def data_series(name):
+    if name in hdf5_named_value_by_display_name:
+        named_value = hdf5_named_value_by_display_name[name]
+        values = np.full(len(data_frame.index), named_value["value"],
+                         dtype=np.float64)
+        return pd.Series(values, index=data_frame.index, name=name)
+    return data_frame[name]
+
+
+
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
 
@@ -316,7 +428,8 @@ def reconfigure_plots_and_buttons(selection_scroll):
     namespace_boxes = {}
     ns_colors = {}
 
-    name_first = data_frame.columns[0]
+    names = plottable_names()
+    name_first = names[0]
     x_button_group = None
 
     ns_first = str.split(name_first, ".")[0]
@@ -339,7 +452,12 @@ def reconfigure_plots_and_buttons(selection_scroll):
 
     add_buttons(name_first, ns_box_first)
 
-    for name in data_frame.columns[1:]:
+    plotted_left = []
+    plotted_right = []
+    if len(pre_plots) == 0:
+        plotted_left, plotted_right = clean_plotted_get_list()
+
+    for name in names[1:]:
         left = False
         right = False
 
@@ -361,7 +479,6 @@ def reconfigure_plots_and_buttons(selection_scroll):
             add_plot(name, axes_left)
             left = True
         elif len(pre_plots) == 0:
-            plotted_left, plotted_right = clean_plotted_get_list()
             if name in plotted_left:
                 if not is_ref:
                     styles[name] = "solid"
@@ -421,7 +538,10 @@ def get_axes_label_from_units(axes):
 
     for line in Axes.get_lines(axes):
         name = Line2D.get_label(line)
-        unit = column_units.get(name, "")
+        if metadata_name(name):
+            unit = metadata_unit(name)
+        else:
+            unit = column_units.get(name, "")
         label = format_axis_unit(unit)
         if label is not None and label not in seen:
             labels.append(label)
@@ -493,6 +613,14 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.Button.set_tooltip_text(style_button, "Change line style")
     Gtk.Button.set_tooltip_text(color_button, "Change line color")
     Gtk.Button.set_tooltip_text(delete_button, "Delete from data")
+
+    if metadata_name(name):
+        Gtk.Button.set_sensitive(x_button, False)
+        Gtk.Button.set_sensitive(delete_button, False)
+        Gtk.Button.set_tooltip_text(x_button,
+                                    "Scalar metadata cannot be x axis")
+        Gtk.Button.set_tooltip_text(delete_button,
+                                    "Metadata is saved separately")
 
     y_button_left.axes = axes_left
     y_button_right.axes = axes_right
@@ -583,6 +711,9 @@ def on_item_label_notify_editing(editable_label, editing):
 
     item = Gtk.Button.get_parent(editable_label)
     old_name = item.name
+    if metadata_name(old_name):
+        return
+
     new_name = Gtk.EditableLabel.get_text(editable_label)
 
     DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
@@ -662,6 +793,9 @@ def on_delete_button_click(delete_button):
     item = Gtk.Button.get_parent(delete_button)
     name = item.name
 
+    if metadata_name(name):
+        return
+
     if name != x_data.name:
         DataFrame.drop(data_frame, name, axis=1, inplace=True)
 
@@ -692,6 +826,9 @@ def on_x_button_toggled(x_button):
     active = Gtk.CheckButton.get_active(x_button)
 
     if not active:
+        return
+
+    if metadata_name(name):
         return
 
     x_data = data_frame[name]
@@ -731,15 +868,98 @@ def on_y_button_toggled(y_button):
     return
 
 
+def safe_expression_name(name, prefix=""):
+    safe_name = re.sub(r"\W", "_", str(name))
+    if safe_name == "" or safe_name[0].isdigit():
+        safe_name = f"_{safe_name}"
+    if keyword.iskeyword(safe_name):
+        safe_name = f"{safe_name}_"
+    if prefix != "":
+        safe_name = f"{prefix}_{safe_name}"
+    return safe_name
+
+
+def add_expression_name(local_dict, name, value, prefix=""):
+    if str(name).isidentifier() and not keyword.iskeyword(str(name)):
+        if name not in local_dict:
+            local_dict[name] = value
+
+    safe_name = safe_expression_name(name, prefix)
+    if safe_name not in local_dict:
+        local_dict[safe_name] = value
+    return
+
+
+def expression_value(name):
+    if name in hdf5_named_value_by_display_name:
+        return hdf5_named_value_by_display_name[name]["value"]
+    if name in data_frame.columns:
+        return data_frame[name]
+
+    for named_value in hdf5_named_values:
+        if named_value["name"] == name:
+            return named_value["value"]
+
+    raise KeyError(name)
+
+
+def replace_backtick_names(text, local_dict):
+    replacements = {}
+
+    def replace_match(match):
+        name = match.group(1)
+        if name not in replacements:
+            placeholder = f"__csv_plotter_name_{len(replacements)}"
+            local_dict[placeholder] = expression_value(name)
+            replacements[name] = placeholder
+        return replacements[name]
+
+    return re.sub(r"`([^`]+)`", replace_match, text)
+
+
+def expression_local_dict():
+    local_dict = DataFrame.to_dict(data_frame, orient='series')
+
+    for name in data_frame.columns:
+        add_expression_name(local_dict, name, data_frame[name])
+
+    for named_value in hdf5_named_values:
+        value = named_value["value"]
+        name = named_value["name"]
+        display_name = named_value["display_name"]
+        add_expression_name(local_dict, name, value)
+        add_expression_name(local_dict, display_name, value)
+        add_expression_name(local_dict, name, value, named_value["kind"])
+
+    return local_dict
+
+
+def evaluate_expression(text):
+    local_dict = expression_local_dict()
+    expression = replace_backtick_names(text, local_dict)
+    value = pd.eval(expression, local_dict=local_dict)
+
+    if np.isscalar(value):
+        value = np.full(len(data_frame.index), value, dtype=np.float64)
+    if isinstance(value, np.ndarray):
+        value = pd.Series(value, index=data_frame.index)
+    if not isinstance(value, pd.Series):
+        value = pd.Series(value, index=data_frame.index)
+    if len(value) != len(data_frame.index):
+        raise ValueError(
+            f"Expression produced {len(value)} rows, "
+            f"expected {len(data_frame.index)}")
+    return value
+
+
 def on_entry_activate(entry):
     global data_frame
 
     buffer = Gtk.Entry.get_buffer(entry)
     text = Gtk.EntryBuffer.get_text(buffer)
 
-    local_dict = DataFrame.to_dict(data_frame, orient='series')
     try:
-        data_frame[text] = pd.eval(text, local_dict=local_dict)
+        data_frame[text] = evaluate_expression(text)
     except Exception as exception:
         title = Gtk.Label(label="Error evaluating expression")
         message = Gtk.Label(label=str(exception))
@@ -899,7 +1119,7 @@ def redraw_plots(full=False, autoscale_y=False):
 def add_plot(name, axes):
     global styles
 
-    y = data_frame[name]
+    y = data_series(name)
 
     linestyle = styles[name]
     color = colors[name]
