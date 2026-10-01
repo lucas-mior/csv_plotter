@@ -135,6 +135,18 @@ def hdf5_dataset_exists(hdf5_file, dataset_name):
     return dataset_name in hdf5_file
 
 
+def read_hdf5_float_vector(hdf5_file, dataset_name, count=None):
+    values = np.array(hdf5_file[dataset_name], dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError(
+            f"HDF5 /{dataset_name} dataset must have 1 dimension")
+    if count is not None and len(values) != count:
+        raise ValueError(
+            f"HDF5 dataset /{dataset_name} has {len(values)} entries, "
+            f"expected {count}")
+    return values
+
+
 def read_hdf5_named_values(hdf5_file, kind):
     names_path = f"{kind}_names"
     units_path = f"{kind}_units"
@@ -148,13 +160,7 @@ def read_hdf5_named_values(hdf5_file, kind):
 
     names = read_hdf5_strings(hdf5_file, names_path)
     units = read_hdf5_strings(hdf5_file, units_path, len(names))
-    values = np.array(hdf5_file[values_path], dtype=np.float64)
-    if values.ndim != 1:
-        raise ValueError(f"HDF5 /{values_path} dataset must have 1 dimension")
-    if len(values) != len(names):
-        raise ValueError(
-            f"HDF5 dataset /{values_path} has {len(values)} entries, "
-            f"expected {len(names)}")
+    values = read_hdf5_float_vector(hdf5_file, values_path, len(names))
 
     result = []
     for name, unit, value in zip(names, units, values):
@@ -164,6 +170,26 @@ def read_hdf5_named_values(hdf5_file, kind):
             "unit": unit,
             "value": float(value),
         })
+    return result
+
+
+def read_hdf5_fit_parameters(hdf5_file):
+    result = read_hdf5_named_values(hdf5_file, "fit_parameter")
+    if len(result) == 0:
+        return []
+
+    optional_fields = [
+        ("initial_value", "fit_parameter_initial_values"),
+        ("lower_bound", "fit_parameter_lower_bounds"),
+        ("upper_bound", "fit_parameter_upper_bounds"),
+    ]
+    for field, dataset_name in optional_fields:
+        if not hdf5_dataset_exists(hdf5_file, dataset_name):
+            continue
+        values = read_hdf5_float_vector(
+            hdf5_file, dataset_name, len(result))
+        for metadata, value in zip(result, values):
+            metadata[field] = float(value)
     return result
 
 
@@ -213,6 +239,7 @@ def read_hdf5_data_frame(path):
         named_values = []
         named_values += read_hdf5_named_values(hdf5_file, "parameter")
         named_values += read_hdf5_named_values(hdf5_file, "constant")
+        named_values += read_hdf5_fit_parameters(hdf5_file)
         simulation_metadata = read_hdf5_simulation_metadata(hdf5_file)
 
     data_frame = pd.DataFrame(data, columns=names)
@@ -248,6 +275,30 @@ def write_hdf5_named_values(hdf5_file, kind, named_values):
     return
 
 
+def write_hdf5_fit_parameters(hdf5_file, named_values):
+    values = [
+        value for value in named_values
+        if value["kind"] == "fit_parameter"
+    ]
+    if len(values) == 0:
+        return
+
+    write_hdf5_named_values(hdf5_file, "fit_parameter", values)
+
+    optional_fields = [
+        ("initial_value", "fit_parameter_initial_values"),
+        ("lower_bound", "fit_parameter_lower_bounds"),
+        ("upper_bound", "fit_parameter_upper_bounds"),
+    ]
+    for field, dataset_name in optional_fields:
+        if not all(field in value for value in values):
+            continue
+        data = np.array(
+            [value[field] for value in values], dtype=np.float64)
+        hdf5_file.create_dataset(dataset_name, data=data)
+    return
+
+
 def write_hdf5_simulation_metadata(hdf5_file, simulation_metadata):
     if len(simulation_metadata) == 0:
         return
@@ -276,6 +327,7 @@ def save_hdf5_data_frame(path):
         hdf5_file.create_dataset("units", data=fixed_hdf5_strings(units))
         write_hdf5_named_values(hdf5_file, "parameter", hdf5_named_values)
         write_hdf5_named_values(hdf5_file, "constant", hdf5_named_values)
+        write_hdf5_fit_parameters(hdf5_file, hdf5_named_values)
         write_hdf5_simulation_metadata(hdf5_file, hdf5_simulation_metadata)
     return
 
@@ -291,6 +343,8 @@ def hdf5_named_value_display_name(named_value):
     name = named_value["name"]
     if named_value["kind"] == "parameter":
         return f"parameters.{name}"
+    if named_value["kind"] == "fit_parameter":
+        return f"fit_parameters.{name}"
     return f"constants.{name}"
 
 
@@ -459,6 +513,8 @@ def metadata_kind_title(kind):
         return "Parameters"
     if kind == "constant":
         return "Constants"
+    if kind == "fit_parameter":
+        return "Fitted parameters"
     return kind.replace("_", " ").title()
 
 
@@ -553,8 +609,23 @@ def metadata_rows_for_kind(kind):
     return rows
 
 
+def fit_parameter_metadata_rows():
+    rows = []
+    for named_value in metadata_values_for_kind("fit_parameter"):
+        rows.append([
+            named_value["name"],
+            named_value["value"],
+            named_value.get("initial_value", ""),
+            named_value.get("lower_bound", ""),
+            named_value.get("upper_bound", ""),
+            named_value["unit"],
+            named_value["display_name"],
+        ])
+    return rows
+
+
 def metadata_tab_text():
-    lines = ["Simulation metadata"]
+    lines = ["Metadata"]
 
     append_metadata_text_section(lines, "File", ["Name", "Value"], [
         ["Filename", filename],
@@ -563,15 +634,20 @@ def metadata_tab_text():
     if len(hdf5_named_values) == 0 and len(hdf5_simulation_metadata) == 0:
         lines.append("")
         if file_type == "hdf5":
-            lines.append("This HDF5 file does not contain simulation metadata.")
+            lines.append("This HDF5 file does not contain recognized metadata.")
         else:
-            lines.append("CSV files do not contain simulation metadata.")
+            lines.append("CSV files do not contain metadata.")
     else:
         append_metadata_text_section(lines, "Simulation", ["Name", "Value"],
                                      simulation_metadata_rows())
         append_metadata_text_section(lines, "Parameters",
                                      ["Name", "Value", "Unit", "Plot name"],
                                      metadata_rows_for_kind("parameter"))
+        append_metadata_text_section(
+            lines, "Fitted parameters",
+            ["Name", "Fitted", "Initial", "Lower", "Upper", "Unit",
+             "Plot name"],
+            fit_parameter_metadata_rows())
         append_metadata_text_section(lines, "Constants",
                                      ["Name", "Value", "Unit", "Plot name"],
                                      metadata_rows_for_kind("constant"))
