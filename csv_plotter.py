@@ -56,6 +56,7 @@ column_units = {}
 hdf5_named_values = []
 hdf5_named_value_by_display_name = {}
 hdf5_simulation_metadata = []
+hdf5_fit_metadata = []
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 
@@ -173,6 +174,20 @@ def read_hdf5_named_values(hdf5_file, kind):
     return result
 
 
+def read_hdf5_parameters(hdf5_file):
+    result = read_hdf5_named_values(hdf5_file, "parameter")
+    if len(result) == 0:
+        return []
+
+    dataset_name = "parameter_default_values"
+    if hdf5_dataset_exists(hdf5_file, dataset_name):
+        values = read_hdf5_float_vector(
+            hdf5_file, dataset_name, len(result))
+        for metadata, value in zip(result, values):
+            metadata["default_value"] = float(value)
+    return result
+
+
 def read_hdf5_fit_parameters(hdf5_file):
     result = read_hdf5_named_values(hdf5_file, "fit_parameter")
     if len(result) == 0:
@@ -193,15 +208,16 @@ def read_hdf5_fit_parameters(hdf5_file):
     return result
 
 
-def read_hdf5_simulation_metadata(hdf5_file):
-    names_path = "simulation_metadata_names"
-    values_path = "simulation_metadata_values"
+def read_hdf5_text_metadata(hdf5_file, prefix):
+    names_path = f"{prefix}_metadata_names"
+    values_path = f"{prefix}_metadata_values"
     paths = [names_path, values_path]
 
     if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
         return []
     if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
-        raise ValueError("HDF5 file has incomplete /simulation_metadata_*")
+        raise ValueError(
+            f"HDF5 file has incomplete /{prefix}_metadata_*")
 
     names = read_hdf5_strings(hdf5_file, names_path)
     values = read_hdf5_strings(hdf5_file, values_path, len(names))
@@ -213,6 +229,14 @@ def read_hdf5_simulation_metadata(hdf5_file):
             "value": value,
         })
     return result
+
+
+def read_hdf5_simulation_metadata(hdf5_file):
+    return read_hdf5_text_metadata(hdf5_file, "simulation")
+
+
+def read_hdf5_fit_metadata(hdf5_file):
+    return read_hdf5_text_metadata(hdf5_file, "fit")
 
 
 def read_hdf5_data_frame(path):
@@ -237,13 +261,15 @@ def read_hdf5_data_frame(path):
             units = [""]*ncolumns
 
         named_values = []
-        named_values += read_hdf5_named_values(hdf5_file, "parameter")
+        named_values += read_hdf5_parameters(hdf5_file)
         named_values += read_hdf5_named_values(hdf5_file, "constant")
         named_values += read_hdf5_fit_parameters(hdf5_file)
         simulation_metadata = read_hdf5_simulation_metadata(hdf5_file)
+        fit_metadata = read_hdf5_fit_metadata(hdf5_file)
 
     data_frame = pd.DataFrame(data, columns=names)
-    return data_frame, dict(zip(names, units)), named_values, simulation_metadata
+    return (data_frame, dict(zip(names, units)), named_values,
+            simulation_metadata, fit_metadata)
 
 
 def fixed_hdf5_strings(strings):
@@ -275,6 +301,22 @@ def write_hdf5_named_values(hdf5_file, kind, named_values):
     return
 
 
+def write_hdf5_parameters(hdf5_file, named_values):
+    values = [
+        value for value in named_values
+        if value["kind"] == "parameter"
+    ]
+    if len(values) == 0:
+        return
+
+    write_hdf5_named_values(hdf5_file, "parameter", values)
+    if all("default_value" in value for value in values):
+        data = np.array(
+            [value["default_value"] for value in values], dtype=np.float64)
+        hdf5_file.create_dataset("parameter_default_values", data=data)
+    return
+
+
 def write_hdf5_fit_parameters(hdf5_file, named_values):
     values = [
         value for value in named_values
@@ -299,17 +341,27 @@ def write_hdf5_fit_parameters(hdf5_file, named_values):
     return
 
 
-def write_hdf5_simulation_metadata(hdf5_file, simulation_metadata):
-    if len(simulation_metadata) == 0:
+def write_hdf5_text_metadata(hdf5_file, prefix, metadata):
+    if len(metadata) == 0:
         return
 
-    names = [value["name"] for value in simulation_metadata]
-    values = [value["value"] for value in simulation_metadata]
+    names = [value["name"] for value in metadata]
+    values = [value["value"] for value in metadata]
 
-    hdf5_file.create_dataset("simulation_metadata_names",
-                             data=fixed_hdf5_strings(names))
-    hdf5_file.create_dataset("simulation_metadata_values",
-                             data=fixed_hdf5_strings(values))
+    hdf5_file.create_dataset(
+        f"{prefix}_metadata_names", data=fixed_hdf5_strings(names))
+    hdf5_file.create_dataset(
+        f"{prefix}_metadata_values", data=fixed_hdf5_strings(values))
+    return
+
+
+def write_hdf5_simulation_metadata(hdf5_file, simulation_metadata):
+    write_hdf5_text_metadata(hdf5_file, "simulation", simulation_metadata)
+    return
+
+
+def write_hdf5_fit_metadata(hdf5_file, fit_metadata):
+    write_hdf5_text_metadata(hdf5_file, "fit", fit_metadata)
     return
 
 
@@ -325,10 +377,11 @@ def save_hdf5_data_frame(path):
         hdf5_file.create_dataset("data", data=data)
         hdf5_file.create_dataset("names", data=fixed_hdf5_strings(names))
         hdf5_file.create_dataset("units", data=fixed_hdf5_strings(units))
-        write_hdf5_named_values(hdf5_file, "parameter", hdf5_named_values)
+        write_hdf5_parameters(hdf5_file, hdf5_named_values)
         write_hdf5_named_values(hdf5_file, "constant", hdf5_named_values)
         write_hdf5_fit_parameters(hdf5_file, hdf5_named_values)
         write_hdf5_simulation_metadata(hdf5_file, hdf5_simulation_metadata)
+        write_hdf5_fit_metadata(hdf5_file, hdf5_fit_metadata)
     return
 
 
@@ -367,18 +420,27 @@ def configure_hdf5_simulation_metadata(simulation_metadata):
     return
 
 
+def configure_hdf5_fit_metadata(fit_metadata):
+    global hdf5_fit_metadata
+
+    hdf5_fit_metadata = fit_metadata
+    return
+
+
 def reload_file_contents():
     global data_frame, x_data, file_type, column_units
 
     data_frame = None
     configure_hdf5_named_values([])
     configure_hdf5_simulation_metadata([])
+    configure_hdf5_fit_metadata([])
     try:
         if file_is_hdf5(filename):
-            data_frame, column_units, named_values, simulation_metadata \
-                = read_hdf5_data_frame(filename)
+            (data_frame, column_units, named_values, simulation_metadata,
+             fit_metadata) = read_hdf5_data_frame(filename)
             configure_hdf5_named_values(named_values)
             configure_hdf5_simulation_metadata(simulation_metadata)
+            configure_hdf5_fit_metadata(fit_metadata)
             file_type = "hdf5"
         else:
             data_frame = pd.read_csv(filename)
@@ -526,14 +588,29 @@ def metadata_value_text(value):
     return str(value)
 
 
-def simulation_metadata_display_name(name):
+def run_metadata_display_name(name, kind):
     display_names = {
-        "simulation_date": "Simulation date (UTC)",
         "started_at": "Started at (UTC)",
         "ended_at": "Ended at (UTC)",
+        "elapsed_seconds": "Elapsed wall time (s)",
+        "converged": "Converged",
         "pre_initialized": "Pre-initialized via cy_system_init",
+        "commit_on_success": "Commit fitted values on success",
+        "parameters_committed": "Fitted values committed",
     }
+    if name == "simulation_date":
+        return "Simulation date (UTC)"
+    if name == "fit_date":
+        return "Fitting date (UTC)"
     return display_names.get(name, name.replace("_", " ").title())
+
+
+def simulation_metadata_display_name(name):
+    return run_metadata_display_name(name, "simulation")
+
+
+def fit_metadata_display_name(name):
+    return run_metadata_display_name(name, "fit")
 
 
 def metadata_values_for_kind(kind):
@@ -587,14 +664,23 @@ def append_metadata_text_section(lines, title, headers, rows):
     return
 
 
-def simulation_metadata_rows():
+def run_metadata_rows(metadata, display_name):
     rows = []
-    for value in hdf5_simulation_metadata:
+    for value in metadata:
         rows.append([
-            simulation_metadata_display_name(value["name"]),
+            display_name(value["name"]),
             value["value"],
         ])
     return rows
+
+
+def simulation_metadata_rows():
+    return run_metadata_rows(
+        hdf5_simulation_metadata, simulation_metadata_display_name)
+
+
+def fit_metadata_rows():
+    return run_metadata_rows(hdf5_fit_metadata, fit_metadata_display_name)
 
 
 def metadata_rows_for_kind(kind):
@@ -631,7 +717,9 @@ def metadata_tab_text():
         ["Filename", filename],
     ])
 
-    if len(hdf5_named_values) == 0 and len(hdf5_simulation_metadata) == 0:
+    if (len(hdf5_named_values) == 0
+            and len(hdf5_simulation_metadata) == 0
+            and len(hdf5_fit_metadata) == 0):
         lines.append("")
         if file_type == "hdf5":
             lines.append("This HDF5 file does not contain recognized metadata.")
@@ -640,6 +728,8 @@ def metadata_tab_text():
     else:
         append_metadata_text_section(lines, "Simulation", ["Name", "Value"],
                                      simulation_metadata_rows())
+        append_metadata_text_section(lines, "Fitting", ["Name", "Value"],
+                                     fit_metadata_rows())
         append_metadata_text_section(lines, "Parameters",
                                      ["Name", "Value", "Unit", "Plot name"],
                                      metadata_rows_for_kind("parameter"))
