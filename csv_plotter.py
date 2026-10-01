@@ -664,12 +664,39 @@ def append_metadata_text_section(lines, title, headers, rows):
     return
 
 
+def format_elapsed_seconds(seconds):
+    seconds = float(seconds)
+    total_milliseconds = int(round(seconds*1000.0))
+    whole_seconds, milliseconds = divmod(total_milliseconds, 1000)
+    raw_seconds = f"{whole_seconds}.{milliseconds:03d}s"
+
+    if seconds <= 60.0:
+        return raw_seconds
+
+    if seconds <= 3600.0:
+        minutes, remaining_seconds = divmod(whole_seconds, 60)
+        return f"{minutes}min{remaining_seconds}s ({raw_seconds})"
+
+    if seconds <= 3600.0*60.0:
+        hours, remainder = divmod(whole_seconds, 3600)
+        minutes = remainder//60
+        return f"{hours}h{minutes}min ({raw_seconds})"
+
+    days, remainder = divmod(whole_seconds, 24*3600)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder//60
+    return f"{days}d{hours}h{minutes}min ({raw_seconds})"
+
+
 def run_metadata_rows(metadata, display_name):
     rows = []
     for value in metadata:
+        metadata_value = value["value"]
+        if value["name"] == "elapsed_seconds":
+            metadata_value = format_elapsed_seconds(metadata_value)
         rows.append([
             display_name(value["name"]),
-            value["value"],
+            metadata_value,
         ])
     return rows
 
