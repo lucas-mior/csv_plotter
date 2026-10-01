@@ -57,6 +57,7 @@ hdf5_named_values = []
 hdf5_named_value_by_display_name = {}
 hdf5_simulation_metadata = []
 hdf5_fit_metadata = []
+hdf5_fit_inputs = []
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 
@@ -231,6 +232,29 @@ def read_hdf5_text_metadata(hdf5_file, prefix):
     return result
 
 
+def read_hdf5_fit_inputs(hdf5_file):
+    names_path = "fit_input_names"
+    intervals_path = "fit_input_knot_intervals"
+    paths = [names_path, intervals_path]
+
+    if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        return []
+    if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
+        raise ValueError("HDF5 file has incomplete /fit_input_* metadata")
+
+    names = read_hdf5_strings(hdf5_file, names_path)
+    intervals = read_hdf5_float_vector(
+        hdf5_file, intervals_path, len(names))
+
+    result = []
+    for name, interval in zip(names, intervals):
+        result.append({
+            "name": name,
+            "knot_interval": float(interval),
+        })
+    return result
+
+
 def read_hdf5_simulation_metadata(hdf5_file):
     return read_hdf5_text_metadata(hdf5_file, "simulation")
 
@@ -266,10 +290,11 @@ def read_hdf5_data_frame(path):
         named_values += read_hdf5_fit_parameters(hdf5_file)
         simulation_metadata = read_hdf5_simulation_metadata(hdf5_file)
         fit_metadata = read_hdf5_fit_metadata(hdf5_file)
+        fit_inputs = read_hdf5_fit_inputs(hdf5_file)
 
     data_frame = pd.DataFrame(data, columns=names)
     return (data_frame, dict(zip(names, units)), named_values,
-            simulation_metadata, fit_metadata)
+            simulation_metadata, fit_metadata, fit_inputs)
 
 
 def fixed_hdf5_strings(strings):
@@ -355,6 +380,19 @@ def write_hdf5_text_metadata(hdf5_file, prefix, metadata):
     return
 
 
+def write_hdf5_fit_inputs(hdf5_file, fit_inputs):
+    if len(fit_inputs) == 0:
+        return
+
+    names = [value["name"] for value in fit_inputs]
+    intervals = np.array(
+        [value["knot_interval"] for value in fit_inputs], dtype=np.float64)
+    hdf5_file.create_dataset("fit_input_names",
+                             data=fixed_hdf5_strings(names))
+    hdf5_file.create_dataset("fit_input_knot_intervals", data=intervals)
+    return
+
+
 def write_hdf5_simulation_metadata(hdf5_file, simulation_metadata):
     write_hdf5_text_metadata(hdf5_file, "simulation", simulation_metadata)
     return
@@ -382,6 +420,7 @@ def save_hdf5_data_frame(path):
         write_hdf5_fit_parameters(hdf5_file, hdf5_named_values)
         write_hdf5_simulation_metadata(hdf5_file, hdf5_simulation_metadata)
         write_hdf5_fit_metadata(hdf5_file, hdf5_fit_metadata)
+        write_hdf5_fit_inputs(hdf5_file, hdf5_fit_inputs)
     return
 
 
@@ -427,6 +466,13 @@ def configure_hdf5_fit_metadata(fit_metadata):
     return
 
 
+def configure_hdf5_fit_inputs(fit_inputs):
+    global hdf5_fit_inputs
+
+    hdf5_fit_inputs = fit_inputs
+    return
+
+
 def reload_file_contents():
     global data_frame, x_data, file_type, column_units
 
@@ -434,13 +480,15 @@ def reload_file_contents():
     configure_hdf5_named_values([])
     configure_hdf5_simulation_metadata([])
     configure_hdf5_fit_metadata([])
+    configure_hdf5_fit_inputs([])
     try:
         if file_is_hdf5(filename):
             (data_frame, column_units, named_values, simulation_metadata,
-             fit_metadata) = read_hdf5_data_frame(filename)
+             fit_metadata, fit_inputs) = read_hdf5_data_frame(filename)
             configure_hdf5_named_values(named_values)
             configure_hdf5_simulation_metadata(simulation_metadata)
             configure_hdf5_fit_metadata(fit_metadata)
+            configure_hdf5_fit_inputs(fit_inputs)
             file_type = "hdf5"
         else:
             data_frame = pd.read_csv(filename)
@@ -597,6 +645,10 @@ def run_metadata_display_name(name, kind):
         "pre_initialized": "Pre-initialized via cy_system_init",
         "commit_on_success": "Commit fitted values on success",
         "parameters_committed": "Fitted values committed",
+        "integration_method": "Integration method",
+        "input_file": "Input / experimental data file",
+        "minimization_method": "Minimization method",
+        "simulation_count": "Simulation runs",
     }
     if name == "simulation_date":
         return "Simulation date (UTC)"
@@ -710,6 +762,16 @@ def fit_metadata_rows():
     return run_metadata_rows(hdf5_fit_metadata, fit_metadata_display_name)
 
 
+def fit_input_metadata_rows():
+    rows = []
+    for value in hdf5_fit_inputs:
+        rows.append([
+            value["name"],
+            value["knot_interval"],
+        ])
+    return rows
+
+
 def metadata_rows_for_kind(kind):
     rows = []
     for named_value in metadata_values_for_kind(kind):
@@ -746,7 +808,8 @@ def metadata_tab_text():
 
     if (len(hdf5_named_values) == 0
             and len(hdf5_simulation_metadata) == 0
-            and len(hdf5_fit_metadata) == 0):
+            and len(hdf5_fit_metadata) == 0
+            and len(hdf5_fit_inputs) == 0):
         lines.append("")
         if file_type == "hdf5":
             lines.append("This HDF5 file does not contain recognized metadata.")
@@ -757,6 +820,9 @@ def metadata_tab_text():
                                      simulation_metadata_rows())
         append_metadata_text_section(lines, "Fitting", ["Name", "Value"],
                                      fit_metadata_rows())
+        append_metadata_text_section(
+            lines, "Optimized inputs", ["Name", "Knot interval (s)"],
+            fit_input_metadata_rows())
         append_metadata_text_section(lines, "Parameters",
                                      ["Name", "Value", "Unit", "Plot name"],
                                      metadata_rows_for_kind("parameter"))
