@@ -70,7 +70,7 @@ def on_application_activation(application):
     argc = len(sys.argv)
 
     if argc < 2:
-        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV or HDF5 file")
+        dialog = Gtk.FileDialog(title=f"{program} - Choose a CSV, TSV or HDF5 file")
         Gtk.FileDialog.open(dialog, window, None, on_have_filename_ready, None)
     else:
         filename = sys.argv[1]
@@ -466,9 +466,10 @@ def reload_file_contents():
             configure_hdf5_fit_inputs(fit_inputs)
             file_type = "hdf5"
         else:
-            data_frame = pd.read_csv(filename)
+            file_type = "tsv" if filename.lower().endswith(".tsv") else "csv"
+            separator = "\t" if file_type == "tsv" else ","
+            data_frame = pd.read_csv(filename, sep=separator)
             column_units = {name: "" for name in data_frame.columns}
-            file_type = "csv"
     except Exception as exception:
         print(f"Error reading {filename}: {exception}", file=sys.stderr)
         sys.exit(1)
@@ -632,7 +633,7 @@ def reconfigure_metadata_tab(metadata_scroll):
         if file_type == "hdf5":
             lines.append("This HDF5 file does not contain recognized metadata.")
         else:
-            lines.append("CSV files do not contain metadata.")
+            lines.append(f"{file_type.upper()} files do not contain metadata.")
     else:
         append_metadata_text_section(
             lines, "Simulation", ["Name", "Value"],
@@ -962,6 +963,8 @@ def on_save_button_clicked(save_button):
     root = str.rsplit(filename, '.', maxsplit=1)[0]
     if file_type == "hdf5":
         newfile = root + "_new.h5"
+    elif file_type == "tsv":
+        newfile = root + "_new.tsv"
     else:
         newfile = root + "_new.csv"
 
@@ -1060,7 +1063,8 @@ def on_save_button_clicked(save_button):
                     hdf5_file.create_dataset("fit_input_knot_intervals",
                                              data=intervals)
         else:
-            DataFrame.to_csv(data_frame, newfile, sep=',', index=False)
+            separator = "\t" if file_type == "tsv" else ","
+            DataFrame.to_csv(data_frame, newfile, sep=separator, index=False)
     except Exception as exception:
         print(f"Error saving {newfile}: {exception}", file=sys.stderr)
     return

@@ -1,6 +1,6 @@
 # csv_plotter.py
 
-Interactively plot CSV files.
+Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 ## Demo
 ![csv_plotter.py](https://github.com/lucas-mior/csv_plotter/blob/master/demo.gif)
 
@@ -8,6 +8,8 @@ Interactively plot CSV files.
 - matplotlib's plot window features:
     * image saving
     * mouse interaction (zoom, crop...)
+- load comma-separated `.csv` and tab-separated `.tsv` files
+- save modified CSV and TSV data in their original format (`_new.csv` or `_new.tsv`)
 - select which columns to plot
 - rename columns
 - select X axis
@@ -17,7 +19,7 @@ Interactively plot CSV files.
 - command to reload file contents (in case you make external changes)
 
 ## Non-features
-- CSV edition (use a text/spreadsheet editor instead)
+- CSV/TSV edition (use a text/spreadsheet editor instead)
     * You can only delete columns and add new ones by inserting expressions
       and save the resulting data frame as a new file
 - open more than one file
