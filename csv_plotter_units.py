@@ -16,6 +16,7 @@ class ColumnInfo:
     source_name: str
     internal_name: str
     unit: str = ""
+    color: str = ""
 
     @property
     def display_label(self):
@@ -105,13 +106,18 @@ class ColumnRegistry:
             raise ValueError("Duplicate internal column names")
 
     @classmethod
-    def from_columns(cls, names, units):
+    def from_columns(cls, names, units, colors=None):
         names = [str(name) for name in names]
         units = [str(unit).strip() for unit in units]
+        if colors is None:
+            colors = [""] * len(names)
+        if len(colors) != len(names):
+            raise ValueError("Column names and colors must have the same length")
+        colors = [str(color) for color in colors]
         internal_names = resolve_column_names(names, units)
-        return cls([ColumnInfo(source, internal, unit)
-                    for source, internal, unit in zip(
-                        names, internal_names, units)])
+        return cls([ColumnInfo(source, internal, unit, color)
+                    for source, internal, unit, color in zip(
+                        names, internal_names, units, colors)])
 
     def names(self):
         return list(self._entries)
@@ -121,6 +127,10 @@ class ColumnRegistry:
 
     def units(self):
         return {name: info.unit for name, info in self._entries.items()}
+
+    def colors(self, names):
+        """Return optional color metadata in the exact DataFrame column order."""
+        return [self._entries[name].color for name in names]
 
     def headers(self, names):
         result = []
@@ -162,7 +172,7 @@ class ColumnRegistry:
                     for entry in self._entries.values())):
                 new_name = f"{new_source_name}_{unit_suffix(unit)}"
             new_name = unique_name(new_name, self._entries)
-            info = ColumnInfo(new_source_name, new_name, unit)
+            info = ColumnInfo(new_source_name, new_name, unit, info.color)
             self._entries[new_name] = info
             return info
         except Exception:

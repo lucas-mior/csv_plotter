@@ -2,6 +2,7 @@
 
 import ast
 import itertools
+import matplotlib.colors as mcolors
 import keyword
 from pathlib import Path
 import re
@@ -161,6 +162,7 @@ def load_selector_functions():
         'selector_parent_box', 'reconfigure_plots_and_buttons',
         'on_entry_activate', 'on_item_label_notify_editing',
         'on_delete_button_click', 'add_expression_name',
+        'configured_plot_color',
     }
     nodes = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name in functions]
@@ -181,6 +183,7 @@ class SelectorNamespaceTests(unittest.TestCase):
             'Axes': Axes,
             'pd': pd,
             'np': np,
+            'mcolors': mcolors,
             're': re,
             'keyword': keyword,
             'DataFrame': pd.DataFrame,
@@ -224,6 +227,26 @@ class SelectorNamespaceTests(unittest.TestCase):
         scroll = type('Scroll', (), {})()
         self.state['reconfigure_plots_and_buttons'](scroll)
         return scroll.child
+
+    def test_explicit_column_colors_override_namespace_defaults(self):
+        root = self.configure(['time', 'plant.flow', 'plant.pressure',
+                               'plant.temperature', 'ref_plant.flow'])
+        registry = ColumnRegistry.from_columns(
+            ['time', 'plant.flow', 'plant.pressure',
+             'plant.temperature', 'ref_plant.flow'],
+            ['s', '', '', '', ''],
+            ['#123456', 'blue', '', 'not-a-color', 'red'])
+        self.state['column_registry'] = registry
+        scroll = type('Scroll', (), {})()
+        self.state['reconfigure_plots_and_buttons'](scroll)
+        colors = self.state['colors']
+        self.assertEqual(colors['time'], '#123456')
+        self.assertEqual(colors['plant.flow'], 'blue')
+        self.assertEqual(colors['plant.pressure'], colors['plant.temperature'])
+        self.assertNotEqual(colors['plant.pressure'], 'not-a-color')
+        # Even reference lines must honor an explicitly specified color.
+        self.assertEqual(colors['ref_plant.flow'], 'red')
+        self.assertEqual(self.state['styles']['ref_plant.flow'], 'dotted')
 
     def test_plain_tsv_headers_are_flat(self):
         from csv_plotter_units import split_tsv_header

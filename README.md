@@ -21,6 +21,11 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
   quoted display labels (`` `pressure [bar]` + `pressure [Pa]` ``)
 - save modified CSV, TSV, and HDF5 data with original source names and unit
   metadata preserved, including duplicate names with different units
+- read Cystemas HDF5 `/colors` metadata and use explicit per-column colors
+  for plotting; columns with missing, empty, or unrecognized colors keep
+  their automatic colors; legacy HDF5 files without `/colors` still work
+- preserve color metadata in saved HDF5 files (including changes made with
+  the color button); CSV and TSV formats continue to store no color metadata
 - select which columns to plot
 - rename columns
 - select X axis

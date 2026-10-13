@@ -207,6 +207,9 @@ def filename_has_hdf5_extension(path):
 
 def read_hdf5_strings(hdf5_file, dataset_name, count=None):
     values = hdf5_file[dataset_name][()]
+    if np.asarray(values).ndim != 1:
+        raise ValueError(
+            f"HDF5 /{dataset_name} dataset must have 1 dimension")
     strings = []
     for value in values:
         if isinstance(value, bytes):
@@ -400,6 +403,11 @@ def reload_file_contents():
                     units = read_hdf5_strings(hdf5_file, "units", ncolumns)
                 else:
                     units = [""]*ncolumns
+                if "colors" in hdf5_file:
+                    column_colors = read_hdf5_strings(
+                        hdf5_file, "colors", ncolumns)
+                else:
+                    column_colors = [""]*ncolumns
 
                 parameter_values = read_hdf5_named_values(
                     hdf5_file, "parameter")
@@ -462,7 +470,8 @@ def reload_file_contents():
                     hdf5_file, "simulation")
                 fit_metadata = read_hdf5_text_metadata(hdf5_file, "fit")
 
-            column_registry = ColumnRegistry.from_columns(names, units)
+            column_registry = ColumnRegistry.from_columns(
+                names, units, column_colors)
             data_frame = pd.DataFrame(
                 data, columns=column_registry.names())
             configure_hdf5_named_values(named_values)
@@ -752,6 +761,14 @@ def selector_parent_box(buttons_box, name, namespace_boxes=None):
     return ns_box
 
 
+def configured_plot_color(name, fallback):
+    """Use a valid explicit column color, otherwise retain auto-coloring."""
+    info = column_registry.get(name)
+    if info is not None and info.color and mcolors.is_color_like(info.color):
+        return info.color
+    return fallback
+
+
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
 
@@ -776,6 +793,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         colors[name_first] = ns_colors[ns_first]
         styles[name_first] = "solid"
 
+    colors[name_first] = configured_plot_color(name_first, colors[name_first])
     add_buttons(name_first, first_box)
 
     plotted_left = []
@@ -798,6 +816,8 @@ def reconfigure_plots_and_buttons(selection_scroll):
                 ns_colors[ns] = next(colors_cycle)
             colors[name] = ns_colors[ns]
             styles[name] = "solid"
+
+        colors[name] = configured_plot_color(name, colors[name])
 
         if name in pre_plots:
             if not is_ref:
@@ -1015,6 +1035,7 @@ def on_save_button_clicked(save_button):
             names = column_registry.source_names(data_frame.columns)
             units = [column_registry.get(name).unit
                      for name in data_frame.columns]
+            column_colors = column_registry.colors(data_frame.columns)
             data = data_frame.to_numpy(dtype=np.float64)
 
             with h5py.File(newfile, "w") as hdf5_file:
@@ -1023,6 +1044,8 @@ def on_save_button_clicked(save_button):
                                          data=fixed_hdf5_strings(names))
                 hdf5_file.create_dataset("units",
                                          data=fixed_hdf5_strings(units))
+                hdf5_file.create_dataset(
+                    "colors", data=fixed_hdf5_strings(column_colors))
 
                 values = [
                     value for value in hdf5_named_values
@@ -1230,6 +1253,9 @@ def on_color_button_click(color_button):
     name = item.name
 
     colors[name] = next(colors_cycle)
+    info = column_registry.get(name)
+    if info is not None:
+        info.color = colors[name]
 
     left = False
     right = False
