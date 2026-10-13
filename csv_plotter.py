@@ -13,6 +13,7 @@ except ImportError:
 from itertools import cycle
 
 from pandas import DataFrame
+from csv_plotter_units import read_tsv, write_tsv
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -467,9 +468,11 @@ def reload_file_contents():
             file_type = "hdf5"
         else:
             file_type = "tsv" if filename.lower().endswith(".tsv") else "csv"
-            separator = "\t" if file_type == "tsv" else ","
-            data_frame = pd.read_csv(filename, sep=separator)
-            column_units = {name: "" for name in data_frame.columns}
+            if file_type == "tsv":
+                data_frame, column_units = read_tsv(filename)
+            else:
+                data_frame = pd.read_csv(filename, sep=",")
+                column_units = {name: "" for name in data_frame.columns}
     except Exception as exception:
         print(f"Error reading {filename}: {exception}", file=sys.stderr)
         sys.exit(1)
@@ -1062,9 +1065,10 @@ def on_save_button_clicked(save_button):
                         data=fixed_hdf5_strings(fit_input_names))
                     hdf5_file.create_dataset("fit_input_knot_intervals",
                                              data=intervals)
+        elif file_type == "tsv":
+            write_tsv(newfile, data_frame, column_units)
         else:
-            separator = "\t" if file_type == "tsv" else ","
-            DataFrame.to_csv(data_frame, newfile, sep=separator, index=False)
+            DataFrame.to_csv(data_frame, newfile, sep=",", index=False)
     except Exception as exception:
         print(f"Error saving {newfile}: {exception}", file=sys.stderr)
     return

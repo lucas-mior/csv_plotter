@@ -9,7 +9,10 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
     * image saving
     * mouse interaction (zoom, crop...)
 - load comma-separated `.csv` and tab-separated `.tsv` files
-- save modified CSV and TSV data in their original format (`_new.csv` or `_new.tsv`)
+- recognize Cystemas-style TSV units in column headers (for example, `Q[kg/s]`):
+  show `Q` in the plot selector and use `[kg/s]` for its plot axis label
+- save modified CSV and TSV data in their original format (`_new.csv` or `_new.tsv`),
+  preserving TSV column units
 - select which columns to plot
 - rename columns
 - select X axis
