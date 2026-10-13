@@ -702,6 +702,33 @@ def metadata_name(name):
     return name in hdf5_named_value_by_display_name
 
 
+def selector_parent_box(buttons_box, name, namespace_boxes=None):
+    """Use expanders only for names containing a dot."""
+    if "." not in name:
+        return buttons_box
+
+    namespace = name.split(".", 1)[0]
+    if namespace_boxes is not None and namespace in namespace_boxes:
+        return namespace_boxes[namespace]
+
+    if namespace_boxes is None:
+        child = Gtk.Widget.get_first_child(buttons_box)
+        while child is not None:
+            if isinstance(child, Gtk.Expander):
+                if Gtk.Expander.get_label(child) == namespace:
+                    return Gtk.Expander.get_child(child)
+            child = Gtk.Widget.get_next_sibling(child)
+
+    expander = Gtk.Expander(label=namespace)
+    ns_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    Gtk.Expander.set_expanded(expander, True)
+    Gtk.Expander.set_child(expander, ns_box)
+    Gtk.Box.append(buttons_box, expander)
+    if namespace_boxes is not None:
+        namespace_boxes[namespace] = ns_box
+    return ns_box
+
+
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
 
@@ -716,14 +743,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
     x_button_group = None
 
     ns_first = str.split(name_first, ".")[0]
-    expander_first = Gtk.Expander(label=ns_first)
-    ns_box_first = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-    Gtk.Expander.set_expanded(expander_first, True)
-    Gtk.Expander.set_child(expander_first, ns_box_first)
-    Gtk.Box.append(buttons_box, expander_first)
-
-    namespace_boxes[ns_first] = ns_box_first
+    first_box = selector_parent_box(buttons_box, name_first, namespace_boxes)
 
     if any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name_first, ".")):
         colors[name_first] = "black"
@@ -733,7 +753,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         colors[name_first] = ns_colors[ns_first]
         styles[name_first] = "solid"
 
-    add_buttons(name_first, ns_box_first)
+    add_buttons(name_first, first_box)
 
     plotted_left = []
     plotted_right = []
@@ -773,15 +793,8 @@ def reconfigure_plots_and_buttons(selection_scroll):
                 add_plot(name, axes_right)
                 right = True
 
-        if ns not in namespace_boxes:
-            expander = Gtk.Expander(label=ns)
-            ns_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            Gtk.Expander.set_expanded(expander, True)
-            Gtk.Expander.set_child(expander, ns_box)
-            Gtk.Box.append(buttons_box, expander)
-            namespace_boxes[ns] = ns_box
-
-        add_buttons(name, namespace_boxes[ns], left=left, right=right)
+        parent_box = selector_parent_box(buttons_box, name, namespace_boxes)
+        add_buttons(name, parent_box, left=left, right=right)
 
     pre_plots = []
     Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
@@ -1128,6 +1141,22 @@ def on_item_label_notify_editing(editable_label, editing):
         x_data.name = new_name
         Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
 
+    old_box = Gtk.Widget.get_parent(item)
+    old_expander = Gtk.Widget.get_parent(old_box)
+    if isinstance(old_expander, Gtk.Expander):
+        buttons_box = Gtk.Widget.get_parent(old_expander)
+    else:
+        old_expander = None
+        buttons_box = old_box
+
+    parent_box = selector_parent_box(buttons_box, new_name)
+    if parent_box is not old_box:
+        Gtk.Box.remove(old_box, item)
+        Gtk.Box.append(parent_box, item)
+        if old_expander is not None:
+            if Gtk.Widget.get_first_child(old_box) is None:
+                Gtk.Box.remove(buttons_box, old_expander)
+
     item.name = new_name
     redraw_plots()
     return
@@ -1197,9 +1226,13 @@ def on_delete_button_click(delete_button):
         remove_plot(name, axes_right)
         redraw_plots(autoscale_y=True)
 
-        parent_box = Gtk.Button.get_parent(delete_button)
-        grand_parent = Gtk.Box.get_parent(parent_box)
-        Gtk.Box.remove(grand_parent, parent_box)
+        parent_box = Gtk.Widget.get_parent(item)
+        parent_expander = Gtk.Widget.get_parent(parent_box)
+        Gtk.Box.remove(parent_box, item)
+        if isinstance(parent_expander, Gtk.Expander):
+            if Gtk.Widget.get_first_child(parent_box) is None:
+                buttons_box = Gtk.Widget.get_parent(parent_expander)
+                Gtk.Box.remove(buttons_box, parent_expander)
     return
 
 
@@ -1379,24 +1412,8 @@ def on_entry_activate(entry):
 
         styles[name] = "dashed"
 
-    ns_box = None
-    child = Gtk.Widget.get_first_child(buttons_box)
-
-    while child is not None:
-        if isinstance(child, Gtk.Expander):
-            if Gtk.Expander.get_label(child) == ns:
-                ns_box = Gtk.Expander.get_child(child)
-                break
-        child = Gtk.Widget.get_next_sibling(child)
-
-    if ns_box is None:
-        expander = Gtk.Expander(label=ns)
-        ns_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        Gtk.Expander.set_expanded(expander, True)
-        Gtk.Expander.set_child(expander, ns_box)
-        Gtk.Box.append(buttons_box, expander)
-
-    add_buttons(name, ns_box, left=False, right=True)
+    parent_box = selector_parent_box(buttons_box, name)
+    add_buttons(name, parent_box, left=False, right=True)
 
     add_plot(name, axes_right)
     redraw_plots(autoscale_y=True)
