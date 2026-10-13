@@ -9,9 +9,14 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from csv_plotter_units import ColumnRegistry, split_tsv_header
 
 
 class Widget:
+    @staticmethod
+    def set_tooltip_text(widget, text):
+        widget.tooltip = text
+
     def __init__(self):
         self.parent = None
         self.children = []
@@ -86,6 +91,10 @@ class Viewport:
 
 
 class EditableLabel:
+    @staticmethod
+    def set_text(label, text):
+        label.text = text
+
     @staticmethod
     def get_editing(label):
         return False
@@ -179,7 +188,9 @@ class SelectorNamespaceTests(unittest.TestCase):
             'colors_cycle': itertools.cycle(['red', 'blue', 'green']),
             'styles': {},
             'colors': {},
-            'column_units': {},
+            'column_registry': ColumnRegistry(),
+            'split_tsv_header': split_tsv_header,
+            'display_unit': lambda unit: f' [{unit}]' if unit else '',
             'pre_plots': [],
             'hdf5_named_values': [],
             'axes_left': self.axes_left,
@@ -208,6 +219,8 @@ class SelectorNamespaceTests(unittest.TestCase):
             name: [1.0, 2.0] for name in names
         })
         self.state['x_data'] = self.state['data_frame'].iloc[:, 0]
+        self.state['column_registry'] = ColumnRegistry.from_columns(
+            names, [''] * len(names))
         scroll = type('Scroll', (), {})()
         self.state['reconfigure_plots_and_buttons'](scroll)
         return scroll.child
@@ -252,6 +265,25 @@ class SelectorNamespaceTests(unittest.TestCase):
         self.assertEqual(len([child for child in root.children
                               if isinstance(child, Expander)]), 1)
 
+    def test_expression_evaluates_unit_disambiguated_names(self):
+        names = ['time', 'pressure_bar', 'pressure_pa']
+        root = self.configure(names)
+        self.state['column_registry'] = ColumnRegistry.from_columns(
+            ['time', 'pressure', 'pressure'], ['s', 'bar', 'Pa'])
+        entry = type('EntryObject', (), {})()
+        entry.text = 'pressure_bar + pressure_pa'
+        entry.selection_scroll = type('Scroll', (), {})()
+        entry.selection_scroll.child = type('ViewportObject', (),
+                                              {'child': root})()
+        self.state['on_entry_activate'](entry)
+        self.assertEqual(list(self.state['data_frame'][
+            'pressure_bar + pressure_pa']), [2.0, 4.0])
+
+        entry.text = '`pressure [bar]` * 2 + `pressure [Pa]`'
+        self.state['on_entry_activate'](entry)
+        self.assertEqual(list(self.state['data_frame'][
+            '`pressure [bar]` * 2 + `pressure [Pa]`']), [3.0, 6.0])
+
     def test_rename_moves_items_and_removes_empty_groups(self):
         root = self.configure(['time', 'plant.flow'])
         plant_item = root.children[1].children[0].children[0]
@@ -268,6 +300,20 @@ class SelectorNamespaceTests(unittest.TestCase):
         self.assertEqual([child.label if isinstance(child, Expander)
                           else child.name for child in root.children],
                          ['time', 'plant'])
+
+    def test_editing_display_name_with_unit_updates_metadata(self):
+        root = self.configure(['time', 'pressure_bar', 'pressure_pa'])
+        self.state['column_registry'] = ColumnRegistry.from_columns(
+            ['time', 'pressure', 'pressure'], ['s', 'bar', 'Pa'])
+        item = root.children[1]
+        label = type('Label', (), {'parent': item, 'text': 'Q[kg/s]'})()
+        self.state['on_item_label_notify_editing'](label, False)
+        self.assertEqual(item.name, 'Q')
+        self.assertEqual(label.text, 'Q')
+        self.assertEqual(self.state['column_registry'].get('Q').unit, 'kg/s')
+        self.assertIn('Q', self.state['data_frame'].columns)
+        self.assertIn('pressure_pa', self.state['data_frame'].columns)
+        self.assertNotIn('pressure_bar', self.state['data_frame'].columns)
 
     def test_delete_last_dotted_column_removes_empty_expander(self):
         root = self.configure(['time', 'plant.flow'])

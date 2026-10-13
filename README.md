@@ -9,10 +9,18 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
     * image saving
     * mouse interaction (zoom, crop...)
 - load comma-separated `.csv` and tab-separated `.tsv` files
-- recognize Cystemas-style TSV units in column headers (for example, `Q[kg/s]`):
-  show `Q` in the plot selector and use `[kg/s]` for its plot axis label
-- save modified CSV and TSV data in their original format (`_new.csv` or `_new.tsv`),
-  preserving TSV column units
+- recognize Cystemas-style `[unit]` headers in TSV and CSV files, as well
+  as separate HDF5 names/units metadata
+- show units alongside editable variable names in the right-hand selector;
+  the unit is separate from the name used in expressions
+- disambiguate duplicate names with units: `pressure[bar]` and `pressure[Pa]`
+  appear as `pressure [bar]` and `pressure [Pa]`, while their expression
+  names are `pressure_bar` and `pressure_pa` (shown in tooltips)
+- keep dot-separated namespaces grouped and names without dots ungrouped
+- use internal names in expressions (`pressure_bar + pressure_pa`) or backtick
+  quoted display labels (`` `pressure [bar]` + `pressure [Pa]` ``)
+- save modified CSV, TSV, and HDF5 data with original source names and unit
+  metadata preserved, including duplicate names with different units
 - select which columns to plot
 - rename columns
 - select X axis

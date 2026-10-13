@@ -13,7 +13,10 @@ except ImportError:
 from itertools import cycle
 
 from pandas import DataFrame
-from csv_plotter_units import read_tsv, write_tsv
+from csv_plotter_units import (
+    ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
+    write_tsv
+)
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -53,7 +56,7 @@ custom_labels = {
 }
 
 file_type = None
-column_units = {}
+column_registry = ColumnRegistry()
 hdf5_named_values = []
 hdf5_named_value_by_display_name = {}
 hdf5_simulation_metadata = []
@@ -358,7 +361,7 @@ def configure_hdf5_fit_inputs(fit_inputs):
 
 
 def reload_file_contents():
-    global data_frame, x_data, file_type, column_units
+    global data_frame, x_data, file_type, column_registry
 
     data_frame = None
     configure_hdf5_named_values([])
@@ -459,8 +462,9 @@ def reload_file_contents():
                     hdf5_file, "simulation")
                 fit_metadata = read_hdf5_text_metadata(hdf5_file, "fit")
 
-            data_frame = pd.DataFrame(data, columns=names)
-            column_units = dict(zip(names, units))
+            column_registry = ColumnRegistry.from_columns(names, units)
+            data_frame = pd.DataFrame(
+                data, columns=column_registry.names())
             configure_hdf5_named_values(named_values)
             configure_hdf5_simulation_metadata(simulation_metadata)
             configure_hdf5_fit_metadata(fit_metadata)
@@ -469,10 +473,9 @@ def reload_file_contents():
         else:
             file_type = "tsv" if filename.lower().endswith(".tsv") else "csv"
             if file_type == "tsv":
-                data_frame, column_units = read_tsv(filename)
+                data_frame, column_registry = read_tsv(filename)
             else:
-                data_frame = pd.read_csv(filename, sep=",")
-                column_units = {name: "" for name in data_frame.columns}
+                data_frame, column_registry = read_csv(filename)
     except Exception as exception:
         print(f"Error reading {filename}: {exception}", file=sys.stderr)
         sys.exit(1)
@@ -484,7 +487,7 @@ def reload_file_contents():
         try:
             rows = DataFrame.reset_index(data_frame).index
             DataFrame.insert(data_frame, 0, 'Row', rows)
-            column_units["Row"] = ""
+            column_registry.add("Row")
         except Exception:
             pass
     x_data = data_frame.iloc[:, 0]
@@ -699,7 +702,27 @@ def reconfigure_metadata_tab(metadata_scroll):
 
 
 def metadata_name(name):
-    return name in hdf5_named_value_by_display_name
+    return (name in hdf5_named_value_by_display_name
+            and name not in data_frame.columns)
+
+
+def selector_unit(name):
+    info = column_registry.get(name)
+    if info is not None:
+        return info.unit
+    metadata = hdf5_named_value_by_display_name.get(name)
+    if metadata is not None:
+        return metadata["unit"]
+    return ""
+
+
+def display_unit(unit):
+    unit = str(unit).strip()
+    if not unit:
+        return ""
+    if unit.startswith("[") and unit.endswith("]"):
+        return f" {unit}"
+    return f" [{unit}]"
 
 
 def selector_parent_box(buttons_box, name, namespace_boxes=None):
@@ -825,14 +848,7 @@ def get_axes_label_from_units(axes):
 
     for line in Axes.get_lines(axes):
         name = Line2D.get_label(line)
-        if metadata_name(name):
-            named_value = hdf5_named_value_by_display_name.get(name)
-            if named_value is None:
-                unit = ""
-            else:
-                unit = named_value["unit"]
-        else:
-            unit = column_units.get(name, "")
+        unit = selector_unit(name)
         unit = str(unit).strip()
         if unit == "":
             label = None
@@ -900,10 +916,15 @@ def add_buttons(name, buttons_box, left=False, right=False):
     y_button_left = Gtk.CheckButton(active=left)
     y_button_right = Gtk.CheckButton(active=right)
     named_value = hdf5_named_value_by_display_name.get(name)
-    if named_value is not None:
+    info = column_registry.get(name)
+    if info is not None:
+        item_label = Gtk.EditableLabel.new(info.source_name)
+    elif named_value is not None:
         item_label = Gtk.EditableLabel.new(named_value["name"])
     else:
         item_label = Gtk.EditableLabel.new(name)
+    unit_label = Gtk.Label(label=display_unit(selector_unit(name)))
+    Gtk.Widget.set_tooltip_text(item_label, f"Expression name: {name}")
     style_button = Gtk.Button.new_from_icon_name("system-run-symbolic")
     color_button = Gtk.Button.new_from_icon_name("preferences-color-symbolic")
     delete_button = Gtk.Button.new_from_icon_name("edit-delete")
@@ -946,11 +967,13 @@ def add_buttons(name, buttons_box, left=False, right=False):
     item.name = name
     item.y_button_left = y_button_left
     item.y_button_right = y_button_right
+    item.unit_label = unit_label
 
     Gtk.Box.append(item, x_button)
     Gtk.Box.append(item, y_button_left)
     Gtk.Box.append(item, y_button_right)
     Gtk.Box.append(item, item_label)
+    Gtk.Box.append(item, unit_label)
     Gtk.Box.append(item, style_button)
     Gtk.Box.append(item, color_button)
     Gtk.Box.append(item, delete_button)
@@ -989,8 +1012,9 @@ def on_save_button_clicked(save_button):
             if h5py is None:
                 raise ImportError("h5py is required to save HDF5 files")
 
-            names = [str(name) for name in data_frame.columns]
-            units = [column_units.get(name, "") for name in names]
+            names = column_registry.source_names(data_frame.columns)
+            units = [column_registry.get(name).unit
+                     for name in data_frame.columns]
             data = data_frame.to_numpy(dtype=np.float64)
 
             with h5py.File(newfile, "w") as hdf5_file:
@@ -1079,9 +1103,9 @@ def on_save_button_clicked(save_button):
                     hdf5_file.create_dataset("fit_input_knot_intervals",
                                              data=intervals)
         elif file_type == "tsv":
-            write_tsv(newfile, data_frame, column_units)
+            write_tsv(newfile, data_frame, column_registry)
         else:
-            DataFrame.to_csv(data_frame, newfile, sep=",", index=False)
+            write_csv(newfile, data_frame, column_registry)
     except Exception as exception:
         print(f"Error saving {newfile}: {exception}", file=sys.stderr)
     return
@@ -1116,30 +1140,42 @@ def on_item_label_notify_editing(editable_label, editing):
     if metadata_name(old_name):
         return
 
-    new_name = Gtk.EditableLabel.get_text(editable_label)
+    info = column_registry.get(old_name)
+    if info is None:
+        return
+    label_text = Gtk.EditableLabel.get_text(editable_label).strip()
+    new_source_name, parsed_unit = split_tsv_header(label_text)
+    new_unit = parsed_unit if new_source_name != label_text else info.unit
+    if new_source_name == info.source_name and new_unit == info.unit:
+        return
+    if not new_source_name:
+        Gtk.EditableLabel.set_text(editable_label, info.source_name)
+        return
 
+    # Resolve collisions before touching the DataFrame so a rename never
+    # overwrites another column, including one with a different unit.
+    new_info = column_registry.rename(old_name, new_source_name, new_unit)
+    new_name = new_info.internal_name
     DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
     styles[new_name] = styles.pop(old_name)
     colors[new_name] = colors.pop(old_name)
-    column_units[new_name] = column_units.pop(old_name, "")
 
     y_button_left = item.y_button_left
     y_button_right = item.y_button_right
-
     left = Gtk.CheckButton.get_active(y_button_left)
     right = Gtk.CheckButton.get_active(y_button_right)
 
     remove_plot(old_name, axes_left)
     remove_plot(old_name, axes_right)
 
+    if x_data.name == old_name:
+        x_data = data_frame[new_name]
+        Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
+
     if left:
         add_plot(new_name, axes_left)
     if right:
         add_plot(new_name, axes_right)
-
-    if x_data.name == old_name:
-        x_data.name = new_name
-        Axes.set_xlabel(axes_left, x_data.name, fontsize=FONTSIZE)
 
     old_box = Gtk.Widget.get_parent(item)
     old_expander = Gtk.Widget.get_parent(old_box)
@@ -1158,6 +1194,12 @@ def on_item_label_notify_editing(editable_label, editing):
                 Gtk.Box.remove(buttons_box, old_expander)
 
     item.name = new_name
+    if label_text != new_info.source_name:
+        Gtk.EditableLabel.set_text(editable_label, new_info.source_name)
+    if hasattr(item, "unit_label"):
+        Gtk.Label.set_text(item.unit_label, display_unit(new_info.unit))
+    Gtk.Widget.set_tooltip_text(editable_label,
+                                f"Expression name: {new_name}")
     redraw_plots()
     return
 
@@ -1219,8 +1261,7 @@ def on_delete_button_click(delete_button):
 
         del colors[name]
         del styles[name]
-        if name in column_units:
-            del column_units[name]
+        column_registry.remove(name)
 
         remove_plot(name, axes_left)
         remove_plot(name, axes_right)
@@ -1314,6 +1355,8 @@ def on_entry_activate(entry):
     text = Gtk.EntryBuffer.get_text(buffer)
 
     try:
+        if text in data_frame.columns:
+            raise ValueError(f"Column {text!r} already exists")
         local_dict = DataFrame.to_dict(data_frame, orient='series')
 
         for name in data_frame.columns:
@@ -1333,11 +1376,12 @@ def on_entry_activate(entry):
             name = match.group(1)
             if name not in replacements:
                 placeholder = f"__csv_plotter_name_{len(replacements)}"
-                if name in hdf5_named_value_by_display_name:
+                resolved = column_registry.resolve_reference(name)
+                if resolved is not None:
+                    local_dict[placeholder] = data_frame[resolved]
+                elif name in hdf5_named_value_by_display_name:
                     local_dict[placeholder] = (
                         hdf5_named_value_by_display_name[name]["value"])
-                elif name in data_frame.columns:
-                    local_dict[placeholder] = data_frame[name]
                 else:
                     for named_value in hdf5_named_values:
                         if named_value["name"] == name:
@@ -1361,7 +1405,8 @@ def on_entry_activate(entry):
             raise ValueError(
                 f"Expression produced {len(value)} rows, "
                 f"expected {len(data_frame.index)}")
-        data_frame[text] = value
+        info = column_registry.add(text)
+        data_frame[info.internal_name] = value
     except Exception as exception:
         title = Gtk.Label(label="Error evaluating expression")
         message = Gtk.Label(label=str(exception))
@@ -1389,7 +1434,6 @@ def on_entry_activate(entry):
     buttons_box = Gtk.Viewport.get_child(viewport)
 
     name = data_frame.columns[-1]
-    column_units[name] = ""
     ns = str.split(name, ".")[0]
 
     is_ref = any(p.startswith("ref_") or p.startswith("reference") for p in str.split(name, "."))
