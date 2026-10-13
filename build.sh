@@ -12,8 +12,10 @@ case "$target" in
     install)
         # The dependency check for csv_plotter.py is handled implicitly; 
         # 'install' will fail if the file doesn't exist.
+        set -x
         install -Dm755 csv_plotter.py "${DESTDIR}${PREFIX}/bin/csv_plotter.py"
         install -Dm644 csv_plotter_units.py "${DESTDIR}${PREFIX}/bin/csv_plotter_units.py"
+        set +x
         ;;
     uninstall)
         rm -f "${DESTDIR}${PREFIX}/bin/csv_plotter.py"
