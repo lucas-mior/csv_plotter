@@ -2,3 +2,4 @@ matplotlib
 pygobject
 pandas
 h5py
+numpy

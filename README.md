@@ -55,3 +55,24 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 
 ## Screenshot
 ![csv_plotter.py](https://github.com/lucas-mior/csv_plotter/blob/master/screenshot.png)
+
+## Frequency-domain computation (FFT)
+
+`csv_plotter_fft.py` provides `amplitude_spectrum(time, signal, *,
+window="hann", detrend="mean", missing="raise", sampling_rtol=1e-3)`.
+It returns two NumPy arrays: nonnegative frequencies in Hz and the
+corresponding one-sided amplitudes in the input signal's physical units.
+The analysis uses `numpy.fft.rfft`, a periodic Hann window by default,
+mean removal by default, and coherent-gain normalization. DC and the
+Nyquist component (when present) are scaled without doubling.
+
+Times must be strictly increasing, approximately uniformly spaced, and
+expressed in seconds. Irregular timestamps are rejected rather than silently
+resampled. Nonfinite timestamps, infinite signal values, and missing samples
+are also rejected. You can explicitly set `missing="interpolate"` to fill
+*interior* NaN signal values with linear interpolation; missing first/last
+samples cannot be filled automatically. Alternative options are
+`window="rectangular"` and `detrend="none"`.
+
+This is the numerical computation only; the GUI spectrum plot and controls
+are planned separately. Run the tests with `python -m unittest discover -s tests`.

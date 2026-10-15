@@ -15,11 +15,13 @@ case "$target" in
         set -x
         install -Dm755 csv_plotter.py "${DESTDIR}${PREFIX}/bin/csv_plotter.py"
         install -Dm644 csv_plotter_units.py "${DESTDIR}${PREFIX}/bin/csv_plotter_units.py"
+        install -Dm644 csv_plotter_fft.py "${DESTDIR}${PREFIX}/bin/csv_plotter_fft.py"
         set +x
         ;;
     uninstall)
         rm -f "${DESTDIR}${PREFIX}/bin/csv_plotter.py"
         rm -f "${DESTDIR}${PREFIX}/bin/csv_plotter_units.py"
+        rm -f "${DESTDIR}${PREFIX}/bin/csv_plotter_fft.py"
         ;;
     *)
         echo "Usage: $0 {install|uninstall}"
