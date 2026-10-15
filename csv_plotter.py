@@ -366,6 +366,8 @@ def redraw_spectrum():
     times = x_data.to_numpy()
     plotted_names = [[], []]
     problems = []
+    resampled_names = []
+    filled_names = []
     selected = sum((len(Axes.get_lines(axes)) for axes in source_axes), 0)
     time_unit = str(selector_unit(x_data.name)).strip().lower()
     if time_unit.startswith("[") and time_unit.endswith("]"):
@@ -387,10 +389,12 @@ def redraw_spectrum():
                     if spectrum_settings["time_range"] == "visible":
                         sample_times, samples = select_time_interval(
                             times, samples, Axes.get_xlim(axes_left))
-                    frequencies, amplitudes = amplitude_spectrum(
+                    frequencies, amplitudes, sample_info = amplitude_spectrum(
                         sample_times, samples,
                         window=spectrum_settings["window"],
-                        detrend=spectrum_settings["detrend"])
+                        detrend=spectrum_settings["detrend"],
+                        sampling="interpolate", missing="interpolate",
+                        return_info=True)
                     if spectrum_settings["scale"] == "db":
                         amplitudes = spectrum_decibels(amplitudes)
                     frequencies, amplitudes = limit_spectrum_frequencies(
@@ -400,6 +404,10 @@ def redraw_spectrum():
                 except (ValueError, TypeError, KeyError) as exception:
                     problems.append(f"{name}: {exception}")
                     continue
+                if sample_info["resampled"]:
+                    resampled_names.append(name)
+                if sample_info["interpolated_missing"]:
+                    filled_names.append(name)
                 Axes.plot(target, frequencies, amplitudes, label=name,
                           linestyle=styles[name], color=colors[name],
                           alpha=0.9, linewidth=2)
@@ -430,6 +438,10 @@ def redraw_spectrum():
             message += " · dB relative to each signal's peak (floor -120 dB)"
         if spectrum_settings["time_range"] == "visible":
             message += " · Plot visible time interval"
+        if resampled_names:
+            message += " · Resampled time gaps: " + ", ".join(resampled_names)
+        if filled_names:
+            message += " · Interpolated missing values: " + ", ".join(filled_names)
         if not time_unit:
             message += " · X axis assumed to be in seconds"
     Gtk.Label.set_text(spectrum_status, message)

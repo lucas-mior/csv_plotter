@@ -76,6 +76,66 @@ class AmplitudeSpectrumTests(unittest.TestCase):
         np.testing.assert_allclose(actual[0], expected[0])
         np.testing.assert_allclose(actual[1], expected[1], atol=1e-12)
 
+    def test_irregular_timestamps_recover_sine_spectrum(self):
+        count = 512
+        times = np.arange(count, dtype=float)
+        values = 2.5 * np.sin(2 * np.pi * 20 * times / count)
+        keep = np.ones(count, dtype=bool)
+        keep[190:199] = False
+        original_times = times[keep].copy()
+        original_values = values[keep].copy()
+        with self.assertRaisesRegex(ValueError, "not uniformly spaced"):
+            amplitude_spectrum(original_times, original_values)
+        frequencies, amplitudes, info = amplitude_spectrum(
+            original_times, original_values, sampling="interpolate",
+            return_info=True)
+        self.assertTrue(info["resampled"])
+        self.assertFalse(info["interpolated_missing"])
+        self.assertEqual(info["sample_count"], count)
+        self.assertAlmostEqual(info["sample_period"], 1.0)
+        self.assertAlmostEqual(frequencies[20], 20 / count)
+        self.assertAlmostEqual(amplitudes[20], 2.5, delta=0.025)
+        np.testing.assert_array_equal(original_times, times[keep])
+        np.testing.assert_array_equal(original_values, values[keep])
+
+    def test_irregular_timestamps_and_missing_values_together(self):
+        times = np.arange(64, dtype=float)
+        samples = 10.0 + 0.25 * times
+        baseline = amplitude_spectrum(times, samples)
+        keep = np.ones(times.size, dtype=bool)
+        keep[11:15] = False
+        kept_times = times[keep]
+        kept_samples = samples[keep]
+        kept_samples[23:26] = np.nan
+        frequencies, amplitudes, info = amplitude_spectrum(
+            kept_times, kept_samples, missing="interpolate",
+            sampling="interpolate", return_info=True)
+        self.assertTrue(info["resampled"])
+        self.assertTrue(info["interpolated_missing"])
+        np.testing.assert_allclose(frequencies, baseline[0])
+        np.testing.assert_allclose(amplitudes, baseline[1], atol=1e-12)
+
+    def test_small_sampling_jitter_can_be_resampled(self):
+        times = np.arange(256, dtype=float)
+        jittered = times.copy()
+        jittered[1:-1] += 0.02 * np.sin(np.arange(1, 255))
+        values = 1.5 * np.cos(2 * np.pi * 16 * jittered / 256)
+        frequencies, amplitudes, info = amplitude_spectrum(
+            jittered, values, sampling="interpolate", return_info=True)
+        self.assertTrue(info["resampled"])
+        self.assertAlmostEqual(frequencies[16], 16 / 256)
+        self.assertAlmostEqual(amplitudes[16], 1.5, delta=0.01)
+
+    def test_interpolation_rejects_unsafe_time_grids(self):
+        for times, expected in (
+                (np.array([0., 1., 1., 2.]), "strictly increasing"),
+                (np.array([0., 1., np.nan, 3.]), "nonfinite"),
+                (np.array([0., 1., 2., 2_000_100.]), "too many")):
+            with self.subTest(times=times):
+                with self.assertRaisesRegex(ValueError, expected):
+                    amplitude_spectrum(times, np.ones(len(times)),
+                                       sampling="interpolate")
+
     def test_missing_edge_samples_are_rejected(self):
         times = np.arange(30, dtype=float)
         for index in (0, -1):
@@ -110,6 +170,7 @@ class AmplitudeSpectrumTests(unittest.TestCase):
             (dict(window="blackman"), "window"),
             (dict(detrend="linear"), "detrend"),
             (dict(missing="drop"), "missing"),
+            (dict(sampling="ignore"), "sampling"),
             (dict(sampling_rtol=-0.1), "sampling_rtol"),
             (dict(sampling_rtol=float("nan")), "sampling_rtol"),
         )

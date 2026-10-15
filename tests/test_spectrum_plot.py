@@ -159,21 +159,40 @@ class SpectrumPlotTests(unittest.TestCase):
         self.assertEqual(len(self.state["spectrum_axes_right"].lines), 1)
         self.assertEqual(self.canvas.draw_calls, 2)
 
-    def test_nonuniform_x_axis_is_reported_without_crashing(self):
+    def test_nonuniform_x_axis_is_interpolated(self):
         changed = self.state["data_frame"].copy()
         changed.loc[8, "time"] += 0.5
         self.state["x_data"] = changed["time"]
         self.state["redraw_spectrum"]()
-        self.assertFalse(self.state["spectrum_axes_left"].lines)
-        self.assertFalse(self.state["spectrum_axes_right"].lines)
-        self.assertIn("not uniformly spaced", self.status.text)
+        self.assertEqual(len(self.state["spectrum_axes_left"].lines), 1)
+        self.assertEqual(len(self.state["spectrum_axes_right"].lines), 1)
+        self.assertIn("Resampled time gaps", self.status.text)
+        pd.testing.assert_frame_equal(self.state["data_frame"], self.original)
 
-    def test_invalid_signal_does_not_hide_a_valid_signal(self):
+    def test_missing_signal_is_interpolated(self):
         self.state["data_frame"].loc[100, "level"] = np.nan
         self.state["redraw_spectrum"]()
         self.assertEqual(len(self.state["spectrum_axes_left"].lines), 1)
+        self.assertEqual(len(self.state["spectrum_axes_right"].lines), 1)
+        self.assertIn("Interpolated missing values: level", self.status.text)
+
+    def test_missing_edge_signal_does_not_hide_other_signal(self):
+        self.state["data_frame"].loc[0, "level"] = np.nan
+        self.state["redraw_spectrum"]()
+        self.assertEqual(len(self.state["spectrum_axes_left"].lines), 1)
         self.assertFalse(self.state["spectrum_axes_right"].lines)
-        self.assertIn("level: signal contains missing samples", self.status.text)
+        self.assertIn("cannot interpolate missing edge samples", self.status.text)
+
+    def test_missing_timestamp_row_uses_linear_interpolation(self):
+        modified = self.state["data_frame"].drop(index=range(90, 96))
+        self.state["x_data"] = modified["time"]
+        self.state["data_frame"] = modified
+        self.state["redraw_spectrum"]()
+        self.assertEqual(len(self.state["spectrum_axes_left"].lines), 1)
+        self.assertEqual(len(self.state["spectrum_axes_right"].lines), 1)
+        self.assertIn("Resampled time gaps", self.status.text)
+        freqs = self.state["spectrum_axes_left"].lines[0].get_xdata()
+        self.assertAlmostEqual(freqs[20], 0.05)
 
     def test_unrecognized_time_units_are_rejected(self):
         self.state["selector_unit"] = lambda name: "ms" if name == "time" else "bar"
