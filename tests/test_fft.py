@@ -4,7 +4,10 @@ import unittest
 
 import numpy as np
 
-from csv_plotter_fft import amplitude_spectrum
+from csv_plotter_fft import (
+    amplitude_spectrum, limit_spectrum_frequencies, select_time_interval,
+    spectrum_decibels,
+)
 
 
 class AmplitudeSpectrumTests(unittest.TestCase):
@@ -125,6 +128,48 @@ class AmplitudeSpectrumTests(unittest.TestCase):
             with self.subTest(message=message):
                 with self.assertRaisesRegex(ValueError, message):
                     amplitude_spectrum(time, values)
+
+    def test_time_range_selection_keeps_inputs_unchanged(self):
+        times = 10000 + np.arange(400, dtype=float)
+        signal = np.sin(times)
+        original = signal.copy()
+        selected_time, selected_signal = select_time_interval(
+            times, signal, (10199.0, 10000.0))
+        self.assertEqual(selected_time.size, 200)
+        self.assertAlmostEqual(selected_time[-1], 10199)
+        np.testing.assert_array_equal(signal, original)
+        with self.assertRaisesRegex(ValueError, "fewer than three"):
+            select_time_interval(times, signal, (10000, 10001))
+        with self.assertRaisesRegex(ValueError, "finite"):
+            select_time_interval(times, signal, (np.nan, 10020))
+
+    def test_frequency_limits_and_validation(self):
+        frequencies = np.arange(10, dtype=float) / 10
+        amplitudes = np.arange(10, dtype=float)
+        selected_f, selected_a = limit_spectrum_frequencies(
+            frequencies, amplitudes, 0.2, 0.4)
+        np.testing.assert_allclose(selected_f, [0.2, 0.3, 0.4])
+        np.testing.assert_allclose(selected_a, [2, 3, 4])
+        for kwargs, message in (
+                ({"minimum": -1}, "nonnegative"),
+                ({"minimum": float("nan")}, "finite"),
+                ({"minimum": 0.4, "maximum": 0.2}, "exceed"),
+                ({"minimum": 1.5}, "no FFT bins")):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaisesRegex(ValueError, message):
+                    limit_spectrum_frequencies(frequencies, amplitudes,
+                                               **kwargs)
+
+    def test_db_scaling_floor_and_validation(self):
+        values = np.array([0.0, 0.001, 0.1, 1.0])
+        original = values.copy()
+        result = spectrum_decibels(values)
+        np.testing.assert_allclose(result, [-120.0, -60.0, -20.0, 0.0])
+        np.testing.assert_array_equal(values, original)
+        with self.assertRaisesRegex(ValueError, "reference peak"):
+            spectrum_decibels(np.zeros(5))
+        with self.assertRaisesRegex(ValueError, "nonnegative"):
+            spectrum_decibels(np.array([-1., 2.]))
 
     def test_no_mutation_of_input_arrays(self):
         times = np.arange(20, dtype=float)

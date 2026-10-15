@@ -90,3 +90,56 @@ def amplitude_spectrum(time, signal, *, window="hann", detrend="mean",
         amplitudes[-1] *= 0.5
     frequencies = np.fft.rfftfreq(samples.size, d=sample_period)
     return frequencies, amplitudes
+
+
+def select_time_interval(time, signal, limits):
+    """Return samples inside the inclusive, currently visible time limits.
+
+    The original arrays remain unchanged. The FFT implementation validates
+    monotonicity and uniformity of the selected timestamps afterwards.
+    """
+    if len(limits) != 2 or not np.all(np.isfinite(limits)):
+        raise ValueError("visible time limits must be finite")
+    timestamps = np.asarray(time)
+    samples = np.asarray(signal)
+    lower, upper = sorted(limits)
+    selected = (timestamps >= lower) & (timestamps <= upper)
+    if np.count_nonzero(selected) < 3:
+        raise ValueError("visible time range contains fewer than three samples")
+    return timestamps[selected], samples[selected]
+
+
+def limit_spectrum_frequencies(frequencies, amplitudes, minimum=0.0,
+                               maximum=None):
+    """Restrict an amplitude spectrum to an inclusive frequency interval."""
+    if not np.isfinite(minimum) or minimum < 0:
+        raise ValueError("minimum frequency must be finite and nonnegative")
+    if maximum is not None and (not np.isfinite(maximum)
+                                or maximum <= minimum):
+        raise ValueError("maximum frequency must exceed minimum frequency")
+    selected = frequencies >= minimum
+    if maximum is not None:
+        selected &= frequencies <= maximum
+    if not np.any(selected):
+        raise ValueError("frequency range contains no FFT bins")
+    return frequencies[selected], amplitudes[selected]
+
+
+def spectrum_decibels(amplitudes, floor_db=-120.0):
+    """Return dB relative to the spectrum's largest amplitude (0 dB).
+
+    The floor avoids negative infinity for zero-valued FFT bins. Spectra
+    without any nonzero magnitude cannot be normalized to a peak.
+    """
+    values = np.asarray(amplitudes, dtype=float)
+    if values.ndim != 1 or not np.all(np.isfinite(values)):
+        raise ValueError("amplitudes must be a finite one-dimensional array")
+    if not np.isfinite(floor_db) or floor_db >= 0:
+        raise ValueError("floor_db must be finite and negative")
+    if np.any(values < 0):
+        raise ValueError("amplitudes must be nonnegative")
+    peak = float(np.max(values)) if values.size else 0.0
+    if peak == 0:
+        raise ValueError("zero spectrum has no dB reference peak")
+    clipped = np.maximum(values / peak, 10 ** (floor_db / 20))
+    return 20.0 * np.log10(clipped)

@@ -36,6 +36,8 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 - **Spectrum** tab with one-sided FFT amplitude plots of selected signals,
   using the same left/right axis assignments, colors, and line styles as the
   time-domain plot and an independent Matplotlib navigation toolbar
+- interactive FFT controls for Hann/rectangular window, mean removal,
+  linear/relative dB amplitudes, full/visible time range, and frequency limits
 
 ## Non-features
 - CSV/TSV edition (use a text/spreadsheet editor instead)
@@ -85,9 +87,31 @@ physical unit, with left and right axes corresponding to the Plot tab.
 Spectrum navigation, zooming, and image export use a separate Matplotlib
 toolbar. The original data and time-domain plot are not modified.
 
-For now the GUI uses the default Hann window, mean removal, and full data
-range; interactive FFT settings are planned for a later step. The X axis must
-contain uniformly spaced, increasing times measured in seconds. If its unit
-is missing, seconds are assumed and the tab says so. The tab reports invalid
-sample spacing or missing signal samples instead of silently interpolating.
+Spectrum controls above the plot allow choosing the **Hann** or
+**Rectangular** window, **Remove mean** or **None** detrending, and
+**Linear** or **dB (relative to peak)** amplitude. In dB mode, each signal's
+largest FFT amplitude is 0 dB, and smaller amplitudes are displayed relative
+to that peak, floored at -120 dB. dB amplitudes are therefore not in the
+signal's original units and are not directly comparable across signals.
+A signal with zero amplitude at every frequency is reported as unavailable in
+dB mode.
+
+The **Time range** menu offers **All samples** (default) or **Visible Plot
+range**. To use the latter, zoom the time-domain Plot first and open the
+Spectrum tab; it computes the FFT from only the timestamps inside the Plot's
+visible X limits. The time selection must contain at least three samples.
+A shorter interval changes the FFT's frequency resolution.
+
+Optional **Min** and **Max** frequency fields are in Hz. Press **Apply Hz**
+or Enter to restrict the displayed FFT bins; an empty maximum includes the
+Nyquist frequency. These fields crop the *displayed spectrum*, not the
+underlying data or the FFT resolution. Invalid limits leave the previous
+valid settings intact.
+
+Defaults remain Hann window, mean removal, linear amplitude, all samples,
+and the full frequency range. The X axis must contain uniformly spaced,
+increasing times measured in seconds. If its unit is missing, seconds are
+assumed and the tab says so. The tab reports invalid sample spacing or
+missing signal samples instead of silently interpolating. The time-domain
+plot and original data are not modified.
 Run the tests with `python -m unittest discover -s tests`.

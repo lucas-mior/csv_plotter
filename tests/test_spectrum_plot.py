@@ -10,7 +10,10 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
-from csv_plotter_fft import amplitude_spectrum
+from csv_plotter_fft import (
+    amplitude_spectrum, limit_spectrum_frequencies, select_time_interval,
+    spectrum_decibels,
+)
 from csv_plotter_units import ColumnRegistry
 
 
@@ -20,7 +23,8 @@ SOURCE = Path(__file__).resolve().parents[1] / "csv_plotter.py"
 def load_functions():
     tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
     names = {"on_notebook_switch_page", "spectrum_signal_values",
-             "spectrum_axis_label", "redraw_spectrum"}
+             "spectrum_axis_label", "redraw_spectrum",
+             "on_spectrum_setting_changed", "on_spectrum_frequency_apply"}
     nodes = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name in names]
     module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
@@ -33,8 +37,29 @@ class Label:
         label.text = message
 
 
+class Entry:
+    @staticmethod
+    def get_text(entry):
+        return entry.text
+
+
+class DropDown:
+    @staticmethod
+    def get_selected(dropdown):
+        return dropdown.selected
+
+
+class Notebook:
+    @staticmethod
+    def get_current_page(notebook):
+        return notebook.page
+
+
 class Gtk:
     Label = Label
+    Entry = Entry
+    DropDown = DropDown
+    Notebook = Notebook
 
 
 class Canvas:
@@ -71,6 +96,17 @@ class SpectrumPlotTests(unittest.TestCase):
         self.status = type("Status", (), {"text": ""})()
         self.state = {
             "np": np,
+            "spectrum_settings": {
+                "window": "hann", "detrend": "mean", "scale": "linear",
+                "time_range": "full", "frequency_min": 0.0,
+                "frequency_max": None,
+            },
+            "select_time_interval": select_time_interval,
+            "limit_spectrum_frequencies": limit_spectrum_frequencies,
+            "spectrum_decibels": spectrum_decibels,
+            "spectrum_min_entry": type("EntryState", (), {"text": "0"})(),
+            "spectrum_max_entry": type("EntryState", (), {"text": ""})(),
+            "plot_notebook": None,
             "Gtk": Gtk,
             "Axes": Axes,
             "Line2D": Line2D,
@@ -166,6 +202,84 @@ class SpectrumPlotTests(unittest.TestCase):
         self.state["on_notebook_switch_page"](None, None, 1)
         self.assertEqual(len(calls), 1)
 
+    def test_window_and_detrend_controls_change_fft(self):
+        self.state["spectrum_settings"]["window"] = "rectangular"
+        self.state["spectrum_settings"]["detrend"] = "none"
+        self.state["redraw_spectrum"]()
+        left = self.state["spectrum_axes_left"]
+        self.assertAlmostEqual(left.lines[0].get_ydata()[0], 11.0,
+                               places=9)
+        self.assertIn("Rectangular", self.status.text)
+        self.assertIn("mean retained", self.status.text)
+        self.assertEqual(self.canvas.draw_calls, 1)
+
+    def test_db_scale_is_relative_to_each_signal_peak(self):
+        self.state["spectrum_settings"]["scale"] = "db"
+        self.state["redraw_spectrum"]()
+        left = self.state["spectrum_axes_left"]
+        right = self.state["spectrum_axes_right"]
+        self.assertAlmostEqual(left.lines[0].get_ydata()[20], 0.0, places=8)
+        self.assertAlmostEqual(right.lines[0].get_ydata()[40], 0.0, places=8)
+        self.assertTrue(np.isfinite(left.lines[0].get_ydata()).all())
+        self.assertEqual(left.get_ylabel(), "Relative amplitude [dB re peak]")
+        self.assertIn("-120 dB", self.status.text)
+
+    def test_visible_plot_time_interval(self):
+        self.state["spectrum_settings"]["time_range"] = "visible"
+        self.state["axes_left"].set_xlim(10000.0, 10199.0)
+        self.state["redraw_spectrum"]()
+        left = self.state["spectrum_axes_left"]
+        self.assertEqual(len(left.lines[0].get_xdata()), 101)
+        self.assertAlmostEqual(left.lines[0].get_xdata()[1], 1 / 200)
+        self.assertIn("Plot visible time interval", self.status.text)
+        pd.testing.assert_frame_equal(self.state["data_frame"], self.original)
+
+    def test_visible_plot_range_with_few_samples(self):
+        self.state["spectrum_settings"]["time_range"] = "visible"
+        self.state["axes_left"].set_xlim(10000.0, 10001.0)
+        self.state["redraw_spectrum"]()
+        self.assertFalse(self.state["spectrum_axes_left"].lines)
+        self.assertIn("fewer than three", self.status.text)
+
+    def test_frequency_limits_crop_display_not_original_data(self):
+        self.state["spectrum_settings"]["frequency_min"] = 0.045
+        self.state["spectrum_settings"]["frequency_max"] = 0.055
+        self.state["redraw_spectrum"]()
+        frequency = self.state["spectrum_axes_left"].lines[0].get_xdata()
+        self.assertTrue((frequency >= 0.045).all())
+        self.assertTrue((frequency <= 0.055).all())
+        self.assertAlmostEqual(frequency[2], 0.05)
+        pd.testing.assert_frame_equal(self.state["data_frame"], self.original)
+
+    def test_invalid_frequency_range_does_not_replace_prior_settings(self):
+        self.state["spectrum_min_entry"].text = "0.1"
+        self.state["spectrum_max_entry"].text = "0.05"
+        self.state["on_spectrum_frequency_apply"](None)
+        self.assertIn("Invalid frequency range", self.status.text)
+        self.assertEqual(self.state["spectrum_settings"]["frequency_min"], 0)
+        self.assertIsNone(self.state["spectrum_settings"]["frequency_max"])
+        self.assertEqual(self.canvas.draw_calls, 0)
+
+    def test_frequency_apply_refreshes_current_spectrum(self):
+        self.state["plot_notebook"] = type("NotebookState", (),
+                                           {"page": 1})()
+        self.state["spectrum_min_entry"].text = "0.04"
+        self.state["spectrum_max_entry"].text = "0.06"
+        self.state["on_spectrum_frequency_apply"](None)
+        self.assertEqual(self.canvas.draw_calls, 1)
+        self.assertAlmostEqual(self.state["spectrum_settings"]["frequency_max"], 0.06)
+        self.assertEqual(len(self.state["spectrum_axes_left"].lines[0].get_xdata()), 9)
+
+    def test_dropdown_changes_live_spectrum(self):
+        self.state["plot_notebook"] = type("NotebookState", (),
+                                           {"page": 1})()
+        menu = type("Menu", (), {"spectrum_setting": "scale",
+                                 "spectrum_values": ("linear", "db"),
+                                 "selected": 1})()
+        self.state["on_spectrum_setting_changed"](menu)
+        self.assertEqual(self.state["spectrum_settings"]["scale"], "db")
+        self.assertEqual(self.canvas.draw_calls, 1)
+
     def test_spectrum_page_is_created_in_gtk_notebook(self):
         tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
         activation = next(node for node in tree.body
@@ -175,6 +289,9 @@ class SpectrumPlotTests(unittest.TestCase):
                    if isinstance(node, ast.Constant) and isinstance(node.value, str)]
         self.assertIn("Spectrum", strings)
         self.assertIn("switch-page", strings)
+        self.assertIn("Visible Plot range", strings)
+        self.assertIn("Apply Hz", strings)
+        self.assertIn("dB (relative to peak)", strings)
 
 
 if __name__ == "__main__":

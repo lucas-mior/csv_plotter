@@ -13,7 +13,10 @@ except ImportError:
 from itertools import cycle
 
 from pandas import DataFrame
-from csv_plotter_fft import amplitude_spectrum
+from csv_plotter_fft import (
+    amplitude_spectrum, limit_spectrum_frequencies, select_time_interval,
+    spectrum_decibels
+)
 from csv_plotter_units import (
     ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
     write_tsv
@@ -67,6 +70,14 @@ HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 plot_notebook = None
 spectrum_page_index = None
+spectrum_settings = {
+    "window": "hann",
+    "detrend": "mean",
+    "scale": "linear",
+    "time_range": "full",
+    "frequency_min": 0.0,
+    "frequency_max": None,
+}
 
 
 def on_application_activation(application):
@@ -92,6 +103,7 @@ def on_have_filename_ready(dialog, async_result, data):
     global axes_left, axes_right, canvas, filebase, filename
     global plot_notebook, spectrum_page_index, spectrum_canvas
     global spectrum_axes_left, spectrum_axes_right, spectrum_status
+    global spectrum_min_entry, spectrum_max_entry
 
     if dialog is not None:
         gfile = Gtk.FileDialog.open_finish(dialog, result=async_result)
@@ -208,6 +220,43 @@ def on_have_filename_ready(dialog, async_result, data):
     Gtk.Label.set_selectable(spectrum_status, True)
 
     spectrum_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    spectrum_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                spacing=12)
+    add_spectrum_dropdown(spectrum_controls, "Window", "window",
+                          ("Hann", "Rectangular"), ("hann", "rectangular"))
+    add_spectrum_dropdown(spectrum_controls, "Detrend", "detrend",
+                          ("Remove mean", "None"), ("mean", "none"))
+    add_spectrum_dropdown(spectrum_controls, "Amplitude", "scale",
+                          ("Linear", "dB (relative to peak)"),
+                          ("linear", "db"))
+    add_spectrum_dropdown(spectrum_controls, "Time range", "time_range",
+                          ("All samples", "Visible Plot range"),
+                          ("full", "visible"))
+    Gtk.Box.append(spectrum_box, spectrum_controls)
+
+    frequency_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                 spacing=12)
+    Gtk.Box.append(frequency_controls, Gtk.Label(label="Frequency [Hz]:"))
+    Gtk.Box.append(frequency_controls, Gtk.Label(label="Min"))
+    spectrum_min_entry = Gtk.Entry()
+    Gtk.Entry.set_width_chars(spectrum_min_entry, 9)
+    Gtk.Entry.set_text(spectrum_min_entry, "0")
+    Gtk.Entry.connect(spectrum_min_entry, "activate",
+                      on_spectrum_frequency_apply)
+    Gtk.Box.append(frequency_controls, spectrum_min_entry)
+    Gtk.Box.append(frequency_controls, Gtk.Label(label="Max"))
+    spectrum_max_entry = Gtk.Entry()
+    Gtk.Entry.set_width_chars(spectrum_max_entry, 9)
+    Gtk.Entry.set_placeholder_text(spectrum_max_entry, "Nyquist")
+    Gtk.Entry.connect(spectrum_max_entry, "activate",
+                      on_spectrum_frequency_apply)
+    Gtk.Box.append(frequency_controls, spectrum_max_entry)
+    frequency_button = Gtk.Button(label="Apply Hz")
+    Gtk.Button.connect(frequency_button, "clicked",
+                       on_spectrum_frequency_apply)
+    Gtk.Box.append(frequency_controls, frequency_button)
+    Gtk.Box.append(spectrum_box, frequency_controls)
+
     Gtk.Box.append(spectrum_box, spectrum_toolbar)
     Gtk.Box.append(spectrum_box, spectrum_canvas)
     Gtk.Box.append(spectrum_box, spectrum_status)
@@ -234,6 +283,54 @@ def on_notebook_switch_page(notebook, page, page_number):
     return
 
 
+def add_spectrum_dropdown(parent, label, setting, labels, values):
+    """Create a setting selector without modifying the time-domain controls."""
+    Gtk.Box.append(parent, Gtk.Label(label=label))
+    dropdown = Gtk.DropDown.new_from_strings(list(labels))
+    dropdown.spectrum_setting = setting
+    dropdown.spectrum_values = values
+    Gtk.DropDown.set_selected(dropdown,
+                              values.index(spectrum_settings[setting]))
+    Gtk.DropDown.connect(dropdown, "notify::selected",
+                         on_spectrum_setting_changed)
+    Gtk.Box.append(parent, dropdown)
+    return
+
+
+def on_spectrum_setting_changed(dropdown, property_spec=None):
+    setting = dropdown.spectrum_setting
+    selected = Gtk.DropDown.get_selected(dropdown)
+    spectrum_settings[setting] = dropdown.spectrum_values[selected]
+    if (plot_notebook is not None
+            and Gtk.Notebook.get_current_page(plot_notebook)
+            == spectrum_page_index):
+        redraw_spectrum()
+    return
+
+
+def on_spectrum_frequency_apply(widget):
+    """Apply the frequency limits together, retaining prior valid settings."""
+    try:
+        low_text = Gtk.Entry.get_text(spectrum_min_entry).strip()
+        high_text = Gtk.Entry.get_text(spectrum_max_entry).strip()
+        low = float(low_text) if low_text else 0.0
+        high = float(high_text) if high_text else None
+        if not np.isfinite(low) or low < 0:
+            raise ValueError("minimum frequency must be nonnegative")
+        if high is not None and (not np.isfinite(high) or high <= low):
+            raise ValueError("maximum frequency must exceed minimum")
+    except ValueError as exception:
+        Gtk.Label.set_text(spectrum_status, f"Invalid frequency range: {exception}")
+        return
+    spectrum_settings["frequency_min"] = low
+    spectrum_settings["frequency_max"] = high
+    if (plot_notebook is not None
+            and Gtk.Notebook.get_current_page(plot_notebook)
+            == spectrum_page_index):
+        redraw_spectrum()
+    return
+
+
 def spectrum_signal_values(name):
     if name in hdf5_named_value_by_display_name:
         value = hdf5_named_value_by_display_name[name]["value"]
@@ -242,6 +339,8 @@ def spectrum_signal_values(name):
 
 
 def spectrum_axis_label(names):
+    if spectrum_settings["scale"] == "db":
+        return "Relative amplitude [dB re peak]"
     units = []
     for name in names:
         unit = str(selector_unit(name)).strip()
@@ -264,6 +363,7 @@ def redraw_spectrum():
 
     source_axes = (axes_left, axes_right)
     target_axes = (spectrum_axes_left, spectrum_axes_right)
+    times = x_data.to_numpy()
     plotted_names = [[], []]
     problems = []
     selected = sum((len(Axes.get_lines(axes)) for axes in source_axes), 0)
@@ -282,8 +382,21 @@ def redraw_spectrum():
             for line in Axes.get_lines(source):
                 name = Line2D.get_label(line)
                 try:
+                    samples = spectrum_signal_values(name)
+                    sample_times = times
+                    if spectrum_settings["time_range"] == "visible":
+                        sample_times, samples = select_time_interval(
+                            times, samples, Axes.get_xlim(axes_left))
                     frequencies, amplitudes = amplitude_spectrum(
-                        x_data.to_numpy(), spectrum_signal_values(name))
+                        sample_times, samples,
+                        window=spectrum_settings["window"],
+                        detrend=spectrum_settings["detrend"])
+                    if spectrum_settings["scale"] == "db":
+                        amplitudes = spectrum_decibels(amplitudes)
+                    frequencies, amplitudes = limit_spectrum_frequencies(
+                        frequencies, amplitudes,
+                        spectrum_settings["frequency_min"],
+                        spectrum_settings["frequency_max"])
                 except (ValueError, TypeError, KeyError) as exception:
                     problems.append(f"{name}: {exception}")
                     continue
@@ -309,7 +422,14 @@ def redraw_spectrum():
         if len(problems) > 3:
             message += f" | ... and {len(problems) - 3} more errors"
     else:
-        message = "One-sided amplitude spectrum · Hann window · mean removed"
+        window_label = spectrum_settings["window"].capitalize()
+        trend_label = ("mean removed" if spectrum_settings["detrend"] == "mean"
+                       else "mean retained")
+        message = f"One-sided spectrum · {window_label} window · {trend_label}"
+        if spectrum_settings["scale"] == "db":
+            message += " · dB relative to each signal's peak (floor -120 dB)"
+        if spectrum_settings["time_range"] == "visible":
+            message += " · Plot visible time interval"
         if not time_unit:
             message += " · X axis assumed to be in seconds"
     Gtk.Label.set_text(spectrum_status, message)
