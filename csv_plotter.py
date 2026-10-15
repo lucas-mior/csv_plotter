@@ -13,6 +13,7 @@ except ImportError:
 from itertools import cycle
 
 from pandas import DataFrame
+from csv_plotter_fft import amplitude_spectrum
 from csv_plotter_units import (
     ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
     write_tsv
@@ -64,6 +65,9 @@ hdf5_fit_metadata = []
 hdf5_fit_inputs = []
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
+plot_notebook = None
+spectrum_page_index = None
+
 
 def on_application_activation(application):
     global window, filename, pre_plots
@@ -86,6 +90,8 @@ def on_application_activation(application):
 
 def on_have_filename_ready(dialog, async_result, data):
     global axes_left, axes_right, canvas, filebase, filename
+    global plot_notebook, spectrum_page_index, spectrum_canvas
+    global spectrum_axes_left, spectrum_axes_right, spectrum_status
 
     if dialog is not None:
         gfile = Gtk.FileDialog.open_finish(dialog, result=async_result)
@@ -189,15 +195,127 @@ def on_have_filename_ready(dialog, async_result, data):
     Gtk.Paned.set_shrink_start_child(window_pane, False)
     Gtk.Paned.set_shrink_end_child(window_pane, False)
 
-    notebook = Gtk.Notebook()
-    Gtk.Notebook.set_tab_pos(notebook, Gtk.PositionType.TOP)
-    Gtk.Notebook.append_page(notebook, window_pane, Gtk.Label(label="Plot"))
-    Gtk.Notebook.append_page(notebook, metadata_scroll,
-                             Gtk.Label(label="Metadata"))
+    spectrum_figure = Figure(layout="constrained")
+    spectrum_canvas = FigureCanvas(spectrum_figure)
+    spectrum_toolbar = NavigationToolbar(spectrum_canvas)
+    FigureCanvas.set_hexpand(spectrum_canvas, True)
+    FigureCanvas.set_vexpand(spectrum_canvas, True)
+    spectrum_axes_left = Figure.add_subplot(spectrum_figure, 111)
+    spectrum_axes_right = Axes.twinx(spectrum_axes_left)
+    spectrum_status = Gtk.Label(label="Select signals in the Plot tab")
+    Gtk.Label.set_xalign(spectrum_status, 0.0)
+    Gtk.Label.set_wrap(spectrum_status, True)
+    Gtk.Label.set_selectable(spectrum_status, True)
 
-    Gtk.ApplicationWindow.set_child(window, notebook)
+    spectrum_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    Gtk.Box.append(spectrum_box, spectrum_toolbar)
+    Gtk.Box.append(spectrum_box, spectrum_canvas)
+    Gtk.Box.append(spectrum_box, spectrum_status)
+
+    plot_notebook = Gtk.Notebook()
+    Gtk.Notebook.set_tab_pos(plot_notebook, Gtk.PositionType.TOP)
+    Gtk.Notebook.append_page(plot_notebook, window_pane,
+                             Gtk.Label(label="Plot"))
+    spectrum_page_index = Gtk.Notebook.append_page(
+        plot_notebook, spectrum_box, Gtk.Label(label="Spectrum"))
+    Gtk.Notebook.append_page(plot_notebook, metadata_scroll,
+                             Gtk.Label(label="Metadata"))
+    Gtk.Notebook.connect(plot_notebook, "switch-page",
+                         on_notebook_switch_page)
+
+    Gtk.ApplicationWindow.set_child(window, plot_notebook)
     Gtk.ApplicationWindow.set_visible(window, True)
     return
+
+
+def on_notebook_switch_page(notebook, page, page_number):
+    if page_number == spectrum_page_index:
+        redraw_spectrum()
+    return
+
+
+def spectrum_signal_values(name):
+    if name in hdf5_named_value_by_display_name:
+        value = hdf5_named_value_by_display_name[name]["value"]
+        return np.full(len(data_frame.index), value, dtype=np.float64)
+    return data_frame[name].to_numpy()
+
+
+def spectrum_axis_label(names):
+    units = []
+    for name in names:
+        unit = str(selector_unit(name)).strip()
+        if unit and unit not in units:
+            units.append(unit)
+    if not units:
+        return "Amplitude"
+    return "Amplitude " + ", ".join(
+        unit if unit.startswith("[") and unit.endswith("]")
+        else f"[{unit}]" for unit in units)
+
+
+def redraw_spectrum():
+    """Plot the selected time-domain signals without modifying input data."""
+    Axes.clear(spectrum_axes_left)
+    Axes.clear(spectrum_axes_right)
+    Axes.grid(spectrum_axes_left, True)
+    Axes.set_xlabel(spectrum_axes_left, "Frequency [Hz]", fontsize=FONTSIZE)
+    Axes.set_xmargin(spectrum_axes_left, 0.01)
+
+    source_axes = (axes_left, axes_right)
+    target_axes = (spectrum_axes_left, spectrum_axes_right)
+    plotted_names = [[], []]
+    problems = []
+    selected = sum((len(Axes.get_lines(axes)) for axes in source_axes), 0)
+    time_unit = str(selector_unit(x_data.name)).strip().lower()
+    if time_unit.startswith("[") and time_unit.endswith("]"):
+        time_unit = time_unit[1:-1].strip()
+
+    if time_unit and time_unit not in ("s", "sec", "second", "seconds"):
+        problems.append(f"X axis '{x_data.name}' uses '{time_unit}'; "
+                        "select time in seconds for an FFT in Hz")
+    elif selected == 0:
+        problems.append("Select one or more Y signals in the Plot tab")
+    else:
+        for source, target, names in zip(source_axes, target_axes,
+                                         plotted_names):
+            for line in Axes.get_lines(source):
+                name = Line2D.get_label(line)
+                try:
+                    frequencies, amplitudes = amplitude_spectrum(
+                        x_data.to_numpy(), spectrum_signal_values(name))
+                except (ValueError, TypeError, KeyError) as exception:
+                    problems.append(f"{name}: {exception}")
+                    continue
+                Axes.plot(target, frequencies, amplitudes, label=name,
+                          linestyle=styles[name], color=colors[name],
+                          alpha=0.9, linewidth=2)
+                names.append(name)
+
+    for axes, names in zip(target_axes, plotted_names):
+        Axes.set_ylabel(axes, spectrum_axis_label(names), fontsize=FONTSIZE)
+        show_left = bool(names) and axes is spectrum_axes_left
+        show_right = bool(names) and axes is spectrum_axes_right
+        Axes.tick_params(axes, axis="y", left=show_left,
+                         labelleft=show_left, right=show_right,
+                         labelright=show_right)
+        if names:
+            Axes.legend(axes, fontsize=max(10, FONTSIZE // 2),
+                        loc="upper left" if axes is spectrum_axes_left
+                        else "upper right")
+
+    if problems:
+        message = " | ".join(problems[:3])
+        if len(problems) > 3:
+            message += f" | ... and {len(problems) - 3} more errors"
+    else:
+        message = "One-sided amplitude spectrum · Hann window · mean removed"
+        if not time_unit:
+            message += " · X axis assumed to be in seconds"
+    Gtk.Label.set_text(spectrum_status, message)
+    FigureCanvas.draw(spectrum_canvas)
+    return
+
 
 
 def filename_has_hdf5_extension(path):
@@ -1569,6 +1687,10 @@ def redraw_plots(full=False, autoscale_y=False):
     put_legends()
 
     FigureCanvas.draw(canvas)
+    if (plot_notebook is not None
+            and Gtk.Notebook.get_current_page(plot_notebook)
+            == spectrum_page_index):
+        redraw_spectrum()
     return
 
 

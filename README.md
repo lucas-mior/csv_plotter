@@ -33,6 +33,9 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 - remove unwanted columns (for organization purposes)
     * Possibly save as a new file (also save new curves)
 - command to reload file contents (in case you make external changes)
+- **Spectrum** tab with one-sided FFT amplitude plots of selected signals,
+  using the same left/right axis assignments, colors, and line styles as the
+  time-domain plot and an independent Matplotlib navigation toolbar
 
 ## Non-features
 - CSV/TSV edition (use a text/spreadsheet editor instead)
@@ -74,5 +77,17 @@ are also rejected. You can explicitly set `missing="interpolate"` to fill
 samples cannot be filled automatically. Alternative options are
 `window="rectangular"` and `detrend="none"`.
 
-This is the numerical computation only; the GUI spectrum plot and controls
-are planned separately. Run the tests with `python -m unittest discover -s tests`.
+The **Spectrum** tab computes the FFT of signals selected in the **Plot**
+tab, using the currently selected X column as time in seconds. The Spectrum
+tab refreshes when opened and when the selection, data, X column, or line
+styles change while it is visible. Each signal's amplitude retains its
+physical unit, with left and right axes corresponding to the Plot tab.
+Spectrum navigation, zooming, and image export use a separate Matplotlib
+toolbar. The original data and time-domain plot are not modified.
+
+For now the GUI uses the default Hann window, mean removal, and full data
+range; interactive FFT settings are planned for a later step. The X axis must
+contain uniformly spaced, increasing times measured in seconds. If its unit
+is missing, seconds are assumed and the tab says so. The tab reports invalid
+sample spacing or missing signal samples instead of silently interpolating.
+Run the tests with `python -m unittest discover -s tests`.
