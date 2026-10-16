@@ -133,14 +133,7 @@ class ColumnRegistry:
         return [self._entries[name].color for name in names]
 
     def headers(self, names):
-        result = []
-        for name in names:
-            info = self._entries[name]
-            if info.unit:
-                result.append(f"{info.source_name}[{info.unit}]")
-            else:
-                result.append(info.source_name)
-        return result
+        return [self._entries[name].display_label for name in names]
 
     def source_names(self, names):
         return [self._entries[name].source_name for name in names]

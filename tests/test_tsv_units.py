@@ -52,7 +52,7 @@ class TsvUnitTests(unittest.TestCase):
             write_tsv(saved, frame, registry)
 
             self.assertEqual(saved.read_text(encoding="utf-8").splitlines()[0],
-                             "time[s]\tflow[kg/s]\tboiler.temperature[K]"
+                             "time [s]\tflow [kg/s]\tboiler.temperature [K]"
                              "\tpressure\tcalculated")
             reloaded, new_registry = read_tsv(saved)
             pd.testing.assert_frame_equal(reloaded, frame)
@@ -77,7 +77,10 @@ class TsvUnitTests(unittest.TestCase):
             self.assertEqual(registry.get("pressure_pa").display_label,
                              "pressure [Pa]")
             write_tsv(saved, frame, registry)
-            self.assertEqual(original.read_text(), saved.read_text())
+            self.assertEqual(saved.read_text(),
+                             "time [s]\tpressure [bar]\tpressure [Pa]"
+                             "\tplant.p [m^3]\tplant.p [kg/s]\n"
+                             "0\t1\t2\t3\t4\n")
             round_trip, new_registry = read_tsv(saved)
             pd.testing.assert_frame_equal(round_trip, frame)
             self.assertEqual(new_registry.units(), registry.units())
@@ -142,10 +145,42 @@ class TsvUnitTests(unittest.TestCase):
                              ["time", "pressure_bar", "pressure_pa"])
             write_csv(saved, frame, registry)
             self.assertEqual(saved.read_text(),
-                             "time[s],pressure[bar],pressure[Pa]\n0,2,200000\n")
+                             "time [s],pressure [bar],pressure [Pa]\n"
+                             "0,2,200000\n")
             reloaded, second = read_csv(saved)
             pd.testing.assert_frame_equal(reloaded, frame)
             self.assertEqual(second.units(), registry.units())
+
+    def test_header_spacing_is_normalized_for_csv_and_tsv(self):
+        for suffix, read, write, delimiter in (
+                ("csv", read_csv, write_csv, ","),
+                ("tsv", read_tsv, write_tsv, "\t")):
+            with self.subTest(format=suffix):
+                with tempfile.TemporaryDirectory() as directory:
+                    original = Path(directory) / f"original.{suffix}"
+                    saved = Path(directory) / f"saved.{suffix}"
+                    original.write_text(
+                        delimiter.join(("time[s]", "flow   [kg/s]",
+                                        "pressure\t[Pa]" if suffix == "csv"
+                                        else "pressure  [Pa]", "no_unit"))
+                        + "\n" + delimiter.join(("0", "1", "2", "3"))
+                        + "\n", encoding="utf-8")
+
+                    frame, registry = read(original)
+                    self.assertEqual(list(frame.columns),
+                                     ["time", "flow", "pressure", "no_unit"])
+                    self.assertEqual(registry.units(), {
+                        "time": "s", "flow": "kg/s", "pressure": "Pa",
+                        "no_unit": "",
+                    })
+                    write(saved, frame, registry)
+                    self.assertEqual(saved.read_text().splitlines()[0],
+                                     delimiter.join(("time [s]", "flow [kg/s]",
+                                                     "pressure [Pa]", "no_unit")))
+
+    def test_already_bracketed_unit_has_only_one_bracket_pair(self):
+        registry = ColumnRegistry.from_columns(["pressure"], ["[bar]"])
+        self.assertEqual(registry.headers(["pressure"]), ["pressure [bar]"])
 
     def test_empty_column_name_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
