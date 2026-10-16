@@ -1272,10 +1272,8 @@ def on_save_button_clicked(save_button):
     root = str.rsplit(filename, '.', maxsplit=1)[0]
     if file_type == "hdf5":
         newfile = root + "_new.h5"
-    elif file_type == "tsv":
-        newfile = root + "_new.tsv"
     else:
-        newfile = root + "_new.csv"
+        newfile = root + "_new.tsv"
 
     try:
         if file_type == "hdf5":
@@ -1375,10 +1373,8 @@ def on_save_button_clicked(save_button):
                         data=fixed_hdf5_strings(fit_input_names))
                     hdf5_file.create_dataset("fit_input_knot_intervals",
                                              data=intervals)
-        elif file_type == "tsv":
-            write_tsv(newfile, data_frame, column_registry)
         else:
-            write_csv(newfile, data_frame, column_registry)
+            write_tsv(newfile, data_frame, column_registry)
     except Exception as exception:
         print(f"Error saving {newfile}: {exception}", file=sys.stderr)
     return
