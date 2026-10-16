@@ -42,6 +42,88 @@ def split_tsv_header(header):
     return name, unit
 
 
+def split_tsv_header_metadata(header):
+    """Parse optional Cystemas ``{key="value"; ...}`` TSV metadata.
+
+    Unknown keys are accepted but currently only ``color`` is retained.
+    Values support the same backslash escapes as the Cystemas TSV reader.
+    """
+    opening = header.find("{")
+    if opening < 0:
+        name, unit = split_tsv_header(header)
+        return name, unit, ""
+
+    trimmed = header.rstrip(" \r")
+    if not trimmed.endswith("}"):
+        raise ValueError(f"Invalid TSV column metadata: {header!r}")
+
+    metadata = trimmed[opening + 1:-1]
+    index = 0
+    color = ""
+    found_color = False
+    escapes = {"n": "\n", "r": "\r", "t": "\t",
+               "\\": "\\", '"': '"'}
+
+    while index < len(metadata):
+        while index < len(metadata) and metadata[index] in " \t;":
+            index += 1
+        if index == len(metadata):
+            break
+
+        key_match = re.match(r"[A-Za-z_][A-Za-z_0-9]*", metadata[index:])
+        if key_match is None:
+            raise ValueError(f"Invalid TSV column metadata: {header!r}")
+        key = key_match.group().lower()
+        index += len(key_match.group())
+        while index < len(metadata) and metadata[index] in " \t":
+            index += 1
+        if index >= len(metadata) or metadata[index] != "=":
+            raise ValueError(f"Invalid TSV column metadata: {header!r}")
+        index += 1
+        while index < len(metadata) and metadata[index] in " \t":
+            index += 1
+        if index >= len(metadata) or metadata[index] != '"':
+            raise ValueError(f"Invalid TSV column metadata: {header!r}")
+        index += 1
+
+        value = []
+        while index < len(metadata) and metadata[index] != '"':
+            char = metadata[index]
+            index += 1
+            if char == "\\":
+                if index >= len(metadata) or metadata[index] not in escapes:
+                    raise ValueError(f"Invalid TSV column metadata: {header!r}")
+                char = escapes[metadata[index]]
+                index += 1
+            value.append(char)
+        if index >= len(metadata):
+            raise ValueError(f"Invalid TSV column metadata: {header!r}")
+        index += 1
+
+        if key == "color":
+            if found_color:
+                raise ValueError(f"Duplicate TSV color metadata: {header!r}")
+            color = "".join(value)
+            found_color = True
+
+        while index < len(metadata) and metadata[index] in " \t":
+            index += 1
+        if index < len(metadata) and metadata[index] != ";":
+            raise ValueError(f"Invalid TSV column metadata: {header!r}")
+
+    name, unit = split_tsv_header(header[:opening].rstrip(" \t\r"))
+    return name, unit, color
+
+
+def escape_tsv_metadata(value):
+    """Quote color text using Cystemas' TSV metadata escape rules."""
+    return (value.replace("\\", "\\\\")
+            .replace('"', '\\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t"))
+
+
 def unit_suffix(unit):
     """Create a predictable, identifier-safe component from a unit."""
     unit = unit.replace("°", "deg").replace("%", "percent")
@@ -132,8 +214,15 @@ class ColumnRegistry:
         """Return optional color metadata in the exact DataFrame column order."""
         return [self._entries[name].color for name in names]
 
-    def headers(self, names):
-        return [self._entries[name].display_label for name in names]
+    def headers(self, names, include_colors=False):
+        headers = []
+        for name in names:
+            info = self._entries[name]
+            header = info.display_label
+            if include_colors and info.color:
+                header += f'{{color="{escape_tsv_metadata(info.color)}"}}'
+            headers.append(header)
+        return headers
 
     def source_names(self, names):
         return [self._entries[name].source_name for name in names]
@@ -204,9 +293,13 @@ def read_delimited(filename, delimiter):
         except StopIteration as exception:
             raise ValueError("File has no header") from exception
 
-    parsed = [split_tsv_header(header_name) for header_name in header]
+    if delimiter == "\t":
+        parsed = [split_tsv_header_metadata(value) for value in header]
+    else:
+        parsed = [(*split_tsv_header(value), "") for value in header]
     registry = ColumnRegistry.from_columns(
-        [name for name, _ in parsed], [unit for _, unit in parsed])
+        [name for name, _, _ in parsed], [unit for _, unit, _ in parsed],
+        [color for _, _, color in parsed])
     frame = pd.read_csv(filename, sep=delimiter)
     if len(frame.columns) != len(header):
         raise ValueError("Header does not match the number of data columns")
@@ -215,7 +308,7 @@ def read_delimited(filename, delimiter):
 
 
 def read_tsv(filename):
-    """Load Cystemas TSV column names and units separately."""
+    """Load Cystemas TSV names, units and optional color metadata."""
     return read_delimited(filename, "\t")
 
 
@@ -225,9 +318,17 @@ def read_csv(filename):
 
 
 def write_delimited(filename, frame, registry, delimiter):
-    """Save original (possibly duplicate) source names and unit metadata."""
-    frame.to_csv(filename, sep=delimiter, index=False,
-                 header=registry.headers(frame.columns))
+    """Save original names, units and optional TSV color metadata."""
+    if delimiter == "\t":
+        # Pandas would CSV-quote metadata's double quotes. Cystemas expects
+        # the literal, unquoted header, so write it separately from the rows.
+        with open(filename, "w", encoding="utf-8", newline="") as stream:
+            stream.write("\t".join(registry.headers(
+                frame.columns, include_colors=True)) + "\n")
+            frame.to_csv(stream, sep=delimiter, index=False, header=False)
+    else:
+        frame.to_csv(filename, sep=delimiter, index=False,
+                     header=registry.headers(frame.columns))
 
 
 def write_tsv(filename, frame, registry):
