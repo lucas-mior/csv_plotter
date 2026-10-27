@@ -300,7 +300,7 @@ def read_delimited(filename, delimiter):
     registry = ColumnRegistry.from_columns(
         [name for name, _, _ in parsed], [unit for _, unit, _ in parsed],
         [color for _, _, color in parsed])
-    frame = pd.read_csv(filename, sep=delimiter)
+    frame = pd.read_csv(filename, sep=delimiter, skipinitialspace=True)
     if len(frame.columns) != len(header):
         raise ValueError("Header does not match the number of data columns")
     frame.columns = registry.names()

@@ -178,6 +178,20 @@ class TsvUnitTests(unittest.TestCase):
                                      delimiter.join(("time [s]", "flow [kg/s]",
                                                      "pressure [Pa]", "no_unit")))
 
+    def test_space_padded_nan_remains_a_numeric_column(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "data.tsv"
+            path.write_text(
+                "time [s]\texp.Q [MW]\n"
+                "0\t               nan\n"
+                "1\t1.5\n", encoding="utf-8")
+
+            frame, _ = read_tsv(path)
+
+            self.assertTrue(pd.api.types.is_float_dtype(frame["exp.Q"]))
+            self.assertTrue(pd.isna(frame.loc[0, "exp.Q"]))
+            self.assertEqual(frame.loc[1, "exp.Q"], 1.5)
+
     def test_already_bracketed_unit_has_only_one_bracket_pair(self):
         registry = ColumnRegistry.from_columns(["pressure"], ["[bar]"])
         self.assertEqual(registry.headers(["pressure"]), ["pressure [bar]"])
