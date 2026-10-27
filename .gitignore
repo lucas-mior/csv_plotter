@@ -6,3 +6,4 @@ csv_plotter
 .cache/
 compile_commands.json
 temp_delete_me
+ign*.tsv
