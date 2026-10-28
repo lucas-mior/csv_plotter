@@ -26,6 +26,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from gi.repository import Gio
+from gi.repository import GLib
 
 import matplotlib
 from matplotlib.backends.backend_gtk4 \
@@ -130,11 +131,21 @@ def on_have_filename_ready(dialog, async_result, data):
     plot_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
+    search_entry = Gtk.SearchEntry()
+    Gtk.SearchEntry.set_placeholder_text(search_entry, "Search variables...")
+    Gtk.Widget.set_hexpand(search_entry, True)
+    Gtk.SearchEntry.connect(search_entry, "changed",
+                            on_selector_search_changed)
+    search_entry.search_timeout_id = 0
+
     buttons_header = Gtk.Label(label="Select x axis and columns to plot")
 
+    Gtk.Box.append(config_box, search_entry)
     Gtk.Box.append(config_box, buttons_header)
 
     selection_scroll = Gtk.ScrolledWindow()
+    search_entry.selection_scroll = selection_scroll
+    selection_scroll.search_entry = search_entry
     metadata_scroll = Gtk.ScrolledWindow()
 
     custom_left_label_entry = Gtk.Entry()
@@ -1019,6 +1030,43 @@ def configured_plot_color(name, fallback):
     return fallback
 
 
+def filter_selector_items(selection_scroll, query):
+    query = query.casefold()
+    buttons_box = selection_scroll.buttons_box
+    child = Gtk.Widget.get_first_child(buttons_box)
+
+    while child is not None:
+        if isinstance(child, Gtk.Expander):
+            namespace_box = Gtk.Expander.get_child(child)
+            item = Gtk.Widget.get_first_child(namespace_box)
+            namespace_visible = False
+            while item is not None:
+                visible = query in item.name.casefold()
+                Gtk.Widget.set_visible(item, visible)
+                namespace_visible = namespace_visible or visible
+                item = Gtk.Widget.get_next_sibling(item)
+            Gtk.Widget.set_visible(child, namespace_visible)
+        else:
+            Gtk.Widget.set_visible(child, query in child.name.casefold())
+        child = Gtk.Widget.get_next_sibling(child)
+    return
+
+
+def on_selector_search_timeout(search_entry):
+    search_entry.search_timeout_id = 0
+    query = Gtk.Editable.get_text(search_entry)
+    filter_selector_items(search_entry.selection_scroll, query)
+    return False
+
+
+def on_selector_search_changed(search_entry):
+    if search_entry.search_timeout_id != 0:
+        GLib.source_remove(search_entry.search_timeout_id)
+    search_entry.search_timeout_id = GLib.timeout_add(
+        100, on_selector_search_timeout, search_entry)
+    return
+
+
 def reconfigure_plots_and_buttons(selection_scroll):
     global x_button_group, data_frame, pre_plots
 
@@ -1094,7 +1142,11 @@ def reconfigure_plots_and_buttons(selection_scroll):
     configure_y_axis_labels_and_ticks()
     put_legends()
 
+    selection_scroll.buttons_box = buttons_box
     Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
+    if hasattr(selection_scroll, "search_entry"):
+        query = Gtk.Editable.get_text(selection_scroll.search_entry)
+        filter_selector_items(selection_scroll, query)
     return
 
 

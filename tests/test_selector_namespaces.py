@@ -21,6 +21,7 @@ class Widget:
     def __init__(self):
         self.parent = None
         self.children = []
+        self.visible = True
 
     @staticmethod
     def get_parent(widget):
@@ -35,6 +36,10 @@ class Widget:
         siblings = widget.parent.children
         index = siblings.index(widget) + 1
         return siblings[index] if index < len(siblings) else None
+
+    @staticmethod
+    def set_visible(widget, visible):
+        widget.visible = visible
 
 
 class Box(Widget):
@@ -121,6 +126,12 @@ class EntryBuffer:
         return buffer.text
 
 
+class Editable:
+    @staticmethod
+    def get_text(editable):
+        return editable.text
+
+
 class CheckButton:
     @staticmethod
     def get_active(button):
@@ -142,6 +153,7 @@ class Gtk:
     EditableLabel = EditableLabel
     Entry = Entry
     EntryBuffer = EntryBuffer
+    Editable = Editable
     CheckButton = CheckButton
     Button = Widget
     Orientation = type('Orientation', (), {'VERTICAL': 'vertical'})
@@ -162,7 +174,8 @@ def load_selector_functions():
         'selector_parent_box', 'reconfigure_plots_and_buttons',
         'on_entry_activate', 'on_item_label_notify_editing',
         'on_delete_button_click', 'add_expression_name',
-        'configured_plot_color',
+        'configured_plot_color', 'filter_selector_items',
+        'on_selector_search_timeout', 'on_selector_search_changed',
     }
     nodes = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name in functions]
@@ -205,6 +218,11 @@ class SelectorNamespaceTests(unittest.TestCase):
             'add_plot': lambda name, axis: None,
             'remove_plot': lambda name, axis: None,
             'redraw_plots': lambda **kwargs: None,
+            'GLib': type('GLib', (), {
+                'source_remove': staticmethod(lambda source_id: None),
+                'timeout_add': staticmethod(
+                    lambda milliseconds, callback, argument: 1),
+            }),
         }
         exec(SELECTOR_FUNCTIONS, self.state)
 
@@ -270,6 +288,43 @@ class SelectorNamespaceTests(unittest.TestCase):
                          ['plant.pressure', 'plant.flow'])
         self.assertEqual([item.name for item in root.children[3].children[0].children],
                          ['controller.input.value'])
+
+    def test_search_is_case_insensitive_and_empty_search_restores_all(self):
+        root = self.configure(['time', 'plant.flow', 'plant.pressure',
+                               'controller.input'])
+        scroll = type('Scroll', (), {'buttons_box': root})()
+
+        self.state['filter_selector_items'](scroll, 'FLOW')
+        self.assertFalse(root.children[0].visible)
+        self.assertTrue(root.children[1].visible)
+        self.assertEqual(
+            [item.visible for item in root.children[1].children[0].children],
+            [True, False])
+        self.assertFalse(root.children[2].visible)
+
+        self.state['filter_selector_items'](scroll, '')
+        self.assertTrue(all(child.visible for child in root.children))
+        self.assertTrue(all(item.visible
+                            for child in root.children
+                            if isinstance(child, Expander)
+                            for item in child.children[0].children))
+
+    def test_search_change_uses_100_millisecond_holdout(self):
+        calls = []
+        removed = []
+        self.state['GLib'] = type('GLib', (), {
+            'source_remove': staticmethod(removed.append),
+            'timeout_add': staticmethod(
+                lambda milliseconds, callback, argument:
+                calls.append((milliseconds, callback, argument)) or 12),
+        })
+        entry = type('SearchEntry', (), {'search_timeout_id': 7})()
+
+        self.state['on_selector_search_changed'](entry)
+
+        self.assertEqual(removed, [7])
+        self.assertEqual(calls[0][0], 100)
+        self.assertEqual(entry.search_timeout_id, 12)
 
     def test_expressions_reuse_groups_and_plain_expressions_remain_flat(self):
         root = self.configure(['time', 'plant.flow'])
