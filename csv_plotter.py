@@ -30,7 +30,7 @@ from gi.repository import GLib
 
 import matplotlib
 from matplotlib.backends.backend_gtk4 \
-    import NavigationToolbar2GTK4 as NavigationToolbar
+    import NavigationToolbar2GTK4
 
 from matplotlib.backends.backend_gtk4agg \
     import FigureCanvasGTK4Agg as FigureCanvas
@@ -81,6 +81,20 @@ spectrum_settings = {
 }
 
 
+class PlotNavigationToolbar(NavigationToolbar2GTK4):
+    def release_zoom(self, event):
+        super().release_zoom(event)
+        rescale_visible_y()
+
+    def release_pan(self, event):
+        super().release_pan(event)
+        rescale_visible_y()
+
+    def _update_view(self):
+        super()._update_view()
+        rescale_visible_y()
+
+
 def on_application_activation(application):
     global window, filename, pre_plots
 
@@ -119,7 +133,7 @@ def on_have_filename_ready(dialog, async_result, data):
 
     figure = Figure(layout="constrained")
     canvas = FigureCanvas(figure)
-    toolbar = NavigationToolbar(canvas)
+    toolbar = PlotNavigationToolbar(canvas)
 
     FigureCanvas.set_hexpand(canvas, True)
     FigureCanvas.set_vexpand(canvas, True)
@@ -220,7 +234,7 @@ def on_have_filename_ready(dialog, async_result, data):
 
     spectrum_figure = Figure(layout="constrained")
     spectrum_canvas = FigureCanvas(spectrum_figure)
-    spectrum_toolbar = NavigationToolbar(spectrum_canvas)
+    spectrum_toolbar = NavigationToolbar2GTK4(spectrum_canvas)
     FigureCanvas.set_hexpand(spectrum_canvas, True)
     FigureCanvas.set_vexpand(spectrum_canvas, True)
     spectrum_axes_left = Figure.add_subplot(spectrum_figure, 111)
@@ -1844,6 +1858,42 @@ def custom_ticks(axes):
     return
 
 
+def rescale_visible_y(plot_axes=None, x_limits=None):
+    if plot_axes is None:
+        plot_axes = (axes_left, axes_right)
+    if x_limits is None:
+        x_limits = Axes.get_xlim(axes_left)
+
+    x_min, x_max = sorted(x_limits)
+    for axes in plot_axes:
+        y_min = None
+        y_max = None
+        for line in Axes.get_lines(axes):
+            if not Line2D.get_visible(line):
+                continue
+            x_values = np.asarray(Line2D.get_xdata(line, orig=False))
+            y_values = np.asarray(Line2D.get_ydata(line, orig=False))
+            if x_values.size != y_values.size:
+                continue
+            visible = ((x_values >= x_min) & (x_values <= x_max)
+                       & np.isfinite(x_values) & np.isfinite(y_values))
+            if not np.any(visible):
+                continue
+            line_y_min = np.min(y_values[visible])
+            line_y_max = np.max(y_values[visible])
+            y_min = line_y_min if y_min is None else min(y_min, line_y_min)
+            y_max = line_y_max if y_max is None else max(y_max, line_y_max)
+
+        if y_min is None:
+            continue
+        y_min, y_max = axes.yaxis.get_major_locator().nonsingular(
+            y_min, y_max)
+        margin = Axes.margins(axes)[1]
+        padding = (y_max - y_min) * margin
+        Axes.set_ylim(axes, y_min - padding, y_max + padding)
+    return
+
+
 def redraw_plots(full=False, autoscale_y=False):
     configure_y_axis_labels_and_ticks()
 
@@ -1852,15 +1902,13 @@ def redraw_plots(full=False, autoscale_y=False):
     Axes.set_ymargin(axes_left, 0.02)
     Axes.set_ymargin(axes_right, 0.2)
 
-    if full or autoscale_y:
+    if full:
         Axes.relim(axes_left)
         Axes.relim(axes_right)
-    if full:
         Axes.autoscale(axes_left)
         Axes.autoscale(axes_right)
     elif autoscale_y:
-        Axes.autoscale(axes_left, axis="y")
-        Axes.autoscale(axes_right, axis="y")
+        rescale_visible_y()
 
     custom_ticks(axes_left)
     custom_ticks(axes_right)
