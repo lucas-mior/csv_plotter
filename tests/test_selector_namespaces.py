@@ -11,6 +11,7 @@ import unittest
 import numpy as np
 import pandas as pd
 from csv_plotter_units import ColumnRegistry, split_tsv_header
+from csv_plotter_metadata import SCALAR_NAMESPACES
 
 
 class Widget:
@@ -176,6 +177,7 @@ def load_selector_functions():
         'on_delete_button_click', 'add_expression_name',
         'configured_plot_color', 'filter_selector_items',
         'on_selector_search_timeout', 'on_selector_search_changed',
+        'reserved_metadata_names',
     }
     nodes = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name in functions]
@@ -208,6 +210,7 @@ class SelectorNamespaceTests(unittest.TestCase):
             'split_tsv_header': split_tsv_header,
             'display_unit': lambda unit: f' [{unit}]' if unit else '',
             'pre_plots': [],
+            'SCALAR_NAMESPACES': SCALAR_NAMESPACES,
             'named_values': [],
             'named_value_by_display_name': {},
             'axes_left': self.axes_left,
@@ -383,6 +386,61 @@ class SelectorNamespaceTests(unittest.TestCase):
         self.state['on_entry_activate'](entry)
         self.assertEqual(list(self.state['data_frame'][expression]), [7., 10.])
         self.assertEqual(len(self.state['data_frame'].columns), 3)
+
+    def configure_scalar_rows(self, rows):
+        from csv_plotter_metadata import metadata_views, normalize_metadata_rows
+
+        named, *_ = metadata_views(normalize_metadata_rows(rows), self.state['data_frame'].columns)
+        self.state['named_values'] = named
+        self.state['named_value_by_display_name'] = {
+            row['display_name']: row for row in named}
+
+    def test_initial_state_expression_names(self):
+        root = self.configure(['time', 'plant.flow'])
+        self.configure_scalar_rows([
+            {"kind": "initial_state", "name": "plant.x", "value": 3.},
+            {"kind": "fit_initial_state", "name": "plant.x", "value": 4.},
+        ])
+        entry = type('EntryObject', (), {})()
+        entry.selection_scroll = type('Scroll', (), {})()
+        entry.selection_scroll.child = type('ViewportObject', (), {'child': root})()
+        expression = '`plant.flow` * `initial_states.plant.x` + fit_initial_state_plant_x'
+        entry.text = expression
+        self.state['on_entry_activate'](entry)
+        self.assertEqual(list(self.state['data_frame'][expression]), [7., 10.])
+        self.assertEqual(len(self.state['data_frame'].columns), 3)
+
+    def test_scalar_names_cannot_be_claimed_by_rename(self):
+        root = self.configure(['time', 'parameters.a', 'flow'])
+        self.configure_scalar_rows([
+            {"kind": "parameter", "name": "a", "value": 2.},
+        ])
+        item = root.children[-1]
+        self.assertEqual(item.name, 'flow')
+        for reserved in ('parameters.a', 'parameters.a_2'):
+            label = type('Label', (), {'parent': item, 'text': reserved})()
+            self.state['on_item_label_notify_editing'](label, False)
+            self.assertEqual(label.text, 'flow')
+            self.assertIn('reserved for scalar metadata', label.tooltip)
+            self.assertEqual(item.name, 'flow')
+            self.assertEqual(list(self.state['data_frame'].columns), ['time', 'parameters.a', 'flow'])
+            self.assertEqual(self.state['column_registry'].names(), ['time', 'parameters.a', 'flow'])
+        self.assertEqual(self.state['named_value_by_display_name']['parameters.a_2']['value'], 2.)
+
+    def test_exact_scalar_expression_name_wins_over_column_source_alias(self):
+        root = self.configure(['time', 'parameters.a_m', 'parameters.a_s'])
+        self.state['column_registry'] = ColumnRegistry.from_columns(
+            ['time', 'parameters.a', 'parameters.a'], ['s', 'm', 's'])
+        self.configure_scalar_rows([
+            {"kind": "parameter", "name": "a", "value": 8.},
+        ])
+        entry = type('EntryObject', (), {})()
+        entry.selection_scroll = type('Scroll', (), {})()
+        entry.selection_scroll.child = type('ViewportObject', (), {'child': root})()
+        expression = '`parameters.a` + `parameters.a [m]`'
+        entry.text = expression
+        self.state['on_entry_activate'](entry)
+        self.assertEqual(list(self.state['data_frame'][expression]), [9., 10.])
 
     def test_rename_moves_items_and_removes_empty_groups(self):
         root = self.configure(['time', 'plant.flow'])

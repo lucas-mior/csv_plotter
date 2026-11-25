@@ -21,6 +21,8 @@ SCALAR_NAMESPACES = {
     "parameter": "parameters",
     "constant": "constants",
     "fit_parameter": "fit_parameters",
+    "initial_state": "initial_states",
+    "fit_initial_state": "fit_initial_states",
     "tf_parameter": "tf_parameters",
 }
 
@@ -55,9 +57,8 @@ def normalize_metadata_rows(rows):
 def metadata_views(rows, column_names=()):
     """Derive existing pane and scalar-selector views from normalized rows.
 
-    The canonical rows retain all metadata, including state snapshots and
-    unknown kinds. These views expose the pre-existing pane sections only;
-    additional state sections will be added alongside TSV pane parity.
+    The pane reads the canonical rows, including missing effective states and
+    unknown kinds. Only known, available scalar values become plot selectors.
     """
     named = []
     runs = {"simulation": [], "fit": []}

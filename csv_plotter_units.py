@@ -227,18 +227,21 @@ class ColumnRegistry:
     def source_names(self, names):
         return [self._entries[name].source_name for name in names]
 
-    def add(self, source_name, unit=""):
+    def add(self, source_name, unit="", *, reserved_names=()):
         if not source_name:
             raise ValueError("Column name cannot be empty")
         candidate = source_name
         if candidate in self._entries:
             candidate = f"{source_name}_{unit_suffix(unit)}"
         internal = unique_name(candidate, self._entries)
+        for name in (source_name, internal):
+            if name in reserved_names:
+                raise ValueError(f"Column name {name!r} is reserved for scalar metadata")
         info = ColumnInfo(source_name, internal, unit)
         self._entries[internal] = info
         return info
 
-    def rename(self, old_name, new_source_name, unit=None):
+    def rename(self, old_name, new_source_name, unit=None, *, reserved_names=()):
         if not new_source_name:
             raise ValueError("Column name cannot be empty")
         info = self._entries[old_name]
@@ -246,20 +249,25 @@ class ColumnRegistry:
             unit = info.unit
         if new_source_name == info.source_name and unit == info.unit:
             return info
-        self._entries.pop(old_name)
-        try:
-            new_name = new_source_name
-            if (new_name in self._entries or any(
-                    entry.source_name == new_source_name
-                    for entry in self._entries.values())):
-                new_name = f"{new_source_name}_{unit_suffix(unit)}"
-            new_name = unique_name(new_name, self._entries)
-            info = ColumnInfo(new_source_name, new_name, unit, info.color)
-            self._entries[new_name] = info
-            return info
-        except Exception:
-            self._entries[old_name] = info
-            raise
+        remaining = {name: entry for name, entry in self._entries.items()
+                     if name != old_name}
+        new_name = new_source_name
+        if (new_name in remaining or any(
+                entry.source_name == new_source_name
+                for entry in remaining.values())):
+            new_name = f"{new_source_name}_{unit_suffix(unit)}"
+        new_name = unique_name(new_name, remaining)
+        # Existing trajectory collisions from a file may be kept, but an
+        # edit must never introduce another one. Validate before mutation.
+        if (new_source_name != info.source_name
+                and new_source_name in reserved_names):
+            raise ValueError(f"Column name {new_source_name!r} is reserved for scalar metadata")
+        if new_name != old_name and new_name in reserved_names:
+            raise ValueError(f"Column name {new_name!r} is reserved for scalar metadata")
+        info = ColumnInfo(new_source_name, new_name, unit, info.color)
+        del self._entries[old_name]
+        self._entries[new_name] = info
+        return info
 
     def remove(self, name):
         self._entries.pop(name, None)

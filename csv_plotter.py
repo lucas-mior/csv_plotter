@@ -19,7 +19,7 @@ from csv_plotter_fft import (
 )
 from csv_plotter_metadata import (
     metadata_views, normalize_metadata_rows, read_hdf5_metadata, read_hdf5_strings,
-    read_result_tsv, write_result_tsv
+    read_result_tsv, write_result_tsv, TSV_RUN_KEY_ORDER, SCALAR_NAMESPACES
 )
 from csv_plotter_units import (
     ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
@@ -626,6 +626,7 @@ def run_metadata_display_name(name, kind):
         "pre_initialized": "Pre-initialized via cy_system_init",
         "commit_on_success": "Commit fitted values on success",
         "parameters_committed": "Fitted values committed",
+        "params_committed": "Fitted values committed",
         "integration_method": "Integration method",
         "input_file": "Input / experimental data file",
         "minimization_method": "Minimization method",
@@ -666,10 +667,15 @@ def append_metadata_text_section(lines, title, headers, rows):
     for row in rows:
         text_row = []
         for cell in row:
-            if isinstance(cell, str):
-                text_row.append(cell)
+            if cell is None:
+                text_row.append("—")
+            elif isinstance(cell, str):
+                text_row.append(cell.replace("\\", "\\\\")
+                                .replace("\t", "\\t").replace("\n", "\\n")
+                                .replace("\r", "\\r"))
             elif np.isfinite(cell):
-                text_row.append(f"{cell:.16g}")
+                text_row.append(str(cell) if isinstance(cell, (int, np.integer))
+                                else repr(float(cell)))
             else:
                 text_row.append(str(cell))
         text_rows.append(text_row)
@@ -740,78 +746,84 @@ def run_metadata_rows(metadata, display_name):
     return rows
 
 
-def metadata_rows_for_kind(kind):
-    rows = []
-    for named_value in metadata_values_for_kind(kind):
-        rows.append([
-            named_value["name"],
-            named_value["value"],
-            named_value["unit"],
-            named_value["display_name"],
-        ])
-    return rows
+def metadata_rows_for_kind(kind, fields=("name", "value", "unit", "display_name")):
+    """Use canonical rows, including those without a plottable value."""
+    plot_names = {value["name"]: value["display_name"]
+                  for value in metadata_values_for_kind(kind)}
+    rows = sorted((row for row in metadata_rows if row["kind"] == kind),
+                  key=lambda row: row["name"])
+    result = []
+    for row in rows:
+        cells = []
+        for field in fields:
+            if field == "display_name":
+                cell = plot_names.get(row["name"])
+            else:
+                cell = row[field]
+                if field == "optimized" and cell is not None:
+                    cell = "Yes" if cell else "No"
+            cells.append(cell)
+        result.append(cells)
+    return result
 
 
-def reconfigure_metadata_tab(metadata_scroll):
+def metadata_pane_text():
+    """Render equivalent HDF5 and TSV metadata in the same order."""
     lines = ["Metadata"]
-
     append_metadata_text_section(lines, "File", ["Name", "Value"], [
         ["Filename", filename],
     ])
 
-    if (len(named_values) == 0
-            and len(simulation_metadata) == 0
-            and len(fit_metadata) == 0
-            and len(fit_inputs) == 0):
-        lines.append("")
-        lines.append("This file does not contain recognized metadata.")
-    else:
-        append_metadata_text_section(
-            lines, "Simulation", ["Name", "Value"],
-            run_metadata_rows(simulation_metadata,
-                              simulation_metadata_display_name))
-        append_metadata_text_section(
-            lines, "Fitting", ["Name", "Value"],
-            run_metadata_rows(fit_metadata, fit_metadata_display_name))
+    if not metadata_rows:
+        lines.extend(["", "This file does not contain recognized metadata."])
+        return "\n".join(lines) + "\n"
 
-        rows = []
-        for value in fit_inputs:
-            rows.append([
-                value["name"],
-                value["knot_interval"],
-            ])
-        append_metadata_text_section(
-            lines, "Optimized inputs", ["Name", "Knot interval (s)"],
-            rows)
-        append_metadata_text_section(lines, "Parameters",
-                                     ["Name", "Value", "Unit", "Plot name"],
-                                     metadata_rows_for_kind("parameter"))
+    for kind, title, values, display_name in (
+            ("simulation", "Simulation", simulation_metadata,
+             simulation_metadata_display_name),
+            ("fit", "Fitting", fit_metadata, fit_metadata_display_name)):
+        order = {name: i for i, name in enumerate(TSV_RUN_KEY_ORDER[kind])}
+        values = sorted(values, key=lambda row: (
+            order.get(row["name"], len(order)), row["name"]))
+        append_metadata_text_section(lines, title, ["Name", "Value"],
+                                     run_metadata_rows(values, display_name))
 
-        rows = []
-        for named_value in metadata_values_for_kind("fit_parameter"):
-            rows.append([
-                named_value["name"],
-                named_value["value"],
-                named_value.get("initial_value", ""),
-                named_value.get("lower_bound", ""),
-                named_value.get("upper_bound", ""),
-                named_value["unit"],
-                named_value["display_name"],
-            ])
-        append_metadata_text_section(
-            lines, "Fitted parameters",
-            ["Name", "Fitted", "Initial", "Lower", "Upper", "Unit",
-             "Plot name"],
-            rows)
-        append_metadata_text_section(
-            lines, "TF identification",
-            ["Name", "Value", "Unit", "Plot name"],
-            metadata_rows_for_kind("tf_parameter"))
-        append_metadata_text_section(lines, "Constants",
-                                     ["Name", "Value", "Unit", "Plot name"],
-                                     metadata_rows_for_kind("constant"))
+    sections = [
+        ("fit_input", "Optimized inputs", ["Name", "Knot interval (s)"],
+         ("name", "value")),
+        ("parameter", "Parameters", ["Name", "Value", "Default", "Unit", "Plot name"],
+         ("name", "value", "default_value", "unit", "display_name")),
+        ("initial_state", "Initial states", ["Name", "Effective", "Original", "Unit", "Plot name"],
+         ("name", "value", "initial_value", "unit", "display_name")),
+    ]
+    for kind, title in (("fit_parameter", "Fitted parameters"),
+                        ("fit_initial_state", "Fitted initial states")):
+        sections.append((kind, title,
+                         ["Name", "Fitted", "Initial", "Original initial", "Lower", "Upper",
+                          "Optimized", "Unit", "Plot name"],
+                         ("name", "value", "initial_value", "original_initial_value",
+                          "lower_bound", "upper_bound", "optimized", "unit", "display_name")))
+    for kind, title in (("tf_parameter", "TF identification"), ("constant", "Constants")):
+        sections.append((kind, title, ["Name", "Value", "Unit", "Plot name"],
+                         ("name", "value", "unit", "display_name")))
+    for kind, title, headers, fields in sections:
+        append_metadata_text_section(lines, title, headers,
+                                     metadata_rows_for_kind(kind, fields))
 
-    text = "\n".join(lines) + "\n"
+    known = {"simulation", "fit"} | {section[0] for section in sections}
+    for kind in sorted({row["kind"] for row in metadata_rows} - known):
+        append_metadata_text_section(
+            lines, f"Other metadata ({kind})",
+            ["Name", "Value", "Unit", "Default", "Initial", "Original initial",
+             "Lower", "Upper", "Optimized"],
+            metadata_rows_for_kind(kind, (
+                "name", "value", "unit", "default_value", "initial_value",
+                "original_initial_value", "lower_bound", "upper_bound", "optimized")))
+    return "\n".join(lines) + "\n"
+
+
+def reconfigure_metadata_tab(metadata_scroll):
+    text = metadata_pane_text()
     buffer = Gtk.TextBuffer()
     Gtk.TextBuffer.set_text(buffer, text, -1)
 
@@ -945,8 +957,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
         return
 
     names = [str(name) for name in data_frame.columns]
-    for named_value in named_values:
-        names.append(named_value["display_name"])
+    names.extend(sorted(named_value_by_display_name))
     name_first = names[0]
     x_button_group = None
 
@@ -1112,7 +1123,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     if info is not None:
         item_label = Gtk.EditableLabel.new(info.source_name)
     elif named_value is not None:
-        item_label = Gtk.EditableLabel.new(named_value["name"])
+        item_label = Gtk.Label(label=name.split(".", 1)[1])
     else:
         item_label = Gtk.EditableLabel.new(name)
     unit_label = Gtk.Label(label=display_unit(selector_unit(name)))
@@ -1150,7 +1161,8 @@ def add_buttons(name, buttons_box, left=False, right=False):
     Gtk.CheckButton.connect(x_button, "toggled", on_x_button_toggled)
     Gtk.CheckButton.connect(y_button_left, "toggled", on_y_button_toggled)
     Gtk.CheckButton.connect(y_button_right, "toggled", on_y_button_toggled)
-    Gtk.EditableLabel.connect(item_label, "notify::editing", on_item_label_notify_editing)
+    if named_value is None:
+        Gtk.EditableLabel.connect(item_label, "notify::editing", on_item_label_notify_editing)
     Gtk.Button.connect(style_button, "clicked", on_style_button_click)
     Gtk.Button.connect(color_button, "clicked", on_color_button_click)
     Gtk.Button.connect(delete_button, "clicked", on_delete_button_click)
@@ -1270,6 +1282,14 @@ def on_custom_label_activate(entry):
     return
 
 
+def reserved_metadata_names():
+    """Protect current and preferred scalar names during column editing."""
+    return set(named_value_by_display_name) | {
+        f"{SCALAR_NAMESPACES[row['kind']]}.{row['name']}"
+        for row in named_values
+    }
+
+
 def on_item_label_notify_editing(editable_label, editing):
     global x_data
     if Gtk.EditableLabel.get_editing(editable_label):
@@ -1294,7 +1314,13 @@ def on_item_label_notify_editing(editable_label, editing):
 
     # Resolve collisions before touching the DataFrame so a rename never
     # overwrites another column, including one with a different unit.
-    new_info = column_registry.rename(old_name, new_source_name, new_unit)
+    try:
+        new_info = column_registry.rename(old_name, new_source_name, new_unit,
+                                          reserved_names=reserved_metadata_names())
+    except ValueError as exception:
+        Gtk.EditableLabel.set_text(editable_label, info.source_name)
+        Gtk.Widget.set_tooltip_text(editable_label, str(exception))
+        return
     new_name = new_info.internal_name
     DataFrame.rename(data_frame, columns={old_name: new_name}, inplace=True)
     styles[new_name] = styles.pop(old_name)
@@ -1505,13 +1531,22 @@ def on_entry_activate(entry):
         for name in data_frame.columns:
             add_expression_name(local_dict, name, data_frame[name])
 
+        # Register aliases only if a single scalar owns the alias. Columns
+        # take precedence; exact names in backticks are always available.
+        aliases = {}
         for named_value in named_values:
             value = named_value["value"]
             name = named_value["name"]
             display_name = named_value["display_name"]
-            add_expression_name(local_dict, name, value)
-            add_expression_name(local_dict, display_name, value)
-            add_expression_name(local_dict, name, value, named_value["kind"])
+            candidates = {}
+            add_expression_name(candidates, name, value)
+            add_expression_name(candidates, display_name, value)
+            add_expression_name(candidates, name, value, named_value["kind"])
+            for alias in candidates:
+                aliases.setdefault(alias, []).append(value)
+        for alias, values in aliases.items():
+            if len(values) == 1:
+                local_dict.setdefault(alias, values[0])
 
         replacements = {}
 
@@ -1519,19 +1554,22 @@ def on_entry_activate(entry):
             name = match.group(1)
             if name not in replacements:
                 placeholder = f"__csv_plotter_name_{len(replacements)}"
-                resolved = column_registry.resolve_reference(name)
-                if resolved is not None:
-                    local_dict[placeholder] = data_frame[resolved]
+                if name in data_frame.columns:
+                    local_dict[placeholder] = data_frame[name]
                 elif name in named_value_by_display_name:
                     local_dict[placeholder] = (
                         named_value_by_display_name[name]["value"])
                 else:
-                    for named_value in named_values:
-                        if named_value["name"] == name:
-                            local_dict[placeholder] = named_value["value"]
-                            break
+                    resolved = column_registry.resolve_reference(name)
+                    if resolved is not None:
+                        local_dict[placeholder] = data_frame[resolved]
                     else:
-                        raise KeyError(name)
+                        matches = [row for row in named_values if row["name"] == name]
+                        if len(matches) > 1:
+                            raise ValueError(f"Ambiguous scalar {name!r}; use its plot name")
+                        if not matches:
+                            raise KeyError(name)
+                        local_dict[placeholder] = matches[0]["value"]
                 replacements[name] = placeholder
             return replacements[name]
 
@@ -1548,7 +1586,7 @@ def on_entry_activate(entry):
             raise ValueError(
                 f"Expression produced {len(value)} rows, "
                 f"expected {len(data_frame.index)}")
-        info = column_registry.add(text)
+        info = column_registry.add(text, reserved_names=reserved_metadata_names())
         data_frame[info.internal_name] = value
     except Exception as exception:
         title = Gtk.Label(label="Error evaluating expression")

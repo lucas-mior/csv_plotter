@@ -22,8 +22,8 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 - save modified CSV, TSV, and HDF5 data with original source names and unit
   metadata preserved, including duplicate names with different units
 - show Cystemas transfer-function identification metadata from HDF5
-  `tf_parameter_names`, `tf_parameter_units` and `tf_parameter_values`
-  in a dedicated **TF identification** section of the Metadata tab
+  `tf_param_*` (or legacy `tf_parameter_*`) datasets in a dedicated
+  **TF identification** section of the Metadata tab
 - preserve unrecognized HDF5 datasets, groups and attributes when saving
   edited HDF5 signals; only the signal table and its column descriptors
   are updated
@@ -50,11 +50,68 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 - automatically interpolate gaps and irregular sample times for the Spectrum
   view, with a status message identifying affected signals
 
-## Extended Cystemas TSV (planned)
+## Extended Cystemas TSV
 
 The [version-1 TSV format specification](tsv-format.md) defines optional
 scalar metadata and combined result files. The shared reference fixtures
-are in `tests/fixtures/tsv_v1/`. Runtime support is not implemented yet.
+are in `tests/fixtures/tsv_v1/`. The reader recognizes the exact first-line
+`# cystemas-tsv:1` signature (with optional UTF-8 BOM) and validates the
+metadata and optional time-series sections. Ordinary unmarked TSV and
+legacy decisions tables continue to use the conventional reader. Invalid
+extended files report the physical line number without falling back to TSV.
+
+Combined TSV files expose scalar metadata alongside the time series, with
+parameter and constant plot selectors and expression variables as for HDF5.
+Metadata-only TSV and HDF5 files open the Metadata tab with the Plot and
+Spectrum pages disabled; Save and Reload remain available. No synthetic
+row or time axis is created. A combined file with only a time-series header
+retains that header but has no samples to plot.
+
+Saving an edited TSV creates a new TSV of the same variant (ordinary,
+combined or metadata-only). Decoded metadata, including unknown kinds and
+missing fields, is retained independently of edits to trajectory columns.
+HDF5 saving retains the existing metadata and does not create trajectory
+datasets for metadata-only files.
+
+`csv_plotter_metadata.py` normalizes HDF5 scalar result metadata into the
+same ten fields specified for TSV. It recognizes both canonical Cystemas
+`param_*`, `fit_param_*`, `tf_param_*` dataset groups and legacy long-name
+aliases. Groups must be complete and equivalent if both names are present.
+The shared representation keeps configured and fitted values separate,
+retains optional defaults, bounds, original decisions, optimization flags,
+and initial-state snapshots (including incomplete older fit snapshots),
+and represents missing fields with `None`. The existing pane, signal
+selectors, scalar plotting and expression evaluation use format-independent
+views of these rows. Equivalent HDF5 and TSV results show the same metadata
+sections and deterministic row order (apart from the displayed filename).
+The pane displays parameter defaults, effective and original initial states,
+initial and original optimizer decisions, bounds and optimization flags.
+Missing values are shown as an em dash, distinct from zero, NaN and infinity;
+text containing control characters is escaped so rows remain readable.
+Unrecognized TSV kinds are displayed in separate metadata-only sections
+and preserved on save, but are not exposed as numeric signals.
+
+In addition to `parameters.*`, `fit_parameters.*`, `constants.*` and
+`tf_parameters.*`, the selectors expose `initial_states.*` (effective run
+initial values) and `fit_initial_states.*` (selected fitting decisions).
+Incomplete legacy HDF5 initial-state snapshots remain visible in the pane,
+but cannot be plotted as effective values. All scalar selectors use native
+metadata units and are read-only; plotting or using one in an expression
+broadcasts its value without adding a repeated column to the loaded table.
+
+If a loaded time-series column already has a scalar's preferred plot name,
+the column keeps its name and the scalar receives a deterministic numeric
+suffix. The actual scalar plot name is displayed in the pane and selector.
+Interactive renames and expression-column creation cannot claim current or
+preferred scalar names; a conflicting operation is rejected rather than
+changing an existing scalar's identity or plot. Scalar names remain stable
+while editing the loaded table. Reloading recomputes them from the saved
+column names, so a suffix may disappear if its original collision is gone.
+In expressions, use the exact plot name in backticks to resolve a scalar;
+exact time-series internal names still take precedence. Short scalar aliases
+are available only when unambiguous, and columns take precedence over short
+aliases. For a duplicate column source label, use its exact internal name
+or its unit-qualified label in backticks.
 
 ## Non-features
 - CSV/TSV edition (use a text/spreadsheet editor instead)

@@ -115,6 +115,27 @@ class TsvUnitTests(unittest.TestCase):
         self.assertEqual(unit_suffix("Pa"), "pa")
         self.assertEqual(unit_suffix(""), "unit")
 
+    def test_interactive_column_add_and_rename_reject_reserved_names(self):
+        registry = ColumnRegistry.from_columns(["time", "parameters.a", "flow"], ["s", "m", "m"])
+        original_names = registry.names()
+        original_units = registry.units()
+        for name in ("parameters.a", "parameters.a_2"):
+            with self.assertRaisesRegex(ValueError, "reserved for scalar metadata"):
+                registry.add(name, reserved_names={name})
+            with self.assertRaisesRegex(ValueError, "reserved for scalar metadata"):
+                registry.rename("flow", name, reserved_names={name})
+            self.assertEqual(registry.names(), original_names)
+            self.assertEqual(registry.units(), original_units)
+        # The generated internal name may collide even when the source name does not.
+        with self.assertRaisesRegex(ValueError, "reserved for scalar metadata"):
+            registry.add("parameters.a", "kg", reserved_names={"parameters.a_kg"})
+        with self.assertRaisesRegex(ValueError, "reserved for scalar metadata"):
+            registry.rename("flow", "parameters.a", "kg", reserved_names={"parameters.a_kg"})
+        self.assertEqual(registry.names(), original_names)
+        # A unit edit on an existing trajectory name is permitted.
+        self.assertEqual(registry.rename("parameters.a", "parameters.a", "kg",
+                                        reserved_names={"parameters.a"}).unit, "kg")
+
     def test_rename_to_existing_name_does_not_overwrite(self):
         registry = ColumnRegistry.from_columns(["p", "q"], ["Pa", "bar"])
         result = registry.rename("q", "p")

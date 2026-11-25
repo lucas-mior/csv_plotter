@@ -34,7 +34,7 @@ METADATA_FUNCTIONS = {
     "run_metadata_display_name", "simulation_metadata_display_name",
     "fit_metadata_display_name", "metadata_values_for_kind",
     "append_metadata_text_section", "run_metadata_rows",
-    "metadata_rows_for_kind", "reconfigure_metadata_tab",
+    "metadata_rows_for_kind", "metadata_pane_text", "reconfigure_metadata_tab",
 }
 
 
