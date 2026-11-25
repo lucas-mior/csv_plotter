@@ -1,12 +1,15 @@
-"""Shared scalar result metadata and the Cystemas HDF5 adapter.
+"""Shared scalar metadata, Cystemas HDF5 and extended TSV adapters.
 
 The normalized rows follow tsv-format.md. Missing auxiliary fields are None;
 run metadata is text, and scalar values are native-unit binary64 numbers.
-The adapter needs only an open HDF5 handle, not GTK or a time-series table.
+The format adapters are independent of GTK.
 """
 
+import io
 import math
+import re
 import numpy as np
+import pandas as pd
 
 
 METADATA_FIELDS = (
@@ -247,3 +250,258 @@ def read_hdf5_metadata(handle):
             + read_hdf5_named_values(handle, "tf_parameter")
             + read_hdf5_named_values(handle, "constant"))
     return normalize_metadata_rows(rows)
+
+
+# Extended TSV version 1. The C detector uses these same exact markers.
+TSV_PREFIX = "# cystemas-tsv:"
+TSV_SIGNATURE = TSV_PREFIX + "1"
+TSV_METADATA_MARKER = "# metadata"
+TSV_TIMESERIES_MARKER = "# timeseries"
+TSV_METADATA_HEADER = "\t".join(METADATA_FIELDS)
+
+TSV_AUX_FIELDS = {
+    "simulation": (), "fit": (),
+    "parameter": ("unit", "default_value"),
+    "constant": ("unit",), "tf_parameter": ("unit",),
+    "initial_state": ("unit", "initial_value"),
+    "fit_parameter": ("unit", *DECISION_FIELDS),
+    "fit_initial_state": ("unit", *DECISION_FIELDS),
+    "fit_input": ("unit",),
+}
+TSV_TEXT_KINDS = ("simulation", "fit")
+TSV_KIND_ORDER = ("simulation", "fit", "fit_input", "parameter",
+                  "initial_state", "fit_parameter", "fit_initial_state",
+                  "tf_parameter", "constant")
+TSV_RUN_KEY_ORDER = {
+    "simulation": ("simulation_date", "started_at", "ended_at", "elapsed_seconds",
+                   "converged", "pre_initialized", "integration_method", "input_file"),
+    "fit": ("fit_date", "started_at", "ended_at", "elapsed_seconds", "converged",
+            "commit_on_success", "params_committed", "integration_method", "input_file",
+            "minimization_method", "simulation_count"),
+}
+
+
+class TsvFormatError(ValueError):
+    def __init__(self, code, line, message):
+        self.code = code
+        self.line = line
+        super().__init__(f"Invalid extended TSV at line {line}: {message}")
+
+
+def _tsv_decode_text(text, line):
+    escapes = {"\\": "\\", "t": "\t", "n": "\n", "r": "\r"}
+    result = []
+    pos = 0
+    while pos < len(text):
+        char = text[pos]
+        if ord(char) < 32 or ord(char) == 127:
+            raise TsvFormatError("escape", line, "invalid text control character")
+        if char == "\\":
+            pos += 1
+            if pos == len(text) or text[pos] not in escapes:
+                raise TsvFormatError("escape", line, "invalid text escape")
+            char = escapes[text[pos]]
+        result.append(char)
+        pos += 1
+    return "".join(result)
+
+
+def _tsv_number(text, line, required=False):
+    if not text:
+        if required:
+            raise TsvFormatError("missing_numeric_value", line,
+                                 "missing numeric metadata value")
+        return None
+    if text in ("nan", "inf", "-inf"):
+        return float(text)
+    if not re.fullmatch(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", text):
+        raise TsvFormatError("numeric_syntax", line, "invalid metadata number")
+    value = float(text)
+    if not math.isfinite(value):
+        raise TsvFormatError("numeric_overflow", line, "metadata number overflows binary64")
+    return value
+
+
+def _tsv_metadata_row(text, line):
+    if not text:
+        raise TsvFormatError("blank_metadata_line", line, "blank metadata line")
+    cells = text.split("\t")
+    if len(cells) != len(METADATA_FIELDS):
+        raise TsvFormatError("cell_count", line, "expected ten metadata cells")
+    kind = cells[0]
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", kind):
+        raise TsvFormatError("kind", line, "invalid metadata kind")
+    name, value, unit = (_tsv_decode_text(cell, line) for cell in cells[1:4])
+    if not name:
+        raise TsvFormatError("name", line, "empty metadata name")
+    if kind in TSV_AUX_FIELDS and kind not in TSV_TEXT_KINDS:
+        value = _tsv_number(value, line, required=True)
+    row = dict(zip(METADATA_FIELDS[:4], (kind, name, value, unit)))
+    for field, cell in zip(METADATA_FIELDS[4:-1], cells[4:-1]):
+        row[field] = _tsv_number(cell, line)
+    if cells[-1] not in ("", "0", "1"):
+        raise TsvFormatError("optimized_flag", line, "invalid optimized flag")
+    row["optimized"] = int(cells[-1]) if cells[-1] else None
+    if kind in TSV_AUX_FIELDS:
+        for field in METADATA_FIELDS[3:]:
+            if field not in TSV_AUX_FIELDS[kind] and row[field] not in (None, ""):
+                raise TsvFormatError("inapplicable_field", line,
+                                     f"inapplicable metadata field {field}")
+    if kind == "fit_input" and unit != "s":
+        raise TsvFormatError("input_interval_unit", line, "fit input interval unit must be s")
+    return row
+
+
+def _tsv_physical_line(raw, line):
+    if raw.endswith(b"\n"):
+        raw = raw[:-1]
+        if raw.endswith(b"\r"):
+            raw = raw[:-1]
+    if b"\r" in raw:
+        raise TsvFormatError("bare_cr", line, "bare CR")
+    if b"\0" in raw:
+        raise TsvFormatError("nul", line, "NUL byte")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise TsvFormatError("invalid_utf8", line, "invalid UTF-8") from exc
+
+
+def scan_tsv_sections(stream):
+    """Validate extended sections on a binary stream; return variant, rows, offset.
+
+    The offset points to the conventional header, or is None if absent.
+    Legacy candidates are left to the unchanged legacy table reader.
+    """
+    stream.seek(0)
+    first = stream.readline()
+    if first.startswith(b"\xef\xbb\xbf"):
+        first = first[3:]
+    if not first.startswith(TSV_PREFIX.encode("ascii")):
+        return "legacy", [], 0
+    if _tsv_physical_line(first, 1) != TSV_SIGNATURE:
+        raise TsvFormatError("unsupported_version", 1, "unsupported or malformed TSV version")
+    for line, expected, code in ((2, TSV_METADATA_MARKER, "metadata_marker"),
+                                 (3, TSV_METADATA_HEADER, "metadata_header")):
+        if _tsv_physical_line(stream.readline(), line) != expected:
+            raise TsvFormatError(code, line, f"expected {expected}")
+    rows = []
+    seen = set()
+    offset = None
+    header_found = False
+    line = 3
+    for raw in stream:
+        line += 1
+        text = _tsv_physical_line(raw, line)
+        if offset is None:
+            if text == TSV_TIMESERIES_MARKER:
+                offset = stream.tell()
+                continue
+            row = _tsv_metadata_row(text, line)
+            key = (row["kind"], row["name"])
+            if key in seen:
+                raise TsvFormatError("duplicate_key", line, "duplicate metadata key")
+            seen.add(key)
+            rows.append(row)
+        else:
+            if (text in (TSV_METADATA_MARKER, TSV_TIMESERIES_MARKER)
+                    or text.startswith(TSV_PREFIX)):
+                raise TsvFormatError("extra_section", line, "unexpected extra section")
+            if not header_found:
+                if not text.strip(" \t"):
+                    raise TsvFormatError("missing_timeseries_header", line,
+                                         "missing time-series header")
+                header_found = True
+            elif text.startswith("#"):
+                raise TsvFormatError("extra_section", line, "unexpected time-series comment")
+    if offset is not None and not header_found:
+        raise TsvFormatError("missing_timeseries_header", line + 1,
+                             "missing time-series header")
+    return ("metadata_only" if offset is None else "combined"), rows, offset
+
+
+def read_result_tsv(filename):
+    """Return variant, normalized rows, frame and registry (no table if absent)."""
+    from csv_plotter_units import ColumnRegistry, read_delimited
+
+    with open(filename, "rb") as stream:
+        variant, rows, offset = scan_tsv_sections(stream)
+        if variant == "metadata_only":
+            return variant, rows, pd.DataFrame(), ColumnRegistry()
+        if variant == "legacy":
+            frame, registry = read_delimited(filename, "\t")
+        else:
+            # Reuse the same file descriptor after validation. TextIOWrapper
+            # supports absolute byte offsets at UTF-8 character boundaries.
+            stream.seek(offset)
+            with io.TextIOWrapper(stream, encoding="utf-8", newline="") as text:
+                frame, registry = read_delimited(text, "\t")
+    return variant, rows, frame, registry
+
+
+def _tsv_encode_text(text):
+    if not isinstance(text, str):
+        raise ValueError("Metadata text must be a string")
+    return (text.replace("\\", "\\\\").replace("\t", "\\t")
+            .replace("\n", "\\n").replace("\r", "\\r"))
+
+
+def serialize_tsv_metadata(rows):
+    """Produce a validated version-1 metadata preamble before opening output."""
+    rows = normalize_metadata_rows(rows)
+    order = {kind: index for index, kind in enumerate(TSV_KIND_ORDER)}
+    run_order = {kind: {name: index for index, name in enumerate(keys)}
+                 for kind, keys in TSV_RUN_KEY_ORDER.items()}
+
+    def sort_key(row):
+        kind = row["kind"]
+        keys = run_order.get(kind, {})
+        return order.get(kind, len(order)), keys.get(row["name"], len(keys))
+
+    rows.sort(key=sort_key)
+    lines = [TSV_SIGNATURE, TSV_METADATA_MARKER, TSV_METADATA_HEADER]
+    for row in rows:
+        kind = row["kind"]
+        numeric = kind in TSV_AUX_FIELDS and kind not in TSV_TEXT_KINDS
+        cells = [kind, _tsv_encode_text(row["name"]),
+                 repr(float(row["value"])) if numeric else _tsv_encode_text(row["value"]),
+                 _tsv_encode_text(row["unit"])]
+        cells.extend("" if row[field] is None else repr(float(row[field]))
+                     for field in METADATA_FIELDS[4:-1])
+        flag = row["optimized"]
+        if flag is not None and flag not in (0, 1):
+            raise ValueError("Invalid optimized flag")
+        cells.append("" if flag is None else str(int(flag)))
+        line = "\t".join(cells)
+        _tsv_metadata_row(line, len(lines) + 1)
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
+def write_result_tsv(filename, variant, rows, frame, registry):
+    """Retain the loaded file variant; never silently discard metadata."""
+    from csv_plotter_units import write_tsv, write_tsv_stream
+
+    if variant == "legacy":
+        if rows:
+            raise ValueError("Legacy TSV cannot store scalar metadata")
+        write_tsv(filename, frame, registry)
+        return
+    if variant not in ("metadata_only", "combined"):
+        raise ValueError(f"Unknown TSV variant {variant!r}")
+    preamble = serialize_tsv_metadata(rows)
+    if variant == "metadata_only" and len(frame.columns):
+        raise ValueError("Metadata-only TSV cannot store time-series columns")
+    if variant == "combined":
+        header = "\t".join(registry.headers(frame.columns, include_colors=True))
+        if (not header.strip(" \t") or any(char in header for char in "\r\n\0")
+                or header in (TSV_METADATA_MARKER, TSV_TIMESERIES_MARKER)
+                or header.startswith(TSV_PREFIX)):
+            raise ValueError("Invalid extended TSV time-series header")
+    # Encoding failures are detected before truncating the destination.
+    preamble.encode("utf-8")
+    with open(filename, "w", encoding="utf-8", newline="") as stream:
+        stream.write(preamble)
+        if variant == "combined":
+            stream.write(TSV_TIMESERIES_MARKER + "\n")
+            write_tsv_stream(stream, frame, registry)

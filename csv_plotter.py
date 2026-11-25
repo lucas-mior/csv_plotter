@@ -18,7 +18,8 @@ from csv_plotter_fft import (
     spectrum_decibels
 )
 from csv_plotter_metadata import (
-    metadata_views, normalize_metadata_rows, read_hdf5_metadata, read_hdf5_strings
+    metadata_views, normalize_metadata_rows, read_hdf5_metadata, read_hdf5_strings,
+    read_result_tsv, write_result_tsv
 )
 from csv_plotter_units import (
     ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
@@ -64,6 +65,8 @@ custom_labels = {
 }
 
 file_type = None
+tsv_variant = None
+has_timeseries = False
 metadata_rows = []
 column_registry = ColumnRegistry()
 named_values = []
@@ -199,8 +202,6 @@ def on_have_filename_ready(dialog, async_result, data):
     Gtk.Box.append(toolbar_box, toolbar)
     Gtk.Box.append(toolbar_box, custom_left_label_entry)
     Gtk.Box.append(toolbar_box, custom_right_label_entry)
-    Gtk.Box.append(toolbar_box, reload_button)
-    Gtk.Box.append(toolbar_box, save_button)
     Gtk.Box.append(toolbar_box, title_button)
 
     Gtk.Box.append(plot_box, toolbar_box)
@@ -301,13 +302,33 @@ def on_have_filename_ready(dialog, async_result, data):
     Gtk.Notebook.connect(plot_notebook, "switch-page",
                          on_notebook_switch_page)
 
-    Gtk.ApplicationWindow.set_child(window, plot_notebook)
+    # Keep file operations available even when there is no plot axis.
+    file_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    Gtk.Box.append(file_controls, reload_button)
+    Gtk.Box.append(file_controls, save_button)
+    root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    Gtk.Box.append(root_box, file_controls)
+    Gtk.Widget.set_vexpand(plot_notebook, True)
+    Gtk.Box.append(root_box, plot_notebook)
+    update_plot_availability()
+    Gtk.ApplicationWindow.set_child(window, root_box)
     Gtk.ApplicationWindow.set_visible(window, True)
     return
 
 
+def update_plot_availability():
+    if plot_notebook is None:
+        return
+    enabled = not data_frame.empty
+    for index in (0, spectrum_page_index):
+        page = Gtk.Notebook.get_nth_page(plot_notebook, index)
+        Gtk.Widget.set_sensitive(page, enabled)
+    if not enabled:
+        Gtk.Notebook.set_current_page(plot_notebook, 2)
+
+
 def on_notebook_switch_page(notebook, page, page_number):
-    if page_number == spectrum_page_index:
+    if page_number == spectrum_page_index and not data_frame.empty:
         redraw_spectrum()
     return
 
@@ -331,6 +352,7 @@ def on_spectrum_setting_changed(dropdown, property_spec=None):
     selected = Gtk.DropDown.get_selected(dropdown)
     spectrum_settings[setting] = dropdown.spectrum_values[selected]
     if (plot_notebook is not None
+            and not data_frame.empty
             and Gtk.Notebook.get_current_page(plot_notebook)
             == spectrum_page_index):
         redraw_spectrum()
@@ -354,6 +376,7 @@ def on_spectrum_frequency_apply(widget):
     spectrum_settings["frequency_min"] = low
     spectrum_settings["frequency_max"] = high
     if (plot_notebook is not None
+            and not data_frame.empty
             and Gtk.Notebook.get_current_page(plot_notebook)
             == spectrum_page_index):
         redraw_spectrum()
@@ -512,8 +535,14 @@ def configure_metadata(rows, column_names=()):
 
 def reload_file_contents():
     global data_frame, x_data, file_type, column_registry
+    global tsv_variant, has_timeseries
 
     data_frame = None
+    x_data = None
+    file_type = None
+    tsv_variant = None
+    has_timeseries = False
+    column_registry = ColumnRegistry()
     configure_metadata([])
     try:
         if h5py is None:
@@ -529,44 +558,44 @@ def reload_file_contents():
                 raise ImportError("h5py is required to read HDF5 files")
 
             with h5py.File(filename, "r") as hdf5_file:
-                if "data" not in hdf5_file:
-                    raise ValueError(
-                        "HDF5 file does not have a /data dataset")
-                if "names" not in hdf5_file:
-                    raise ValueError(
-                        "HDF5 file does not have a /names dataset")
-
-                data = np.array(hdf5_file["data"], dtype=np.float64)
-                if data.ndim != 2:
-                    raise ValueError(
-                        "HDF5 /data dataset must have 2 dimensions")
-
-                ncolumns = data.shape[1]
-                names = read_hdf5_strings(hdf5_file, "names", ncolumns)
-                if "units" in hdf5_file:
-                    units = read_hdf5_strings(hdf5_file, "units", ncolumns)
-                else:
-                    units = [""]*ncolumns
-                if "colors" in hdf5_file:
-                    column_colors = read_hdf5_strings(
-                        hdf5_file, "colors", ncolumns)
-                else:
-                    column_colors = [""]*ncolumns
-
                 rows = read_hdf5_metadata(hdf5_file)
-
-            column_registry = ColumnRegistry.from_columns(
-                names, units, column_colors)
-            data_frame = pd.DataFrame(
-                data, columns=column_registry.names())
+                has_timeseries = "data" in hdf5_file
+                if not has_timeseries:
+                    if any(key in hdf5_file for key in ("names", "units", "colors")):
+                        raise ValueError("HDF5 file has incomplete time-series datasets")
+                    if not rows and len(hdf5_file):
+                        raise ValueError("HDF5 file has neither data nor recognized metadata")
+                    data_frame = pd.DataFrame()
+                else:
+                    if "names" not in hdf5_file:
+                        raise ValueError("HDF5 file does not have a /names dataset")
+                    data = np.array(hdf5_file["data"], dtype=np.float64)
+                    if data.ndim != 2:
+                        raise ValueError("HDF5 /data dataset must have 2 dimensions")
+                    ncolumns = data.shape[1]
+                    names = read_hdf5_strings(hdf5_file, "names", ncolumns)
+                    if "units" in hdf5_file:
+                        units = read_hdf5_strings(hdf5_file, "units", ncolumns)
+                    else:
+                        units = [""]*ncolumns
+                    if "colors" in hdf5_file:
+                        column_colors = read_hdf5_strings(hdf5_file, "colors", ncolumns)
+                    else:
+                        column_colors = [""]*ncolumns
+                    column_registry = ColumnRegistry.from_columns(
+                        names, units, column_colors)
+                    data_frame = pd.DataFrame(data, columns=column_registry.names())
             configure_metadata(rows, data_frame.columns)
             file_type = "hdf5"
         else:
             file_type = "tsv" if filename.lower().endswith(".tsv") else "csv"
             if file_type == "tsv":
-                data_frame, column_registry = read_tsv(filename)
+                tsv_variant, rows, data_frame, column_registry = read_result_tsv(filename)
+                has_timeseries = tsv_variant != "metadata_only"
+                configure_metadata(rows, data_frame.columns)
             else:
                 data_frame, column_registry = read_csv(filename)
+                has_timeseries = True
     except Exception as exception:
         print(f"Error reading {filename}: {exception}", file=sys.stderr)
         sys.exit(1)
@@ -574,6 +603,8 @@ def reload_file_contents():
         print(f"Error reading {filename}", file=sys.stderr)
         sys.exit(1)
 
+    if not has_timeseries:
+        return
     if "time" not in data_frame.columns:
         try:
             rows = DataFrame.reset_index(data_frame).index
@@ -581,7 +612,8 @@ def reload_file_contents():
             column_registry.add("Row")
         except Exception:
             pass
-    x_data = data_frame.iloc[:, 0]
+    if len(data_frame.columns):
+        x_data = data_frame.iloc[:, 0]
     return
 
 
@@ -675,27 +707,32 @@ def run_metadata_rows(metadata, display_name):
     for value in metadata:
         metadata_value = value["value"]
         if value["name"] == "elapsed_seconds":
-            seconds = float(metadata_value)
-            total_milliseconds = int(round(seconds*1000.0))
-            whole_seconds, milliseconds = divmod(total_milliseconds, 1000)
-            raw_seconds = f"{whole_seconds}.{milliseconds:03d}s"
+            try:
+                seconds = float(metadata_value)
+                valid_duration = seconds >= 0 and np.isfinite(seconds * 1000.0)
+            except (ValueError, TypeError, OverflowError):
+                valid_duration = False
+            if valid_duration:
+                total_milliseconds = int(round(seconds*1000.0))
+                whole_seconds, milliseconds = divmod(total_milliseconds, 1000)
+                raw_seconds = f"{whole_seconds}.{milliseconds:03d}s"
 
-            if seconds <= 60.0:
-                metadata_value = raw_seconds
-            elif seconds <= 3600.0:
-                minutes, remaining_seconds = divmod(whole_seconds, 60)
-                metadata_value = (
-                    f"{minutes}min{remaining_seconds}s ({raw_seconds})")
-            elif seconds <= 3600.0*60.0:
-                hours, remainder = divmod(whole_seconds, 3600)
-                minutes = remainder//60
-                metadata_value = f"{hours}h{minutes}min ({raw_seconds})"
-            else:
-                days, remainder = divmod(whole_seconds, 24*3600)
-                hours, remainder = divmod(remainder, 3600)
-                minutes = remainder//60
-                metadata_value = (
-                    f"{days}d{hours}h{minutes}min ({raw_seconds})")
+                if seconds <= 60.0:
+                    metadata_value = raw_seconds
+                elif seconds <= 3600.0:
+                    minutes, remaining_seconds = divmod(whole_seconds, 60)
+                    metadata_value = (
+                        f"{minutes}min{remaining_seconds}s ({raw_seconds})")
+                elif seconds <= 3600.0*60.0:
+                    hours, remainder = divmod(whole_seconds, 3600)
+                    minutes = remainder//60
+                    metadata_value = f"{hours}h{minutes}min ({raw_seconds})"
+                else:
+                    days, remainder = divmod(whole_seconds, 24*3600)
+                    hours, remainder = divmod(remainder, 3600)
+                    minutes = remainder//60
+                    metadata_value = (
+                        f"{days}d{hours}h{minutes}min ({raw_seconds})")
         rows.append([
             display_name(value["name"]),
             metadata_value,
@@ -895,6 +932,17 @@ def reconfigure_plots_and_buttons(selection_scroll):
     buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     namespace_boxes = {}
     ns_colors = {}
+
+    if data_frame.empty:
+        clean_plotted_get_list()
+        x_button_group = None
+        pre_plots = []
+        Axes.set_xlabel(axes_left, "", fontsize=FONTSIZE)
+        configure_y_axis_labels_and_ticks()
+        put_legends()
+        selection_scroll.buttons_box = buttons_box
+        Gtk.ScrolledWindow.set_child(selection_scroll, buttons_box)
+        return
 
     names = [str(name) for name in data_frame.columns]
     for named_value in named_values:
@@ -1138,6 +1186,7 @@ def on_reload_button_clicked(reload_button):
     reload_file_contents()
     reconfigure_plots_and_buttons(reload_button.selection_scroll)
     reconfigure_metadata_tab(reload_button.metadata_scroll)
+    update_plot_availability()
     redraw_plots(full=True)
     return
 
@@ -1154,23 +1203,23 @@ def on_save_button_clicked(save_button):
             if h5py is None:
                 raise ImportError("h5py is required to save HDF5 files")
 
-            names = column_registry.source_names(data_frame.columns)
-            units = [column_registry.get(name).unit
-                     for name in data_frame.columns]
-            column_colors = column_registry.colors(data_frame.columns)
-            data = data_frame.to_numpy(dtype=np.float64)
+            table_datasets = {}
+            if has_timeseries:
+                names = column_registry.source_names(data_frame.columns)
+                units = [column_registry.get(name).unit for name in data_frame.columns]
+                column_colors = column_registry.colors(data_frame.columns)
+                table_datasets = {
+                    "data": data_frame.to_numpy(dtype=np.float64),
+                    "names": fixed_hdf5_strings(names),
+                    "units": fixed_hdf5_strings(units),
+                    "colors": fixed_hdf5_strings(column_colors),
+                }
 
             # Preserve unrelated HDF5 contents, including unknown metadata
             # groups, datasets and file attributes. Only the plotted table is
             # replaced when the user saves edited columns.
             with h5py.File(filename, "r") as source, \
                     h5py.File(newfile, "w") as hdf5_file:
-                table_datasets = {
-                    "data": data,
-                    "names": fixed_hdf5_strings(names),
-                    "units": fixed_hdf5_strings(units),
-                    "colors": fixed_hdf5_strings(column_colors),
-                }
                 for name in source:
                     source.copy(name, hdf5_file)
                 for name, value in source.attrs.items():
@@ -1192,6 +1241,9 @@ def on_save_button_clicked(save_button):
                     dataset = hdf5_file.create_dataset(name, data=values)
                     for attr_name, attr_value in attributes.items():
                         dataset.attrs[attr_name] = attr_value
+        elif file_type == "tsv":
+            write_result_tsv(newfile, tsv_variant, metadata_rows,
+                             data_frame, column_registry)
         else:
             write_tsv(newfile, data_frame, column_registry)
     except Exception as exception:
@@ -1669,6 +1721,7 @@ def redraw_plots(full=False, autoscale_y=False):
 
     FigureCanvas.draw(canvas)
     if (plot_notebook is not None
+            and not data_frame.empty
             and Gtk.Notebook.get_current_page(plot_notebook)
             == spectrum_page_index):
         redraw_spectrum()

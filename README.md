@@ -50,12 +50,28 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
 - automatically interpolate gaps and irregular sample times for the Spectrum
   view, with a status message identifying affected signals
 
-## Extended Cystemas TSV (planned)
+## Extended Cystemas TSV
 
 The [version-1 TSV format specification](tsv-format.md) defines optional
 scalar metadata and combined result files. The shared reference fixtures
-are in `tests/fixtures/tsv_v1/`. Extended TSV reading and writing are not
-implemented yet.
+are in `tests/fixtures/tsv_v1/`. The reader recognizes the exact first-line
+`# cystemas-tsv:1` signature (with optional UTF-8 BOM) and validates the
+metadata and optional time-series sections. Ordinary unmarked TSV and
+legacy decisions tables continue to use the conventional reader. Invalid
+extended files report the physical line number without falling back to TSV.
+
+Combined TSV files expose scalar metadata alongside the time series, with
+parameter and constant plot selectors and expression variables as for HDF5.
+Metadata-only TSV and HDF5 files open the Metadata tab with the Plot and
+Spectrum pages disabled; Save and Reload remain available. No synthetic
+row or time axis is created. A combined file with only a time-series header
+retains that header but has no samples to plot.
+
+Saving an edited TSV creates a new TSV of the same variant (ordinary,
+combined or metadata-only). Decoded metadata, including unknown kinds and
+missing fields, is retained independently of edits to trajectory columns.
+HDF5 saving retains the existing metadata and does not create trajectory
+datasets for metadata-only files.
 
 `csv_plotter_metadata.py` normalizes HDF5 scalar result metadata into the
 same ten fields specified for TSV. It recognizes both canonical Cystemas
@@ -66,8 +82,8 @@ retains optional defaults, bounds, original decisions, optimization flags,
 and initial-state snapshots (including incomplete older fit snapshots),
 and represents missing fields with `None`. The existing pane, signal
 selectors, scalar plotting and expression evaluation use format-independent
-views of these rows. Additional pane sections and metadata-only file UI
-support will be implemented with extended TSV support. Scalar metadata is
+views of these rows. Additional initial-state pane sections, decision history,
+and parameter defaults will be exposed in Stage 9. Scalar metadata is
 not inserted into the loaded numerical table.
 
 ## Non-features

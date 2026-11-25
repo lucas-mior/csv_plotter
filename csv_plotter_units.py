@@ -287,11 +287,19 @@ class ColumnRegistry:
 
 def read_delimited(filename, delimiter):
     """Preserve duplicate raw headers before Pandas can mangle their names."""
-    with open(filename, "r", encoding="utf-8-sig", newline="") as stream:
+    def read_header(stream):
         try:
-            header = next(csv.reader(stream, delimiter=delimiter))
+            return next(csv.reader(stream, delimiter=delimiter))
         except StopIteration as exception:
             raise ValueError("File has no header") from exception
+
+    if hasattr(filename, "read"):
+        start = filename.tell()
+        header = read_header(filename)
+        filename.seek(start)
+    else:
+        with open(filename, "r", encoding="utf-8-sig", newline="") as stream:
+            header = read_header(stream)
 
     if delimiter == "\t":
         parsed = [split_tsv_header_metadata(value) for value in header]
@@ -309,7 +317,12 @@ def read_delimited(filename, delimiter):
 
 def read_tsv(filename):
     """Load Cystemas TSV names, units and optional color metadata."""
-    return read_delimited(filename, "\t")
+    from csv_plotter_metadata import read_result_tsv
+
+    variant, _, frame, registry = read_result_tsv(filename)
+    if variant == "metadata_only":
+        raise ValueError("TSV has no time-series section")
+    return frame, registry
 
 
 def read_csv(filename):
@@ -323,12 +336,16 @@ def write_delimited(filename, frame, registry, delimiter):
         # Pandas would CSV-quote metadata's double quotes. Cystemas expects
         # the literal, unquoted header, so write it separately from the rows.
         with open(filename, "w", encoding="utf-8", newline="") as stream:
-            stream.write("\t".join(registry.headers(
-                frame.columns, include_colors=True)) + "\n")
-            frame.to_csv(stream, sep=delimiter, index=False, header=False)
+            write_tsv_stream(stream, frame, registry)
     else:
         frame.to_csv(filename, sep=delimiter, index=False,
                      header=registry.headers(frame.columns))
+
+
+def write_tsv_stream(stream, frame, registry):
+    stream.write("\t".join(registry.headers(
+        frame.columns, include_colors=True)) + "\n")
+    frame.to_csv(stream, sep="\t", index=False, header=False, lineterminator="\n")
 
 
 def write_tsv(filename, frame, registry):
