@@ -16,14 +16,10 @@ from csv_plotter_units import ColumnRegistry, read_csv, read_tsv, write_csv, wri
 
 
 FUNCTIONS = {
-    "filename_has_hdf5_extension", "read_hdf5_strings",
-    "hdf5_dataset_exists", "read_hdf5_float_vector",
-    "read_hdf5_named_values", "read_hdf5_text_metadata",
-    "fixed_hdf5_strings", "write_hdf5_named_values",
-    "configure_hdf5_named_values", "configure_hdf5_simulation_metadata",
-    "configure_hdf5_fit_metadata", "configure_hdf5_fit_inputs",
-    "reload_file_contents", "on_save_button_clicked",
+    "filename_has_hdf5_extension", "fixed_hdf5_strings",
+    "configure_metadata", "reload_file_contents", "on_save_button_clicked",
 }
+
 
 
 def load_hdf5_functions():
@@ -31,6 +27,9 @@ def load_hdf5_functions():
     tree = ast.parse(path.read_text(encoding="utf-8"))
     nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef)
              and node.name in FUNCTIONS]
+    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+               and node.module == "csv_plotter_metadata"]
+    nodes = imports + nodes
     return compile(ast.fix_missing_locations(
         ast.Module(body=nodes, type_ignores=[])), str(path), "exec")
 
@@ -58,11 +57,11 @@ class Hdf5ColumnTests(unittest.TestCase):
                 "read_tsv": read_tsv,
                 "write_csv": write_csv,
                 "write_tsv": write_tsv,
-                "hdf5_named_values": [],
-                "hdf5_named_value_by_display_name": {},
-                "hdf5_simulation_metadata": [],
-                "hdf5_fit_metadata": [],
-                "hdf5_fit_inputs": [],
+                "named_values": [],
+                "named_value_by_display_name": {},
+                "simulation_metadata": [],
+                "fit_metadata": [],
+                "fit_inputs": [],
                 "HDF5_EXTENSIONS": (".h5", ".hdf5"),
                 "os": __import__("os"),
                 "sys": __import__("sys"),

@@ -17,6 +17,9 @@ from csv_plotter_fft import (
     amplitude_spectrum, limit_spectrum_frequencies, select_time_interval,
     spectrum_decibels
 )
+from csv_plotter_metadata import (
+    metadata_views, normalize_metadata_rows, read_hdf5_metadata, read_hdf5_strings
+)
 from csv_plotter_units import (
     ColumnRegistry, read_csv, read_tsv, split_tsv_header, write_csv,
     write_tsv
@@ -61,12 +64,13 @@ custom_labels = {
 }
 
 file_type = None
+metadata_rows = []
 column_registry = ColumnRegistry()
-hdf5_named_values = []
-hdf5_named_value_by_display_name = {}
-hdf5_simulation_metadata = []
-hdf5_fit_metadata = []
-hdf5_fit_inputs = []
+named_values = []
+named_value_by_display_name = {}
+simulation_metadata = []
+fit_metadata = []
+fit_inputs = []
 HDF5_EXTENSIONS = (".h5", ".hdf5")
 
 plot_notebook = None
@@ -357,8 +361,8 @@ def on_spectrum_frequency_apply(widget):
 
 
 def spectrum_signal_values(name):
-    if name in hdf5_named_value_by_display_name:
-        value = hdf5_named_value_by_display_name[name]["value"]
+    if name in named_value_by_display_name:
+        value = named_value_by_display_name[name]["value"]
         return np.full(len(data_frame.index), value, dtype=np.float64)
     return data_frame[name].to_numpy()
 
@@ -480,96 +484,6 @@ def filename_has_hdf5_extension(path):
     return extension.lower() in HDF5_EXTENSIONS
 
 
-def read_hdf5_strings(hdf5_file, dataset_name, count=None):
-    values = hdf5_file[dataset_name][()]
-    if np.asarray(values).ndim != 1:
-        raise ValueError(
-            f"HDF5 /{dataset_name} dataset must have 1 dimension")
-    strings = []
-    for value in values:
-        if isinstance(value, bytes):
-            raw_text = value
-        elif isinstance(value, np.bytes_):
-            raw_text = bytes(value)
-        else:
-            strings.append(str(value))
-            continue
-
-        raw_text = raw_text.split(b"\0", maxsplit=1)[0]
-        strings.append(raw_text.decode("utf-8"))
-
-    if count is not None and len(strings) != count:
-        raise ValueError(
-            f"HDF5 dataset {dataset_name} has {len(strings)} entries, "
-            f"expected {count}")
-    return strings
-
-
-def hdf5_dataset_exists(hdf5_file, dataset_name):
-    return dataset_name in hdf5_file
-
-
-def read_hdf5_float_vector(hdf5_file, dataset_name, count=None):
-    values = np.array(hdf5_file[dataset_name], dtype=np.float64)
-    if values.ndim != 1:
-        raise ValueError(
-            f"HDF5 /{dataset_name} dataset must have 1 dimension")
-    if count is not None and len(values) != count:
-        raise ValueError(
-            f"HDF5 dataset /{dataset_name} has {len(values)} entries, "
-            f"expected {count}")
-    return values
-
-
-def read_hdf5_named_values(hdf5_file, kind):
-    names_path = f"{kind}_names"
-    units_path = f"{kind}_units"
-    values_path = f"{kind}_values"
-    paths = [names_path, units_path, values_path]
-
-    if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
-        return []
-    if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
-        raise ValueError(f"HDF5 file has incomplete /{kind}_* metadata")
-
-    names = read_hdf5_strings(hdf5_file, names_path)
-    units = read_hdf5_strings(hdf5_file, units_path, len(names))
-    values = read_hdf5_float_vector(hdf5_file, values_path, len(names))
-
-    result = []
-    for name, unit, value in zip(names, units, values):
-        result.append({
-            "kind": kind,
-            "name": name,
-            "unit": unit,
-            "value": float(value),
-        })
-    return result
-
-
-def read_hdf5_text_metadata(hdf5_file, prefix):
-    names_path = f"{prefix}_metadata_names"
-    values_path = f"{prefix}_metadata_values"
-    paths = [names_path, values_path]
-
-    if not any(hdf5_dataset_exists(hdf5_file, path) for path in paths):
-        return []
-    if not all(hdf5_dataset_exists(hdf5_file, path) for path in paths):
-        raise ValueError(
-            f"HDF5 file has incomplete /{prefix}_metadata_*")
-
-    names = read_hdf5_strings(hdf5_file, names_path)
-    values = read_hdf5_strings(hdf5_file, values_path, len(names))
-
-    result = []
-    for name, value in zip(names, values):
-        result.append({
-            "name": name,
-            "value": value,
-        })
-    return result
-
-
 def fixed_hdf5_strings(strings):
     strings = [str(s) for s in strings]
     width = 1
@@ -584,68 +498,23 @@ def fixed_hdf5_strings(strings):
     return np.array(values, dtype=f"S{width}")
 
 
-def write_hdf5_named_values(hdf5_file, kind, named_values):
-    values = [value for value in named_values if value["kind"] == kind]
-    if len(values) == 0:
-        return
+def configure_metadata(rows, column_names=()):
+    global metadata_rows, named_values, named_value_by_display_name
+    global simulation_metadata, fit_metadata, fit_inputs
 
-    names = [value["name"] for value in values]
-    units = [value["unit"] for value in values]
-    data = np.array([value["value"] for value in values], dtype=np.float64)
-
-    hdf5_file.create_dataset(f"{kind}_names", data=fixed_hdf5_strings(names))
-    hdf5_file.create_dataset(f"{kind}_units", data=fixed_hdf5_strings(units))
-    hdf5_file.create_dataset(f"{kind}_values", data=data)
-    return
-
-
-def configure_hdf5_named_values(named_values):
-    global hdf5_named_values, hdf5_named_value_by_display_name
-
-    hdf5_named_values = named_values
-    hdf5_named_value_by_display_name = {}
-    for named_value in hdf5_named_values:
-        name = named_value["name"]
-        if named_value["kind"] == "parameter":
-            display_name = f"parameters.{name}"
-        elif named_value["kind"] == "fit_parameter":
-            display_name = f"fit_parameters.{name}"
-        else:
-            display_name = f"constants.{name}"
-        named_value["display_name"] = display_name
-        hdf5_named_value_by_display_name[display_name] = named_value
-    return
-
-
-def configure_hdf5_simulation_metadata(simulation_metadata):
-    global hdf5_simulation_metadata
-
-    hdf5_simulation_metadata = simulation_metadata
-    return
-
-
-def configure_hdf5_fit_metadata(fit_metadata):
-    global hdf5_fit_metadata
-
-    hdf5_fit_metadata = fit_metadata
-    return
-
-
-def configure_hdf5_fit_inputs(fit_inputs):
-    global hdf5_fit_inputs
-
-    hdf5_fit_inputs = fit_inputs
-    return
+    metadata_rows = normalize_metadata_rows(rows)
+    named_values, simulation_metadata, fit_metadata, fit_inputs = \
+        metadata_views(metadata_rows, column_names)
+    named_value_by_display_name = {
+        value["display_name"]: value for value in named_values
+    }
 
 
 def reload_file_contents():
     global data_frame, x_data, file_type, column_registry
 
     data_frame = None
-    configure_hdf5_named_values([])
-    configure_hdf5_simulation_metadata([])
-    configure_hdf5_fit_metadata([])
-    configure_hdf5_fit_inputs([])
+    configure_metadata([])
     try:
         if h5py is None:
             is_hdf5 = filename_has_hdf5_extension(filename)
@@ -684,75 +553,13 @@ def reload_file_contents():
                 else:
                     column_colors = [""]*ncolumns
 
-                parameter_values = read_hdf5_named_values(
-                    hdf5_file, "parameter")
-                if len(parameter_values) != 0:
-                    dataset_name = "parameter_default_values"
-                    if hdf5_dataset_exists(hdf5_file, dataset_name):
-                        values = read_hdf5_float_vector(
-                            hdf5_file, dataset_name, len(parameter_values))
-                        for metadata, value in zip(parameter_values, values):
-                            metadata["default_value"] = float(value)
-
-                fit_parameter_values = read_hdf5_named_values(
-                    hdf5_file, "fit_parameter")
-                if len(fit_parameter_values) != 0:
-                    optional_fields = [
-                        ("initial_value",
-                         "fit_parameter_initial_values"),
-                        ("lower_bound", "fit_parameter_lower_bounds"),
-                        ("upper_bound", "fit_parameter_upper_bounds"),
-                    ]
-                    for field, dataset_name in optional_fields:
-                        if not hdf5_dataset_exists(hdf5_file, dataset_name):
-                            continue
-                        values = read_hdf5_float_vector(
-                            hdf5_file, dataset_name,
-                            len(fit_parameter_values))
-                        for metadata, value in zip(fit_parameter_values,
-                                                   values):
-                            metadata[field] = float(value)
-
-                fit_input_names_path = "fit_input_names"
-                intervals_path = "fit_input_knot_intervals"
-                paths = [fit_input_names_path, intervals_path]
-
-                if not any(hdf5_dataset_exists(hdf5_file, path)
-                           for path in paths):
-                    fit_inputs = []
-                elif not all(hdf5_dataset_exists(hdf5_file, path)
-                             for path in paths):
-                    raise ValueError(
-                        "HDF5 file has incomplete /fit_input_* metadata")
-                else:
-                    fit_input_names = read_hdf5_strings(
-                        hdf5_file, fit_input_names_path)
-                    intervals = read_hdf5_float_vector(
-                        hdf5_file, intervals_path, len(fit_input_names))
-
-                    fit_inputs = []
-                    for name, interval in zip(fit_input_names, intervals):
-                        fit_inputs.append({
-                            "name": name,
-                            "knot_interval": float(interval),
-                        })
-
-                named_values = []
-                named_values += parameter_values
-                named_values += read_hdf5_named_values(hdf5_file, "constant")
-                named_values += fit_parameter_values
-                simulation_metadata = read_hdf5_text_metadata(
-                    hdf5_file, "simulation")
-                fit_metadata = read_hdf5_text_metadata(hdf5_file, "fit")
+                rows = read_hdf5_metadata(hdf5_file)
 
             column_registry = ColumnRegistry.from_columns(
                 names, units, column_colors)
             data_frame = pd.DataFrame(
                 data, columns=column_registry.names())
-            configure_hdf5_named_values(named_values)
-            configure_hdf5_simulation_metadata(simulation_metadata)
-            configure_hdf5_fit_metadata(fit_metadata)
-            configure_hdf5_fit_inputs(fit_inputs)
+            configure_metadata(rows, data_frame.columns)
             file_type = "hdf5"
         else:
             file_type = "tsv" if filename.lower().endswith(".tsv") else "csv"
@@ -809,7 +616,7 @@ def fit_metadata_display_name(name):
 
 def metadata_values_for_kind(kind):
     values = []
-    for named_value in hdf5_named_values:
+    for named_value in named_values:
         if named_value["kind"] == kind:
             values.append(named_value)
     return values
@@ -915,26 +722,23 @@ def reconfigure_metadata_tab(metadata_scroll):
         ["Filename", filename],
     ])
 
-    if (len(hdf5_named_values) == 0
-            and len(hdf5_simulation_metadata) == 0
-            and len(hdf5_fit_metadata) == 0
-            and len(hdf5_fit_inputs) == 0):
+    if (len(named_values) == 0
+            and len(simulation_metadata) == 0
+            and len(fit_metadata) == 0
+            and len(fit_inputs) == 0):
         lines.append("")
-        if file_type == "hdf5":
-            lines.append("This HDF5 file does not contain recognized metadata.")
-        else:
-            lines.append(f"{file_type.upper()} files do not contain metadata.")
+        lines.append("This file does not contain recognized metadata.")
     else:
         append_metadata_text_section(
             lines, "Simulation", ["Name", "Value"],
-            run_metadata_rows(hdf5_simulation_metadata,
+            run_metadata_rows(simulation_metadata,
                               simulation_metadata_display_name))
         append_metadata_text_section(
             lines, "Fitting", ["Name", "Value"],
-            run_metadata_rows(hdf5_fit_metadata, fit_metadata_display_name))
+            run_metadata_rows(fit_metadata, fit_metadata_display_name))
 
         rows = []
-        for value in hdf5_fit_inputs:
+        for value in fit_inputs:
             rows.append([
                 value["name"],
                 value["knot_interval"],
@@ -962,6 +766,10 @@ def reconfigure_metadata_tab(metadata_scroll):
             ["Name", "Fitted", "Initial", "Lower", "Upper", "Unit",
              "Plot name"],
             rows)
+        append_metadata_text_section(
+            lines, "TF identification",
+            ["Name", "Value", "Unit", "Plot name"],
+            metadata_rows_for_kind("tf_parameter"))
         append_metadata_text_section(lines, "Constants",
                                      ["Name", "Value", "Unit", "Plot name"],
                                      metadata_rows_for_kind("constant"))
@@ -986,7 +794,7 @@ def reconfigure_metadata_tab(metadata_scroll):
 
 
 def metadata_name(name):
-    return (name in hdf5_named_value_by_display_name
+    return (name in named_value_by_display_name
             and name not in data_frame.columns)
 
 
@@ -994,7 +802,7 @@ def selector_unit(name):
     info = column_registry.get(name)
     if info is not None:
         return info.unit
-    metadata = hdf5_named_value_by_display_name.get(name)
+    metadata = named_value_by_display_name.get(name)
     if metadata is not None:
         return metadata["unit"]
     return ""
@@ -1089,7 +897,7 @@ def reconfigure_plots_and_buttons(selection_scroll):
     ns_colors = {}
 
     names = [str(name) for name in data_frame.columns]
-    for named_value in hdf5_named_values:
+    for named_value in named_values:
         names.append(named_value["display_name"])
     name_first = names[0]
     x_button_group = None
@@ -1251,7 +1059,7 @@ def add_buttons(name, buttons_box, left=False, right=False):
     x_button = Gtk.CheckButton(group=x_button_group)
     y_button_left = Gtk.CheckButton(active=left)
     y_button_right = Gtk.CheckButton(active=right)
-    named_value = hdf5_named_value_by_display_name.get(name)
+    named_value = named_value_by_display_name.get(name)
     info = column_registry.get(name)
     if info is not None:
         item_label = Gtk.EditableLabel.new(info.source_name)
@@ -1352,93 +1160,38 @@ def on_save_button_clicked(save_button):
             column_colors = column_registry.colors(data_frame.columns)
             data = data_frame.to_numpy(dtype=np.float64)
 
-            with h5py.File(newfile, "w") as hdf5_file:
-                hdf5_file.create_dataset("data", data=data)
-                hdf5_file.create_dataset("names",
-                                         data=fixed_hdf5_strings(names))
-                hdf5_file.create_dataset("units",
-                                         data=fixed_hdf5_strings(units))
-                hdf5_file.create_dataset(
-                    "colors", data=fixed_hdf5_strings(column_colors))
-
-                values = [
-                    value for value in hdf5_named_values
-                    if value["kind"] == "parameter"
-                ]
-                if len(values) != 0:
-                    write_hdf5_named_values(hdf5_file, "parameter", values)
-                    if all("default_value" in value for value in values):
-                        data = np.array(
-                            [value["default_value"] for value in values],
-                            dtype=np.float64)
-                        hdf5_file.create_dataset("parameter_default_values",
-                                                 data=data)
-
-                write_hdf5_named_values(hdf5_file, "constant",
-                                        hdf5_named_values)
-
-                values = [
-                    value for value in hdf5_named_values
-                    if value["kind"] == "fit_parameter"
-                ]
-                if len(values) != 0:
-                    write_hdf5_named_values(hdf5_file, "fit_parameter",
-                                            values)
-
-                    optional_fields = [
-                        ("initial_value",
-                         "fit_parameter_initial_values"),
-                        ("lower_bound", "fit_parameter_lower_bounds"),
-                        ("upper_bound", "fit_parameter_upper_bounds"),
-                    ]
-                    for field, dataset_name in optional_fields:
-                        if not all(field in value for value in values):
-                            continue
-                        data = np.array(
-                            [value[field] for value in values],
-                            dtype=np.float64)
-                        hdf5_file.create_dataset(dataset_name, data=data)
-
-                if len(hdf5_simulation_metadata) != 0:
-                    metadata_names = [
-                        value["name"] for value in hdf5_simulation_metadata
-                    ]
-                    metadata_values = [
-                        value["value"] for value in hdf5_simulation_metadata
-                    ]
-                    hdf5_file.create_dataset(
-                        "simulation_metadata_names",
-                        data=fixed_hdf5_strings(metadata_names))
-                    hdf5_file.create_dataset(
-                        "simulation_metadata_values",
-                        data=fixed_hdf5_strings(metadata_values))
-
-                if len(hdf5_fit_metadata) != 0:
-                    metadata_names = [
-                        value["name"] for value in hdf5_fit_metadata
-                    ]
-                    metadata_values = [
-                        value["value"] for value in hdf5_fit_metadata
-                    ]
-                    hdf5_file.create_dataset(
-                        "fit_metadata_names",
-                        data=fixed_hdf5_strings(metadata_names))
-                    hdf5_file.create_dataset(
-                        "fit_metadata_values",
-                        data=fixed_hdf5_strings(metadata_values))
-
-                if len(hdf5_fit_inputs) != 0:
-                    fit_input_names = [
-                        value["name"] for value in hdf5_fit_inputs
-                    ]
-                    intervals = np.array([
-                        value["knot_interval"] for value in hdf5_fit_inputs
-                    ], dtype=np.float64)
-                    hdf5_file.create_dataset(
-                        "fit_input_names",
-                        data=fixed_hdf5_strings(fit_input_names))
-                    hdf5_file.create_dataset("fit_input_knot_intervals",
-                                             data=intervals)
+            # Preserve unrelated HDF5 contents, including unknown metadata
+            # groups, datasets and file attributes. Only the plotted table is
+            # replaced when the user saves edited columns.
+            with h5py.File(filename, "r") as source, \
+                    h5py.File(newfile, "w") as hdf5_file:
+                table_datasets = {
+                    "data": data,
+                    "names": fixed_hdf5_strings(names),
+                    "units": fixed_hdf5_strings(units),
+                    "colors": fixed_hdf5_strings(column_colors),
+                }
+                for name in source:
+                    source.copy(name, hdf5_file)
+                for name, value in source.attrs.items():
+                    hdf5_file.attrs[name] = value
+                for name, values in table_datasets.items():
+                    if name not in hdf5_file:
+                        hdf5_file.create_dataset(name, data=values)
+                        continue
+                    dataset = hdf5_file[name]
+                    if (dataset.shape == values.shape
+                            and np.can_cast(values.dtype, dataset.dtype,
+                                            casting="safe")):
+                        # Keep compression, chunk layout and attributes when
+                        # an existing column dataset can be updated in place.
+                        dataset[...] = values
+                        continue
+                    attributes = dict(dataset.attrs.items())
+                    del hdf5_file[name]
+                    dataset = hdf5_file.create_dataset(name, data=values)
+                    for attr_name, attr_value in attributes.items():
+                        dataset.attrs[attr_name] = attr_value
         else:
             write_tsv(newfile, data_frame, column_registry)
     except Exception as exception:
@@ -1700,7 +1453,7 @@ def on_entry_activate(entry):
         for name in data_frame.columns:
             add_expression_name(local_dict, name, data_frame[name])
 
-        for named_value in hdf5_named_values:
+        for named_value in named_values:
             value = named_value["value"]
             name = named_value["name"]
             display_name = named_value["display_name"]
@@ -1717,11 +1470,11 @@ def on_entry_activate(entry):
                 resolved = column_registry.resolve_reference(name)
                 if resolved is not None:
                     local_dict[placeholder] = data_frame[resolved]
-                elif name in hdf5_named_value_by_display_name:
+                elif name in named_value_by_display_name:
                     local_dict[placeholder] = (
-                        hdf5_named_value_by_display_name[name]["value"])
+                        named_value_by_display_name[name]["value"])
                 else:
-                    for named_value in hdf5_named_values:
+                    for named_value in named_values:
                         if named_value["name"] == name:
                             local_dict[placeholder] = named_value["value"]
                             break
@@ -1925,8 +1678,8 @@ def redraw_plots(full=False, autoscale_y=False):
 def add_plot(name, axes):
     global styles
 
-    if name in hdf5_named_value_by_display_name:
-        named_value = hdf5_named_value_by_display_name[name]
+    if name in named_value_by_display_name:
+        named_value = named_value_by_display_name[name]
         values = np.full(len(data_frame.index), named_value["value"],
                          dtype=np.float64)
         y = pd.Series(values, index=data_frame.index, name=name)

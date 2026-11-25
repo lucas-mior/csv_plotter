@@ -208,7 +208,8 @@ class SelectorNamespaceTests(unittest.TestCase):
             'split_tsv_header': split_tsv_header,
             'display_unit': lambda unit: f' [{unit}]' if unit else '',
             'pre_plots': [],
-            'hdf5_named_values': [],
+            'named_values': [],
+            'named_value_by_display_name': {},
             'axes_left': self.axes_left,
             'axes_right': self.axes_right,
             'metadata_name': lambda name: False,
@@ -361,6 +362,27 @@ class SelectorNamespaceTests(unittest.TestCase):
         self.state['on_entry_activate'](entry)
         self.assertEqual(list(self.state['data_frame'][
             '`pressure [bar]` * 2 + `pressure [Pa]`']), [3.0, 6.0])
+
+    def test_expression_uses_normalized_scalar_metadata(self):
+        from csv_plotter_metadata import metadata_views, normalize_metadata_rows
+
+        root = self.configure(['time', 'plant.flow'])
+        rows = normalize_metadata_rows([
+            {"kind": "parameter", "name": "plant.k", "value": 3.},
+            {"kind": "fit_parameter", "name": "plant.k", "value": 4.},
+        ])
+        named, *_ = metadata_views(rows, self.state['data_frame'].columns)
+        self.state['named_values'] = named
+        self.state['named_value_by_display_name'] = {
+            row['display_name']: row for row in named}
+        entry = type('EntryObject', (), {})()
+        entry.selection_scroll = type('Scroll', (), {})()
+        entry.selection_scroll.child = type('ViewportObject', (), {'child': root})()
+        expression = '`plant.flow` * `parameters.plant.k` + `fit_parameters.plant.k`'
+        entry.text = expression
+        self.state['on_entry_activate'](entry)
+        self.assertEqual(list(self.state['data_frame'][expression]), [7., 10.])
+        self.assertEqual(len(self.state['data_frame'].columns), 3)
 
     def test_rename_moves_items_and_removes_empty_groups(self):
         root = self.configure(['time', 'plant.flow'])

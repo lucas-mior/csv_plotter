@@ -21,6 +21,12 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
   quoted display labels (`` `pressure [bar]` + `pressure [Pa]` ``)
 - save modified CSV, TSV, and HDF5 data with original source names and unit
   metadata preserved, including duplicate names with different units
+- show Cystemas transfer-function identification metadata from HDF5
+  `tf_param_*` (or legacy `tf_parameter_*`) datasets in a dedicated
+  **TF identification** section of the Metadata tab
+- preserve unrecognized HDF5 datasets, groups and attributes when saving
+  edited HDF5 signals; only the signal table and its column descriptors
+  are updated
 - read explicit per-column colors from Cystemas HDF5 `/colors` metadata and
   TSV header metadata such as `Q [W]{color="#ff8800"; other="ignored"}`;
   colors that are empty, missing or unrecognized retain automatic plotting
@@ -43,6 +49,26 @@ Interactively plot CSV, TSV (tab-separated), and HDF5 files.
   linear/relative dB amplitudes, full/visible time range, and frequency limits
 - automatically interpolate gaps and irregular sample times for the Spectrum
   view, with a status message identifying affected signals
+
+## Extended Cystemas TSV (planned)
+
+The [version-1 TSV format specification](tsv-format.md) defines optional
+scalar metadata and combined result files. The shared reference fixtures
+are in `tests/fixtures/tsv_v1/`. Extended TSV reading and writing are not
+implemented yet.
+
+`csv_plotter_metadata.py` normalizes HDF5 scalar result metadata into the
+same ten fields specified for TSV. It recognizes both canonical Cystemas
+`param_*`, `fit_param_*`, `tf_param_*` dataset groups and legacy long-name
+aliases. Groups must be complete and equivalent if both names are present.
+The shared representation keeps configured and fitted values separate,
+retains optional defaults, bounds, original decisions, optimization flags,
+and initial-state snapshots (including incomplete older fit snapshots),
+and represents missing fields with `None`. The existing pane, signal
+selectors, scalar plotting and expression evaluation use format-independent
+views of these rows. Additional pane sections and metadata-only file UI
+support will be implemented with extended TSV support. Scalar metadata is
+not inserted into the loaded numerical table.
 
 ## Non-features
 - CSV/TSV edition (use a text/spreadsheet editor instead)

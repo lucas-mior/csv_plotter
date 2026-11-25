@@ -115,7 +115,7 @@ class InterfaceUnitTests(unittest.TestCase):
         state = {
             "Gtk": Gtk,
             "column_registry": registry,
-            "hdf5_named_value_by_display_name": {},
+            "named_value_by_display_name": {},
             "metadata_name": lambda name: False,
             "x_button_group": None,
             "axes_left": object(),
@@ -147,7 +147,7 @@ class InterfaceUnitTests(unittest.TestCase):
                              f"Expression name: {name}")
 
     def test_metadata_units_visible_too(self):
-        self.state["hdf5_named_value_by_display_name"] = {
+        self.state["named_value_by_display_name"] = {
             "parameters.k": {"name": "k", "unit": "1/s"},
         }
         self.state["metadata_name"] = lambda name: name == "parameters.k"

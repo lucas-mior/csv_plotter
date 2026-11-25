@@ -115,7 +115,7 @@ class SpectrumPlotTests(unittest.TestCase):
             "amplitude_spectrum": amplitude_spectrum,
             "data_frame": frame,
             "column_registry": self.registry,
-            "hdf5_named_value_by_display_name": {},
+            "named_value_by_display_name": {},
             "selector_unit": lambda name: self.registry.get(name).unit,
             "x_data": frame["time"],
             "axes_left": time_left,

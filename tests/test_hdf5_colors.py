@@ -44,11 +44,11 @@ class ColorsHdf5Tests(unittest.TestCase):
             'read_tsv': read_tsv,
             'write_csv': write_csv,
             'write_tsv': write_tsv,
-            'hdf5_named_values': [],
-            'hdf5_named_value_by_display_name': {},
-            'hdf5_simulation_metadata': [],
-            'hdf5_fit_metadata': [],
-            'hdf5_fit_inputs': [],
+            'named_values': [],
+            'named_value_by_display_name': {},
+            'simulation_metadata': [],
+            'fit_metadata': [],
+            'fit_inputs': [],
             'HDF5_EXTENSIONS': ('.h5', '.hdf5'),
             'os': __import__('os'),
             'sys': __import__('sys'),
@@ -121,7 +121,7 @@ class ColorsHdf5Tests(unittest.TestCase):
             state['colors'] = {'pressure_bar':
                                state['configured_plot_color'](
                                    'pressure_bar', 'tab:blue')}
-            state['hdf5_named_value_by_display_name'] = {}
+            state['named_value_by_display_name'] = {}
             figure = Figure()
             axes = figure.add_subplot(111)
             state['add_plot']('pressure_bar', axes)
