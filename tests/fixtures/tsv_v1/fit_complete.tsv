@@ -1,0 +1,28 @@
+# cystemas-tsv:1
+# metadata
+kind	name	value	unit	default_value	initial_value	original_initial_value	lower_bound	upper_bound	optimized
+fit	fit_date	2026-11-25							
+fit	started_at	2026-11-25T17:00:00.000000Z							
+fit	ended_at	2026-11-25T17:00:02.000000Z							
+fit	elapsed_seconds	2							
+fit	converged	true							
+fit	commit_on_success	false							
+fit	params_committed	false							
+fit	integration_method	runge kutta 4th order							
+fit	input_file	measurements.tsv							
+fit	minimization_method	levenberg marquardt (qr)							
+fit	simulation_count	15							
+fit_input	motor.u	0.5	s						
+parameter	motor.J	2.5	kg*m^2	2.0					
+parameter	motor.B	0.1	N*m*s/rad	0.1					
+initial_state	motor.w	0.75	rad/s		0.0				
+initial_state	motor.theta	0.25	rad		0.25				
+fit_parameter	motor.J	3.125	kg*m^2		2.25	2.5	0.01	inf	1
+fit_parameter	motor.B	0.1	N*m*s/rad		0.1	0.1	0.1	0.1	0
+fit_initial_state	motor.w	0.75	rad/s		0.5	0.0	-inf	inf	1
+constant	gravity	9.81	m/s^2						
+# timeseries
+time [s]	sim.motor.w [rad/s]{color="#112233"}	exp.motor.w [rad/s]	sim.motor.u [N*m]
+0	0.75	0.8	1
+0.5	1.25	1.2	1.5
+1	2.5	2.4	2

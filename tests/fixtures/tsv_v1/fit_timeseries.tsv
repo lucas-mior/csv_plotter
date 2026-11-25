@@ -1,0 +1,4 @@
+time [s]	sim.motor.w [rad/s]{color="#112233"}	exp.motor.w [rad/s]	sim.motor.u [N*m]
+0	0.75	0.8	1
+0.5	1.25	1.2	1.5
+1	2.5	2.4	2

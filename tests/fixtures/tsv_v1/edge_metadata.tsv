@@ -1,0 +1,11 @@
+# cystemas-tsv:1
+# metadata
+kind	name	value	unit	default_value	initial_value	original_initial_value	lower_bound	upper_bound	optimized
+simulation	input_file								
+simulation	note	NA							
+parameter	a\\b\tµ	-inf		nan					
+constant	zero	-0.0							
+constant	tiny	5e-324							
+constant	large	1.7976931348623157e+308							
+constant	missing_measurement	nan							
+future_kind	extra	null\tvalue	µ						0

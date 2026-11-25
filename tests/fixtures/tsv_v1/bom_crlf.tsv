@@ -1,0 +1,20 @@
+﻿# cystemas-tsv:1
+# metadata
+kind	name	value	unit	default_value	initial_value	original_initial_value	lower_bound	upper_bound	optimized
+simulation	simulation_date	2026-11-25							
+simulation	started_at	2026-11-25T17:00:00.000000Z							
+simulation	ended_at	2026-11-25T17:00:00.025000Z							
+simulation	elapsed_seconds	0.025							
+simulation	converged	true							
+simulation	pre_initialized	false							
+simulation	integration_method	runge kutta 4th order							
+simulation	input_file	dados/ação\t"sensor"\\test\nnext\r.csv							
+parameter	motor.J	2.5	kg*m^2	2.0					
+parameter	motor.B	0.1	N*m*s/rad	0.1					
+initial_state	motor.w	0.0	rad/s						
+constant	gravity	9.81	m/s^2						
+# timeseries
+time [s]	motor.w [rad/s]{color="#112233"}	Q [W]	Q [kW]
+0	0	1000	1
+0.5	1.25	2000	2
+1	2.5	3000	3

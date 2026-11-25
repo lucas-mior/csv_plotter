@@ -1,0 +1,2 @@
+kind	name	unit	initial_value	fitted_value	lower_bound	upper_bound	original_initial_value	optimized
+parameter	motor.J	kg*m^2	2.25	3.125	0.01	inf	2.5	1

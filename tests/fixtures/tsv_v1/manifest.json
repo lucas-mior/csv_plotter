@@ -1,0 +1,172 @@
+{
+  "format_version": 1,
+  "files": {
+    "legacy_timeseries.tsv": {
+      "classification": "legacy",
+      "legacy_kind": "timeseries"
+    },
+    "legacy_decisions.tsv": {
+      "classification": "legacy",
+      "legacy_kind": "decisions"
+    },
+    "simulation_metadata.tsv": {
+      "classification": "metadata_only"
+    },
+    "simulation_complete.tsv": {
+      "classification": "combined"
+    },
+    "fit_metadata.tsv": {
+      "classification": "metadata_only"
+    },
+    "fit_complete.tsv": {
+      "classification": "combined"
+    },
+    "fit_timeseries.tsv": {
+      "classification": "legacy",
+      "legacy_kind": "timeseries"
+    },
+    "empty_metadata.tsv": {
+      "classification": "metadata_only"
+    },
+    "header_only_timeseries.tsv": {
+      "classification": "combined",
+      "note": "structurally valid; no samples"
+    },
+    "edge_metadata.tsv": {
+      "classification": "metadata_only"
+    },
+    "bom_crlf.tsv": {
+      "classification": "combined"
+    },
+    "legacy_signature_later.tsv": {
+      "classification": "legacy",
+      "note": "routing only; not a valid numeric time series"
+    },
+    "legacy_leading_space.tsv": {
+      "classification": "legacy",
+      "note": "routing only"
+    },
+    "bad_version.tsv": {
+      "classification": "error",
+      "error": "unsupported_version",
+      "line": 1
+    },
+    "bad_version_space.tsv": {
+      "classification": "error",
+      "error": "unsupported_version",
+      "line": 1
+    },
+    "bad_metadata_marker.tsv": {
+      "classification": "error",
+      "error": "metadata_marker",
+      "line": 2
+    },
+    "bad_header.tsv": {
+      "classification": "error",
+      "error": "metadata_header",
+      "line": 3
+    },
+    "bad_short_row.tsv": {
+      "classification": "error",
+      "error": "cell_count",
+      "line": 4
+    },
+    "bad_long_row.tsv": {
+      "classification": "error",
+      "error": "cell_count",
+      "line": 4
+    },
+    "bad_duplicate.tsv": {
+      "classification": "error",
+      "error": "duplicate_key",
+      "line": 5
+    },
+    "bad_escape.tsv": {
+      "classification": "error",
+      "error": "escape",
+      "line": 4
+    },
+    "bad_number.tsv": {
+      "classification": "error",
+      "error": "numeric_overflow",
+      "line": 4
+    },
+    "bad_numeric_space.tsv": {
+      "classification": "error",
+      "error": "numeric_syntax",
+      "line": 4
+    },
+    "bad_missing_value.tsv": {
+      "classification": "error",
+      "error": "missing_numeric_value",
+      "line": 4
+    },
+    "bad_flag.tsv": {
+      "classification": "error",
+      "error": "optimized_flag",
+      "line": 4
+    },
+    "bad_field.tsv": {
+      "classification": "error",
+      "error": "inapplicable_field",
+      "line": 4
+    },
+    "bad_input_unit.tsv": {
+      "classification": "error",
+      "error": "input_interval_unit",
+      "line": 4
+    },
+    "bad_blank.tsv": {
+      "classification": "error",
+      "error": "blank_metadata_line",
+      "line": 4
+    },
+    "bad_no_timeseries_header.tsv": {
+      "classification": "error",
+      "error": "missing_timeseries_header",
+      "line": 5
+    },
+    "bad_extra_section.tsv": {
+      "classification": "error",
+      "error": "extra_section",
+      "line": 7
+    },
+    "bad_utf8.tsv": {
+      "classification": "error",
+      "error": "invalid_utf8",
+      "line": 4
+    },
+    "bad_bare_cr.tsv": {
+      "classification": "error",
+      "error": "bare_cr",
+      "line": 4
+    },
+    "bad_nul.tsv": {
+      "classification": "error",
+      "error": "nul",
+      "line": 4
+    }
+  },
+  "equivalence_pairs": [
+    {
+      "tsv": "simulation_complete.tsv",
+      "hdf5": "simulation.h5",
+      "timeseries_only": "legacy_timeseries.tsv"
+    },
+    {
+      "tsv": "fit_complete.tsv",
+      "hdf5": "fit.h5",
+      "timeseries_only": "fit_timeseries.tsv"
+    },
+    {
+      "tsv": "fit_complete.tsv",
+      "hdf5": "fit_alias.h5",
+      "timeseries_only": "fit_timeseries.tsv"
+    },
+    {
+      "tsv": "bom_crlf.tsv",
+      "hdf5": "simulation.h5",
+      "timeseries_only": "legacy_timeseries.tsv"
+    }
+  ]
+}
