@@ -1,6 +1,6 @@
 # Cystemas result TSV format, version 1
 
-Status: Stage 1 specification. Extended TSV support is not implemented yet.
+Status: version 1 implemented in cystemas and csv_plotter.
 The authoritative copy is `cystemas/tsv-format.md`; csv_plotter carries a
 byte-identical copy and the same fixtures under `tests/fixtures/tsv_v1/`.
 The specification applies to result exports, not to arbitrary CSV files.
@@ -186,10 +186,10 @@ inconsistent vector lengths are errors. Absent groups produce no rows.
 | `fit_input` | `/fit_input_names`, `/fit_input_knot_intervals` |
 | `tf_parameter` | `/tf_param_names`, `/tf_param_units`, `/tf_param_values` |
 
-The actual cystemas dataset prefixes are `param`, `fit_param` and `tf_param`;
-the current csv_plotter reader and its tests instead use `parameter`,
-`fit_parameter` and `tf_parameter`. The shared Python HDF5 adapter must
-recognize both spellings, including associated optional vectors. Use the
+The canonical cystemas dataset prefixes are `param`, `fit_param` and
+`tf_param`; older csv_plotter versions used `parameter`, `fit_parameter`
+and `tf_parameter`. Both readers recognize both spellings where applicable,
+including associated optional vectors. Use the
 cystemas prefixes for new HDF5 output. Resolve aliases per group, not per
 field: if both groups are present, require equivalent normalized values
 (including optional fields), otherwise report ambiguous metadata. Do not
@@ -200,8 +200,8 @@ For the all-state group in a fit, HDF5 `/initial_state_values` contains the
 original conditions and `/initial_state_fitted_values` the effective
 `result->simulation.X0`. Map the former to `initial_value` and the latter to
 `value`. For a simulation, map `/initial_state_values` to `value` and leave
-`initial_value` empty; ordinary simulation HDF5 initial-state export is a
-planned addition, not current behavior. If reading an older fit with only the
+`initial_value` empty. Ordinary simulation HDF5 exports include the recorded
+initial-state snapshot when available. If reading an older fit with only the
 original all-state vector, do not claim that it is the effective replay state:
 retain the original for display and report incomplete metadata for any
 conversion requiring the effective value. This case cannot be faithfully
@@ -257,7 +257,7 @@ Keep existing `cy_save_tsv_path()` and `cy_fit_save_tsv_path()` (and suffix
 variants) time-series-only. Add metadata-only and complete saving APIs for
 simulation and fitting (`cy_save_metadata_tsv_path()`,
 `cy_save_complete_tsv_path()`, `cy_fit_save_metadata_tsv_path()`,
-`cy_fit_save_complete_tsv_path()`; names to be finalized in implementation).
+`cy_fit_save_complete_tsv_path()`).
 Existing separate decisions saving remains unchanged. New readers may load
 metadata independently or load both sections. Existing time-series readers
 skip the metadata section of a combined file. Metadata loading must never
@@ -297,7 +297,12 @@ above; they are reference inputs, not output from a real simulation or fit.
 Compare normalized scalar data by `(kind, name)`, numeric binary64 values
 (with explicit NaN and signed-zero handling), and time-series columns by
 name, unit, color and samples. Do not compare file bytes across HDF5 and TSV.
-The paired simulation HDF5 fixture includes the planned initial-state
-metadata. Both repositories carry identical fixture bytes. A fixture marked
+The paired simulation HDF5 fixture includes the initial-state metadata. Both repositories carry identical fixture bytes. A fixture marked
 legacy tests routing only unless otherwise specified; a malformed fixture
 must fail as extended, never be reinterpreted as legacy.
+
+The opt-in cross-project integration test generates actual simulation and
+fitting results with the cystemas fit test executable, compares the normalized
+HDF5 and TSV content and presentation, saves both extended TSV variants in
+Python, and reloads the saved files in C. See the two repository READMEs for
+invocation. The implementation code remains independent in each repository.

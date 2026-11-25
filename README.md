@@ -208,3 +208,22 @@ introduce spectral artifacts. The inferred median sampling interval cannot
 recover an unknown original sampling rate; if the data contain large or
 frequent gaps, interpret FFT peaks and amplitudes cautiously.
 Run the tests with `python -m unittest discover -s tests`.
+
+For the opt-in integration test with real Cystemas simulation and fitting
+results, build a HDF5-enabled `cy_fit` test executable as described in the
+Cystemas README, then run:
+
+```sh
+CY_TEST_FIT_EXE=/absolute/path/to/cy_fit_integration python -m unittest discover -s tests
+```
+
+The test generates all three TSV variants and HDF5 for both results in a
+private temporary directory, compares normalized metadata, trajectories,
+units, colors, pane text, scalar plots and both complete-format conversions,
+writes extended TSV in Python,
+and asks Cystemas to read the rewritten files. Without `CY_TEST_FIT_EXE`,
+only this test is skipped. Optionally set `CY_TEST_FIT_EXE_NO_HDF5` to a
+second fit test executable compiled without HDF5, to repeat the C import
+checks in that configuration. The regular tests use the shared synthetic
+fixtures and do not require a Cystemas installation. GTK interface tests are
+headless; the integration test does not require a graphical session.
